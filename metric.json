@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "dimensions": [
+    "lips_closed",
+    "lips_rounded",
+    "tt_pos",
+    "tt_height",
+    "tb_pos",
+    "tongue_root",
+    "vel_open",
+    "lateral_ratio",
+    "voiced",
+    "cg",
+    "sg",
+    "laryngeal_tension",
+    "duration",
+    "jet_focus",
+    "effective_oral_area"
+  ],
+  "weights": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    8.0,
+    2.0,
+    8.0,
+    8.0,
+    8.0,
+    8.0,
+    2.0,
+    2.0,
+    2.0
+  ],
+  "metric": null,
+  "lambda": 4.0,
+  "airstream": [
+    "pulmonic",
+    "glottalic egressive",
+    "glottalic ingressive",
+    "lingual"
+  ]
+}
