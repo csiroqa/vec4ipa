@@ -1,0 +1,139 @@
+# ipa<TAB>feature-name<TAB>airstream   (feature abbreviations, scholarly)
+# vl voiceless vd voiced | pls plosive nas nasal trl trill tap frc fricative
+# afc affricate apx approximant clk click ejt ejective imp implosive
+# bil labiodental den alv pst rfl alvpal pal vel uvu pha epl glo lat lateral
+# front cent back cls close ncls near-close cmid close-mid mid omid open-mid
+# nopn near-open opn open unr unrounded rnd rounded vwl vowel
+
+a	front.opn.unr.vwl	pulmonic
+b	vd.bil.pls	pulmonic
+c	vl.pal.pls	pulmonic
+d	vd.alv.pls	pulmonic
+d̪	vd.den.pls	pulmonic
+d͡z	vd.alv.afc	pulmonic
+d͡ʑ	vd.alvpal.afc	pulmonic
+d͡ʒ	vd.pst.afc	pulmonic
+e	front.cmid.unr.vwl	pulmonic
+f	vl.lbd.frc	pulmonic
+fʼ	vl.lbd.ejt	glottalic egressive
+h	vl.glo.frc	pulmonic
+i	front.cls.unr.vwl	pulmonic
+j	vd.pal.apx	pulmonic
+k	vl.vel.pls	pulmonic
+kʼ	vl.vel.ejt	glottalic egressive
+k͡p	vl.vel.bil.pls	pulmonic
+k͡x	vl.vel.afc	pulmonic
+l	vd.alv.lat.apx	pulmonic
+m	vd.bil.nas	pulmonic
+n	vd.alv.nas	pulmonic
+n̪	vd.den.nas	pulmonic
+o	back.cmid.rnd.vwl	pulmonic
+p	vl.bil.pls	pulmonic
+pʼ	vl.bil.ejt	glottalic egressive
+p̪	vl.lbd.pls	pulmonic
+q	vl.uvu.pls	pulmonic
+qʼ	vl.uvu.ejt	glottalic egressive
+q͡χ	vl.uvu.afc	pulmonic
+r	vd.alv.trl	pulmonic
+s	vl.alv.frc	pulmonic
+sʼ	vl.alv.ejt	glottalic egressive
+t	vl.alv.pls	pulmonic
+tʼ	vl.alv.ejt	glottalic egressive
+t̪	vl.den.pls	pulmonic
+t͡s	vl.alv.afc	pulmonic
+t͡ɕ	vl.alvpal.afc	pulmonic
+t͡ʃ	vl.pst.afc	pulmonic
+t͡ʃʼ	vl.pst.ejt	glottalic egressive
+u	back.cls.rnd.vwl	pulmonic
+v	vd.lbd.frc	pulmonic
+w	vd.lab.vel.apx	pulmonic
+x	vl.vel.frc	pulmonic
+xʼ	vl.vel.ejt	glottalic egressive
+y	front.cls.rnd.vwl	pulmonic
+z	vd.alv.frc	pulmonic
+æ	front.nopn.unr.vwl	pulmonic
+ç	vl.pal.frc	pulmonic
+ð	vd.den.frc	pulmonic
+ø	front.cmid.rnd.vwl	pulmonic
+ħ	vl.pha.frc	pulmonic
+ŋ	vd.vel.nas	pulmonic
+ŋ͡m	vd.vel.bil.nas	pulmonic
+œ	front.omid.rnd.vwl	pulmonic
+ǀ	vl.den.clk	lingual
+ǁ	vl.alv.lat.clk	lingual
+ǂ	vl.pal.clk	lingual
+ǃ	vl.alv.clk	lingual
+ɐ	cent.nopn.unr.vwl	pulmonic
+ɑ	back.opn.unr.vwl	pulmonic
+ɒ	back.opn.rnd.vwl	pulmonic
+ɓ	vd.bil.imp	glottalic ingressive
+ɔ	back.omid.rnd.vwl	pulmonic
+ɕ	vl.alvpal.frc	pulmonic
+ɖ	vd.rfl.pls	pulmonic
+ɖ͡ʐ	vd.rfl.afc	pulmonic
+ɗ	vd.alv.imp	glottalic ingressive
+ɘ	cent.cmid.unr.vwl	pulmonic
+ə	cent.mid.unr.vwl	pulmonic
+ɛ	front.omid.unr.vwl	pulmonic
+ɜ	cent.omid.unr.vwl	pulmonic
+ɟ	vd.pal.pls	pulmonic
+ɠ	vd.vel.imp	glottalic ingressive
+ɡ	vd.vel.pls	pulmonic
+ɡ͡b	vd.vel.bil.pls	pulmonic
+ɢ	vd.uvu.pls	pulmonic
+ɣ	vd.vel.frc	pulmonic
+ɤ	back.cmid.unr.vwl	pulmonic
+ɥ	vd.lab.pal.apx	pulmonic
+ɦ	vd.glo.frc	pulmonic
+ɧ	vl.pal.vel.frc	pulmonic
+ɨ	cent.cls.unr.vwl	pulmonic
+ɪ	front.ncls.unr.vwl	pulmonic
+ɬ	vl.alv.lat.frc	pulmonic
+ɭ	vd.rfl.lat.apx	pulmonic
+ɮ	vd.alv.lat.frc	pulmonic
+ɯ	back.cls.unr.vwl	pulmonic
+ɰ	vd.vel.apx	pulmonic
+ɱ	vd.lbd.nas	pulmonic
+ɲ	vd.pal.nas	pulmonic
+ɳ	vd.rfl.nas	pulmonic
+ɴ	vd.uvu.nas	pulmonic
+ɵ	cent.cmid.rnd.vwl	pulmonic
+ɶ	front.opn.rnd.vwl	pulmonic
+ɸ	vl.bil.frc	pulmonic
+ɹ	vd.alv.apx	pulmonic
+ɺ	vd.alv.lat.tap	pulmonic
+ɻ	vd.rfl.apx	pulmonic
+ɽ	vd.rfl.tap	pulmonic
+ɾ	vd.alv.tap	pulmonic
+ʀ	vd.uvu.trl	pulmonic
+ʁ	vd.uvu.frc	pulmonic
+ʂ	vl.rfl.frc	pulmonic
+ʃ	vl.pst.frc	pulmonic
+ʄ	vd.pal.imp	glottalic ingressive
+ʈ	vl.rfl.pls	pulmonic
+ʈ͡ʂ	vl.rfl.afc	pulmonic
+ʉ	cent.cls.rnd.vwl	pulmonic
+ʊ	back.ncls.rnd.vwl	pulmonic
+ʋ	vd.lbd.apx	pulmonic
+ʌ	back.omid.unr.vwl	pulmonic
+ʍ	vl.lab.vel.apx	pulmonic
+ʎ	vd.pal.lat.apx	pulmonic
+ʏ	front.ncls.rnd.vwl	pulmonic
+ʐ	vd.rfl.frc	pulmonic
+ʑ	vd.alvpal.frc	pulmonic
+ʒ	vd.pst.frc	pulmonic
+ʔ	vl.glo.pls	pulmonic
+ʕ	vd.pha.frc	pulmonic
+ʘ	vl.bil.clk	lingual
+ʙ	vd.bil.trl	pulmonic
+ʛ	vd.uvu.imp	glottalic ingressive
+ʜ	vl.epl.frc	pulmonic
+ʝ	vd.pal.frc	pulmonic
+ʟ	vd.vel.lat.apx	pulmonic
+ʡ	vl.epl.pls	pulmonic
+ʢ	vd.epl.trl	pulmonic
+β	vd.bil.frc	pulmonic
+θ	vl.den.frc	pulmonic
+θʼ	vl.den.ejt	glottalic egressive
+χ	vl.uvu.frc	pulmonic
+ⱱ	vd.lbd.tap	pulmonic

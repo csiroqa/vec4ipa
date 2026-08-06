@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "dimensions": [
     "lips_closed",
     "lips_rounded",
@@ -15,27 +15,29 @@
     "laryngeal_tension",
     "duration",
     "jet_focus",
-    "effective_oral_area"
+    "effective_oral_area",
+    "airflow_direction"
   ],
   "weights": [
-    1.0,
-    1.0,
-    1.0,
-    1.0,
-    1.0,
-    1.0,
+    0.248,
     8.0,
+    3.64,
+    2.541,
+    2.641,
+    1.0,
+    3.598,
     2.0,
+    0.943,
+    5.847,
+    3.132,
     8.0,
-    8.0,
-    8.0,
-    8.0,
-    2.0,
-    2.0,
-    2.0
+    1.405,
+    2.443,
+    3.828,
+    4.0
   ],
   "metric": null,
-  "lambda": 4.0,
+  "lambda": 5.0,
   "airstream": [
     "pulmonic",
     "glottalic egressive",

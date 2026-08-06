@@ -1,0 +1,14 @@
+# binaries
+*.exe
+
+# generated headers
+src/vectors.h
+src/readme_embed.h
+
+# intermediate files
+*.layer1
+*.layer2
+
+# python
+__pycache__/
+*.pyc

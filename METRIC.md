@@ -4,7 +4,7 @@ Machine‑readable weights and metric live in **`metric.json`**; this document e
 
 ## 1. Distance
 
-For two 15‑dimensional vectors **x**, **y**:
+For two 16‑dimensional vectors **x**, **y**:
 
 $$
 D(x, y) = \sqrt{(x-y)^\top M\,(x-y)} \;+\; \lambda \cdot [\text{airstream}(x) \neq \text{airstream}(y)]
@@ -14,68 +14,80 @@ $$
 - Learnable: $M = L^\top L$ (positive semi‑definite); train with LMNN, NCA, or triplet loss on perceptual confusion / phonological alternation data (cf. Lakretz et al. 2018).
 - Airstream labels: `pulmonic`, `glottalic egressive`, `glottalic ingressive`, `lingual`. The penalty is applied only when the labels differ.
 
-## 2. Default Weights: Derived from Perceptual Data (Miller & Nicely 1955)
+## 2. Default Weights: Fitted to Perceptual Confusion Data (Phatak et al. 2008)
 
-Miller & Nicely (1955) measured how robustly each phonetic feature survives masking noise, by testing discrimination of 16 English consonants (CV syllables) at SNRs from −18 to +12 dB. Qualitative threshold data (their Figs. 1–2):
+**Origin (Miller & Nicely 1955, qualitative tiers).** MN55 measured how robustly each phonetic feature survives masking noise, testing 16 English consonants (CV syllables) at SNRs from −18 to +12 dB. Their qualitative thresholds (Figs. 1–2) define three tiers:
 
-| Feature group | SNR below which discrimination collapses | Empirical anchor |
-| ------------- | ----------------------------------------- | ---------------- |
-| voicing       | ≈ −12 dB (still discriminable at −12 dB)  | robust |
-| nasality      | ≈ −12 dB (same curve as voicing)          | robust |
-| affrication (manner) | ≈ 0 dB                             | intermediate |
-| duration      | ≈ 0 dB (affrication and duration share a single function) | intermediate |
-| place         | < +6 dB is hard to distinguish            | fragile (≈18 dB worse than voicing/nasality) |
+| Feature group | SNR below which discrimination collapses | Tier weight |
+| ------------- | ----------------------------------------- | ----------- |
+| voicing       | ≈ −12 dB (still discriminable at −12 dB)  | 8.0 |
+| nasality      | ≈ −12 dB (same curve as voicing)          | 8.0 |
+| affrication (manner) / duration | ≈ 0 dB                            | 2.0 |
+| place         | < +6 dB is hard to distinguish            | 1.0 |
 
-**Derivation formula** (place as reference, doubling of weight per 6 dB of threshold advantage):
+via $w_i = 2^{(t_{\text{place}} - t_i)/6}$ with $t_{\text{place}} = +6\ \text{dB}$.
 
-$$
-w_i = 2^{(t_{\text{place}} - t_i)/6}, \qquad t_{\text{place}} = +6\ \text{dB}
-$$
+**Revision: weights fitted to Phatak et al. (2008) confusion matrices.** Lovitt & Allen (2006) replicated MN55 and found voicing *less* robust and place *more* robust than the original. Phatak, Lovitt & Allen (2008, JASA 124:1743–1752) provide complete digitized confusion matrices for the same 16 consonants (p t k f θ s ʃ b d g v ð z c m n) at 8 SNRs (+12 to −18 dB). We fitted $P(j|i) = \mathrm{softmax}_j(-a_c \cdot d_{ij})$ (Shepard kernel, per-condition $a_c$) to the 4 mid-SNR matrices (12, 6, 0, −6 dB; "other" response column excluded), L-BFGS-B with $\ell_2$ regularization toward 1.0, leaving-one-condition-out cross-validation:
 
-This yields three tiers: **8.0** (voicing/nasality), **2.0** (manner/duration), **1.0** (place).
+- Fitted weights beat the original 8/2/1 tiers at **every** held-out SNR (total held-out NLL 23,240 vs 29,553; per-SNR 2,192/3,712/6,382/10,953 vs 3,716/5,636/8,097/12,104). Symmetric and asymmetric variants of the data agree on the fitted values. The conclusion is robust to the identifiability treatment: re-fitting with L²‑normalised weights (absorbing the global scale into the per‑condition $a_c$) reproduces the same LOCO ranking (23,446 vs 29,553). The published weights (with the aggregation fix of §2) score 23,435 held-out — within 1% of the raw optimum.
+- **Identifiability caveat**: the model has one free global scale (w → c·w, a → a/√c leaves all distances unchanged), so only the *relative* weight pattern is identified, not the absolute values. The absolute scale printed here is the log‑space‑regularised solution (toward the 8/2/1 initialisation); the reported ratios (e.g. lips_rounded ≈ 6× tt_pos, voiced ≈ 1/6 × tt_pos) are stable across initialisations and regularisation schemes.
+- The fit collapses the MN55 voicing tier: voicing confusions in Phatak 08 are massive and asymmetric (e.g., θ→ð 22%), so `voiced` and its glottal proxies are fitted low (≈ 0.36–0.89 raw) instead of 8.0. The `voiced`/`cg`/`sg` triplet is perfectly collinear within the 16-consonant set, so only their combined voicing distance is identifiable.
+- **Aggregation fix**: the raw pooled fit made the stop voicing distance (p vs b = 0.72) *smaller* than the stop place distance (p vs t = 0.87) — contradicting the data, where stop voicing confusions are tiny (p→b 2% at 0 dB) and stop place confusions are large (p→t 9%). The raw voicing weight is dragged down by fricatives (θ→ð 22%), whose voicing cues genuinely are weaker. Because `voiced`/`cg`/`sg` are perfectly collinear in the 16-consonant set, their *relative* values are unidentifiable and only the combined voicing distance matters — so the triplet was rescaled by factor 1.46 so that the voicing distance equals the place distance (p–b = p–t = 1.295). Cost: +0.5% held-out NLL (23,435 vs 23,240). This keeps the order voicing ≥ place for stops, matching both MN55 and the 0 dB confusion data, while fricative voicing (f–v ≈ 1.30) still prices the genuinely weaker fricative voicing cue realistically.
+- `lips_rounded` fitted at ≈ 21 (only /ʃ/ differs on it within the 16 consonants); capped at 8.0 to avoid overfitting noise (costs only 0.3% NLL).
+- `tongue_root`, `lateral_ratio`, `laryngeal_tension` carry no signal in this 16-consonant set (constant 0.0) and were kept at their MN55-tier values (1.0 / 2.0 / 8.0); `duration` is well identified (8 distinct values across the set) and was fitted (1.405).
 
-Mapping onto the 15 dimensions:
+Final fitted weights (dimension order as in `metric.json`):
 
-> **Placement note — `tt_height`:** `tt_height` is in the *place* tier (1.0), not the manner tier, because the tip‑closure contrast it codes is a place contrast: Phatak & Allen (2007) and Miller & Nicely (1955) show /pa,ta/ is the *hardest* stop‑place pair (81% correct at 10 dB SNR vs ≥92% for all other CV pairs), so tip‑activation must not be priced higher than body position. Manner contrasts (e.g., /t/ vs /s/) are already carried by `duration`, `jet_focus` and `effective_oral_area`; `tt_height` contributes only ~5% of that distance.
+| Dimension | Feature (MN55) | Weight | Fit basis |
+| --------- | -------------- | ------ | --------- |
+| `lips_closed`      | place (bilabial closure) | 0.248 | fitted |
+| `lips_rounded`     | place (rounding) | 8.0 | fitted, capped (only /ʃ/ in 16-consonant set) |
+| `tt_pos`           | place (tip position) | 3.640 | fitted |
+| `tt_height`        | place (tip closure) | 2.541 | fitted |
+| `tb_pos`           | place (body position) | 2.641 | fitted |
+| `tongue_root`      | place (ATR; not in MN55/Phatak sets) | 1.0 | tier default (no signal) |
+| `vel_open`         | nasality | 3.598 | fitted |
+| `lateral_ratio`    | manner (laterality) | 2.0 | tier default (no signal in set) |
+| `voiced`           | voicing | 0.943 | fitted, then rescaled (see aggregation fix below) |
+| `cg`               | voicing (glottal constriction) | 5.847 | fitted, then rescaled (collinear with `voiced`/`sg`) |
+| `sg`               | voicing (glottal spread) | 3.132 | fitted, then rescaled (collinear with `voiced`/`cg`) |
+| `laryngeal_tension`| voicing (laryngeal) | 8.0 | tier default (no signal in set) |
+| `duration`         | duration | 1.405 | fitted |
+| `jet_focus`        | frication | 2.443 | fitted |
+| `effective_oral_area` | affrication (manner) | 3.828 | fitted |
+| `airflow_direction` | airstream direction | 4.0 | qualitative (not in MN55/Phatak 16‑consonant sets) |
 
-| Dimension | Feature (MN55) | Weight | Tier |
-| --------- | -------------- | ------ | ---- |
-| `voiced`      | voicing | 8.0 | laryngeal |
-| `cg`          | voicing (glottal constriction) | 8.0 | laryngeal |
-| `sg`          | voicing (glottal spread) | 8.0 | laryngeal |
-| `laryngeal_tension` | voicing (laryngeal) | 8.0 | laryngeal |
-| `vel_open`    | nasality | 8.0 | laryngeal/nasal |
-| `effective_oral_area` | affrication (manner) | 2.0 | manner |
-| `lateral_ratio` | manner | 2.0 | manner |
-| `duration`    | duration | 2.0 | manner |
-| `jet_focus`   | duration/frication | 2.0 | manner |
-| `lips_closed` | place | 1.0 | place |
-| `lips_rounded` | place | 1.0 | place |
-| `tt_pos`      | place | 1.0 | place |
-| `tt_height`   | place | 1.0 | place |
-| `tb_pos`      | place | 1.0 | place |
-| `tongue_root` | place (ATR; not covered by MN55 — provisional) | 1.0 | place |
+> **Placement note — `tt_height`:** `tt_height` stays in the *place* tier: the tip‑closure contrast it codes is a place contrast. Phatak & Allen (2007) and MN55 show /pa,ta/ is the *hardest* stop‑place pair (81% correct at 10 dB SNR vs ≥92% for all other CV pairs), so tip‑activation must not be priced higher than body position. Manner contrasts (e.g., /t/ vs /s/) are carried by `duration`, `jet_focus`, `effective_oral_area`.
+
+> **Why voicing lost its 8.0:** the fitted voicing weight reflects the 2008 replication, where fricative voicing confusions are large and asymmetric (θ→ð, f→b). The classic MN55 voicing-is-robust result holds only in the 1955 analog experiment. Caveat: a symmetric Shepard model cannot capture asymmetric confusions, so the voicing weight is a lower bound on voicing discriminability; treat it as fitted-for-Phatak-08, not a universal constant. The published weights use the aggregation fix (§2) so that stop voicing (p–b 1.30) is not priced below stop place (p–t 1.30). See §4 for tuning guidance.
+>
+> **Aggregation caveat — stop vs fricative voicing.** Stop voicing confusions are tiny (/p/→/b/ 2%, /t/→/d/ 0%, /k/→/g/ 0.3% at 0 dB) while fricative voicing confusions are large and asymmetric (/θ/→/ð/ 22%, /f/→/b/ 15%). A single scalar weight cannot represent both; the pooled fit lands between them. The published weights resolve the direction for stops (voicing ≥ place) at +0.5% NLL cost. A structurally exact solution would need per‑manner weights (beyond a single global diagonal M); refit per manner class if task‑specific data require it.
+
+> **The airstream dimension.** `airflow_direction` encodes airflow direction as a continuous physical quantity: +1.0 egressive (pulmonic, glottalic egressive), −1.0 ingressive (glottalic ingressive, lingual). It is the *only* continuous dimension in the space: no intermediate value exists in speech production (there is no half‑ingressive mechanism), so ±1 endpoints are used and interpolation between them is meaningless but harmless in the metric. Its weight (4.0) is qualitative — no confusion data cover non‑pulmonic pairs. Consequences:
+> - `/k͡p/` vs `/ʘ/` (identical on the 15 articulatory dims) now differ by √(4·4) = 4.0 before λ, plus λ = 5.0 → total 9.0, well above e.g. `/p/` vs `/pʼ/` at 7.7, matching the perceptual intuition that the click is far more distinct.
+> - Any click vs pulmonic pair is ≥ 9.0 total; any ejective vs pulmonic pair is ≤ 9.9 and can be as close as 6.9 (/ʔ/ vs /fʼ/).
 
 ## 3. Airstream Penalty λ
 
-Default **λ = 4.0**. Rationale: cross‑airstream confusions are essentially absent perceptually (an ejective is never heard as a pulmonic stop under any tested condition), so the penalty should be of the same order as the largest within‑category laryngeal difference (e.g., /p/ vs /pʼ/ differs by cg 0→1 and tns 0→0.6: √(1²·8 + 0.6²·8) ≈ 3.3). λ = 4.0 therefore dominates typical within‑category distances while remaining comparable in scale. **Provisional**: to be calibrated when cross‑airstream confusion data become available; treat as an order‑of‑magnitude default.
+Default **λ = 5.0**. Rationale: cross‑airstream confusions are essentially absent perceptually (an ejective is never heard as a pulmonic stop under any tested condition), so the penalty must exceed every within‑category distance. Calibrated on the full IPA vector table with the fitted weights of §2: the largest within‑category distance is 4.717 (pulmonic /ø/ vs /ʡ/; ejective 2.679, implosive 2.795, lingual 1.918). Setting λ = 5.0 guarantees any two segments of different airstreams are farther apart than any same‑airstream pair. Measured cross‑airstream articulatory distances (before λ): pulmonic↔ejective 1.898–4.943 (min /ʔ,fʼ/; max /ø,qʼ/), pulmonic↔ingressive 4.061–5.972 (min /b,ɓ/), pulmonic↔lingual 4.000–6.088 (min /k͡p,ʘ/). With λ the closest cross‑airstream pair becomes /ʔ/ vs /fʼ/ at 6.9, while click–stop pairs sit at ≥ 9.0 — the click's perceptual distinctness is carried by the `airflow_direction` dimension rather than by a category‑specific penalty.
 
 ## 4. Caveats and Tuning
 
-1. **Scope**: MN55 covers 16 English consonants — no vowels, no non‑pulmonics. Vowel‑relevant weights (`tongue_root`, `tb_pos` backness) and `tt_height` are assigned by analogy (manner/place tiers) and are provisional.
-2. **Replication**: Lovitt & Allen (2006) repeated MN55 and found voicing *less* robust and place *more* robust than the original. Hence the weights are **initialisation**, not gospel: prefer learning M on task‑specific data when available.
-3. **Calibration targets**: (a) fit M to large confusion matrices (e.g., Miller & Nicely 1955; Phatak & Allen 2007; language‑specific CM studies) via metric learning; (b) validate against production‑error data and lexical neighborhood measures.
+1. **Scope**: the fitted data cover 16 English consonants (Phatak et al. 2008; MN55) — no vowels, no non‑pulmonics. `tongue_root` (constant 0.0 in the set) carries no signal and was kept at its MN55‑tier value; vowel‑specific behaviour of `tb_pos` (backness) and `tt_height` is not covered and remains provisional.
+2. **Voicing weight is data‑specific**: raw fitted ≈0.36–0.89, published (rescaled) ≈0.94–5.8 on the 2008 replication, whose voicing confusions are large and asymmetric. MN55 (1955) found voicing the most robust feature. A symmetric Shepard model cannot capture asymmetric confusions; expect the true voicing weight to lie between the MN55 tier (8.0) and the fitted value. Refit on task‑specific data when available.
+3. **Calibration targets**: (a) refit M to larger confusion matrices (Miller & Nicely 1955; Phatak & Allen 2007; language‑specific CM studies) via metric learning; (b) validate against production‑error data and lexical neighborhood measures.
 4. **Per‑language adaptation**: for a target language, restrict the inventory and re‑learn the diagonal; the full matrix M captures correlated cues (e.g., place × rounding for /ʃ/).
+5. **Clicks**: all clicks encode the dual closure (front contact + velar `tb_pos=−0.5`) and `airflow_direction=−1.0`; without the velar component /p/, /t̪/, /t/, /c/ would collide with /ʘ/, /ǀ/, /ǃ/, /ǂ/ respectively, and without the airflow dimension /k͡p/ would equal /ʘ/.
 
 ## 5. metric.json Schema
 
 ```json
 {
-  "version": 2,
-  "dimensions": [ "<name>", ... 15 entries in vector order ],
-  "weights":    [ 1.0, ... 15 entries, diagonal of default M ],
-  "metric":     null,            // full 15×15 M (row-major); null = diag(weights)
-  "lambda":     4.0,             // airstream penalty
+  "version": 3,
+  "dimensions": [ "<name>", ... 16 entries in vector order ],
+  "weights":    [ 1.0, ... 16 entries, diagonal of default M ],
+  "metric":     null,            // full 16×16 M (row-major); null = diag(weights)
+  "lambda":     5.0,             // airstream penalty
   "airstream":  [ "pulmonic", "glottalic egressive", "glottalic ingressive", "lingual" ]
 }
 ```
@@ -88,6 +100,7 @@ Default **λ = 4.0**. Rationale: cross‑airstream confusions are essentially ab
 
 - Miller, G. A. & Nicely, P. E. (1955). An analysis of perceptual confusions among some English consonants. *JASA* 27:338–352.
 - Lovitt, A. & Allen, J. B. (2006). 50 years late: Repeating Miller–Nicely 1955. *INTERSPEECH* 2006:2154–2157.
+- Phatak, S. A., Lovitt, A. & Allen, J. B. (2008). Consonant confusions in white noise. *JASA* 124:1743–1752.
 - Phatak, S. A. & Allen, J. B. (2007). Consonant and vowel confusions in speech‑weighted noise. *JASA* 121:2312–2326.
 - Lakretz, Y., Chechik, G., Rubin, S. & Tishby, N. (2018). Interpreting a deep learning model for speech recognition: A perceptual learning perspective. *Interspeech* 2018.
 - Weinberger, K. Q. & Saul, L. K. (2009). Distance metric learning for large margin nearest neighbor classification. *JMLR* 10:207–244.

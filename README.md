@@ -1,240 +1,296 @@
-# IPA Continuous Vector Representation Specification
+# vec4ipa — IPA/extIPA ⇄ 16‑D articulatory vectors
 
-This document defines a **15‑dimensional** continuous vector space for IPA segments. All dimensions are physically motivated and take real values. Distance between vectors is the **Mahalanobis distance** (a weighted Riemannian metric), optionally combined with an airstream metadata penalty. Inactive articulators are assigned well‑defined resting values; all 15 dimensions participate in distance calculation, guaranteeing correct articulatory place distances. Vowels and consonants share one articulatory scale: **vowel height and consonantal constriction degree are the same dimension** (`effective_oral_area`), so the space is fully unified.
+`vec4ipa` is a suite of three command-line tools that convert between IPA /
+extIPA strings (including complex combining marks, ligatures, tone letters,
+Chinese tone classes, and clinical-phonetics symbols) and the
+16‑dimensional articulatory vectors defined in this repository
+([`docs/SPEC.md`](docs/SPEC.md), [`IPA_VECTORS.md`](IPA_VECTORS.md),
+[`metric.json`](metric.json)).
 
-Default per‑dimension weights and the learnable metric matrix live in **`metric.json`** (documented in **`METRIC.md`**); weights are derived from perceptual data (Miller & Nicely 1955), not hand‑picked.
+All three tools share one core (`src/ipa2vec_core.h`):
 
----
+| tool | direction | purpose |
+| ---- | --------- | ------- |
+| **`ipa2vec`** | IPA → vectors | parse IPA/extIPA strings into 16‑D vectors (2‑layer IR, JSON) |
+| **`vec2ipa`** | vectors → IPA | nearest segment + modifier fit, distance |
+| **`vec4ipa`** | both + inventory | full table, modules, query, stats, weights, both directions |
 
-## 1. Design Principles
+## Build
 
-1. **Articulatory independence** – each active organ has its own dimension; coarticulation activates several at once.
-2. **Unified vowel‑consonant space** – tongue body, lips, etc. are shared; glides sit naturally between their homorganic vowels and consonant manners.
-3. **Continuous values only** – no binary features.
-4. **Affricates** encoded by *effective oral area* (frication phase) and *duration*, not a separate release dimension.
-5. **Laryngeal state is four independent axes** – `voiced` (source), `cg` (glottal constriction), `sg` (glottal spread), `laryngeal_tension`. Voicing and aspiration are deliberately *not* on one axis: `/p/`, `/pʰ/`, `/b/`, `/bʱ/` are all distinct, non‑overlapping points.
-6. **Sibilance** expressed as *jet focusing efficiency*, not groove depth.
-7. **Laterality** expressed as *lateral airflow ratio* (0 central, 1 fully lateral); velarised (dark) /l/ is encoded by tongue body position, not by a reduced lateral value.
-8. **Tongue root** position covers ATR, pharyngealisation.
-9. **Effective oral area** is a single constriction scale covering consonantal occlusion/friction and vowel height (high vowel ≈ 0.4, low vowel = 1.0).
-10. **Global distance** – all 15 dimensions are used; resting values provide the physiological background.
-11. **Distance metric** is the Mahalanobis distance; the metric matrix is initialised from perceptual weights (`metric.json`) and can be learned from data.
-12. **Airstream** is metadata; a fixed penalty λ is added when labels differ.
-13. **Tip gestures are location × height** – `tt_pos` (front–back) and `tt_height` (vertical, Maeda 1990 APEX parameter) are separate; only *active* tip gestures are encoded. A passive tip rides with the tongue body (gestural principle, Browman & Goldstein 1992) and is assigned the resting value.
-14. **Bipolar axes have a true neutral** – `lips_rounded`, `tt_pos`, `tb_pos`, `laryngeal_tension` are −1…+1 with 0 = neutral; positive = front/advanced, negative = back/retracted (no zero‑at‑boundary artifacts).
+Requirements: C11 compiler (`gcc` recommended), `python3` (only to
+regenerate generated headers).
 
----
+```sh
+make            # builds ./ipa2vec ./vec2ipa ./vec4ipa
+                # (Windows: wmain + -municode for UTF-8 argv)
+make gen        # regenerate src/vectors.h and src/readme_embed.h
+```
 
-## 2. Vector Dimensions (15‑D)
+The binaries embed the full table; they do not read any file at runtime.
 
-| Index | Name                  | Description                                                | Range                                                                                            |
-| ----- | --------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| 0     | `lips_closed`         | Lip closure degree                                         | 0.0 = open, 1.0 = fully closed                                                                   |
-| 1     | `lips_rounded`        | Lip rounding/spreading                                     | -1.0 = spread (/i/), 0.0 = neutral, +1.0 = rounded (/u/); consonants may be labialised (e.g. /ʃ/ ≈ +0.25) |
-| 2     | `tt_pos`              | Tongue tip position (front–back)                           | +1.0 = interdental/dental, +0.55 = alveolar, +0.25 = post‑alv., +0.1 = retroflex, 0.0 = palatal, −1.0 = velar |
-| 3     | `tt_height`           | Tongue tip height (Maeda APEX)                             | 0.25 = rest/low, 0.5 = raised (dental fricatives), 0.6 = laminal sibilants, 0.8–0.9 = apical/retroflex/taps, 1.0 = full tip closure (t/d/n) |
-| 4     | `tb_pos`              | Tongue body position (front–back)                          | +1.0 = palatal/front, 0.0 = central, −0.5 = velar, −0.72 = uvular, −0.89 = pharyngeal, −1.0 = epiglottal |
-| 5     | `tongue_root`         | Tongue root position (ATR ↔ RTR)                           | -1.0 = advanced, 0.0 = neutral, +1.0 = retracted/pharyngealised                                  |
-| 6     | `vel_open`            | Velopharyngeal opening (nasality)                          | 0.0 = oral, 0.8 = nasalised vowel, 1.0 = full nasal                                              |
-| 7     | `lateral_ratio`       | Lateral airflow fraction                                   | 0.0 = central, 1.0 = fully lateral                                                               |
-| 8     | `voiced`              | Vocal fold vibration                                       | 0.0 = voiceless, 1.0 = voiced (all vowels and sonorants set 1.0)                                 |
-| 9     | `cg`                  | Glottal constriction (≈ 1 − OQ)                            | 0.0 = open, 0.2 = modal voiced, 0.55 = implosive constriction, 0.7 = creaky (OQ≈0.3), 1.0 = fully closed (/ʔ/, ejective hold) |
-| 10    | `sg`                  | Glottal spread (abduction)                                 | 0.0 = adducted, 0.4 = voiceless unaspirated, 0.55 = breathy /ɦ/, 0.7 = voiced aspiration (/bʱ/), 0.9 = voiceless aspiration (/pʰ/), 1.0 = maximally open (/h/) |
-| 11    | `laryngeal_tension`   | Laryngeal muscle tension                                   | -1.0 = slack (breathy), 0.0 = modal, +1.0 = stiff (creaky/ejective)                              |
-| 12    | `duration`            | Inherent relative duration (short V = 1.0, ratio scale)    | 0.0 = plosive transient, 0.3 = tap/flap, 0.4–1.0 = fricative (anterior→posterior; voiceless 0.5–1.0, voiced ≈ −0.1, sibilants 0.7–0.95), 1.0 = nasal/approximant/short V, 1.2–1.5 = affricate (= 0.5 closure + homorganic fricative phase), 2.0 = long V, geminate = ×2 |
-| 13    | `jet_focus`           | Sibilant jet focusing efficiency (spectral peak height)    | 0.0 = non‑sibilant (flat spectrum), 0.8–1.0 = sibilant (sharp peak, +10–15 dB); /s/ ≈ 0.95 > /ɕ/ ≈ 0.90 > /ʃ/ ≈ 0.85 > /ʂ/ ≈ 0.80; voiced ≈ −0.05 |
-| 14    | `effective_oral_area` | Normalised minimum cross‑sectional area in the oral cavity (÷ ≈1.5 cm²) | 0.0 = complete occlusion; 0.01–0.15 = fricative (constriction ≤ ~0.2 cm²); 0.3–0.6 = approximant (≈0.5–1.0 cm²); 0.4–0.9 = vowel height (high ≈ 0.4 ≈ 0.5 cm² → low = 1.0 ≈ 1.5 cm²); 1.0 = fully open |
+## Usage
 
-**Former single axis `glottal_aperture` (which conflated voicing with aspiration) is split into `cg` + `sg`.** Former `tt_pos` (0…1, zero at the teeth) and `tb_pos` (0…1.8) are re‑anchored as bipolar axes with physiological neutral at 0; `tt_height` is new (Maeda APEX).
+```
+ipa2vec <STRING>            parse each segment -> vectors
+ipa2vec -i <STRING>         show the two-layer IR, then rebuild IPA (inverse demo)
+ipa2vec -j <STRING>         JSON output
+ipa2vec -v                  version
 
----
+vec2ipa <V0,...,V15>        nearest segment + modifier fit -> IPA
+vec2ipa -n <V0,...,V15>     nearest base segment only
+vec2ipa -d <A> <B>          weighted distance (Mahalanobis + airstream penalty λ)
 
-## 3. Resting Values for Inactive Articulators
+vec4ipa -i | -t             full information table (main + extIPA bases)
+vec4ipa -m                  regional modules and their symbols
+vec4ipa -q <SYM>            query one symbol (base / modifier / alias)
+vec4ipa -s                  statistics
+vec4ipa -w                  metric weights / lambda
+vec4ipa <STRING>            forward: IPA -> vectors
+vec4ipa -r <V0,...,V15>     reverse: vectors -> IPA
+vec4ipa -n <V0,...,V15>     nearest base segment
+vec4ipa -d <A> <B>          weighted distance
+vec4ipa -h                  help (this README, embedded)
+vec4ipa -v                  version
+```
 
-When an articulator is not actively recruited for a segment, it is set to a **physiologically neutral resting value**. This ensures that all 15 dimensions always contain meaningful numbers and that place distances are correctly captured.
+### I/O (all tools)
 
-| Dimension             | Resting value                     |
-| --------------------- | --------------------------------- |
-| `lips_closed`         | 0.0                               |
-| `lips_rounded`        | 0.0                               |
-| `tt_pos`              | +0.55 (relaxed tip projects to the alveolar region; Maeda 1990 neutral config) |
-| `tt_height`           | 0.25 (tip low; Maeda 1990 neutral apex) |
-| `tb_pos`              | 0.0 (central)                     |
-| `tongue_root`         | 0.0                               |
-| `vel_open`            | 0.0                               |
-| `lateral_ratio`       | 0.0                               |
-| `voiced`              | 0.0 (vowels and all sonorants set this to 1.0) |
-| `cg`                  | 0.2 (modal adduction)             |
-| `sg`                  | 0.0                               |
-| `laryngeal_tension`   | 0.0                               |
-| `duration`            | 1.0                               |
-| `jet_focus`           | 0.0                               |
-| `effective_oral_area` | 1.0                               |
+- **stdin**: no input argument — or an explicit `-` — reads from stdin
+  (`echo "tʰa" | ipa2vec`, `echo "V0,...,V15" | vec2ipa`)
+- **`-o FILE`, `--output FILE`**: write output to FILE (stderr stays on the
+  terminal)
+- **`-x BASE`, `--ir-out BASE`**: export the two-layer intermediate
+  representation to `BASE.layer1` (character-composition order) and
+  `BASE.layer2` (feature-tier order), one token per line:
+  `BASE<TAB>ipa<TAB>latin` · `MOD<TAB>ipa<TAB>latin<TAB>tier` · `TIE`
+- **`--`**: treat every following argument as positional (for strings that
+  start with `-`)
 
-**Example:** `/p/` uses `lips_closed=1.0`, `effective_oral_area=0.0`, while its tongue dimensions remain at rest (`tt_pos=+0.55`, `tt_height=0.25`, `tb_pos=0.0`). `/t/` sets `tt_pos=+0.55`, `tt_height=1.0` (tip raised to closure), `effective_oral_area=0.0`, and `lips_closed=0.0` (rest). The global distance between them reflects the large difference in `lips_closed` and `tt_height`. Glottal consonants `/h/` and `/ʔ/` keep every oral articulator at rest; their identity lives entirely in the laryngeal dimensions (`cg`, `sg`, `voiced`, `laryngeal_tension`) and `duration`.
+## Examples
 
-**Passive tip rule:** segments whose constriction is made by another organ (labials, velars, uvulars, pharyngeals, epiglottals, glottals, and vowels) carry the resting tip values; the tip is *carried* by the tongue body and its true position emerges from the body gesture (Browman & Goldstein 1992). Only active tip gestures are encoded in `tt_pos`/`tt_height`.
+```sh
+$ ipa2vec "tʰeɪk"
+[0]    (0.0000, 0.0000, 0.5500, 1.0000, ...)  pulmonic  [asp
+[1]    ...
+[3]    ...
 
----
+$ ipa2vec -i "ã"            # precomposed char decomposed like a + ◌̃
+  layer1 (char order) : [a:front.opn.unr.vwl] → [◌̃:nas/nasal]
+  layer2 (feature order): [a:front.opn.unr.vwl] → [◌̃:nas/nasal]
+vector[0]: (... vel_open 0.8000 ...)  pulmonic  [nas
+rebuilt[0]: /a◌̃/
 
-## 4. Distance Metric: Mahalanobis Distance
+$ vec2ipa "1.0000, 0.0000, 0.5500, 0.2500, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.9000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000"
+/p/  (vl.bil.pls +asp)  d=0.8849  ->  /pʰ/
 
-The distance between two vectors **x** and **y** (both in ℝ¹⁵) is defined as:
+$ vec4ipa -q "ʃ"
+base: /ʃ/  vl.pst.frc  (pulmonic)
+  (0.0000, 0.2500, 0.2500, 0.6500, ...)
+```
 
-$$
-      D(x, y) = d_M(x, y) + λ · [airstream(x) ≠ airstream(y)]
-$$
+## Internal logic (two-layer IR)
 
-with $d_M(x,y) = \sqrt{(x-y)^\top M (x-y)}$. The default metric is $M = \mathrm{diag}(w)$ with weights from **`metric.json`** (see **`METRIC.md`** for the derivation from Miller & Nicely 1955 information‑transmission thresholds). $M$ can be replaced by a full learned matrix $M = L^\top L$.
+The parser follows a strict pipeline:
 
-This keeps the vector space purely continuous while still penalising different initiatory mechanisms.
+1. **Precomposed characters** (`ã`, `ẽ`, `ọ` …) are canonically decomposed
+   into base + combining sequence, so `ã` and `a + ◌̃` produce identical
+   vectors.
+2. **Character composition** — the lexer emits tokens in the order they
+   appear in the input string (layer 1): base segments (longest-prefix match
+   against the 132-entry table), modifier letters, ligature ties (`͡`, `͜`,
+   `͠`), and preposed modifiers (`ᵑǃ`, `ˀa`).
+3. **Feature ordering** — tokens are re-sorted into the natural-language
+   (layer 2) order by feature tier:
 
----
+   ```
+   airstream → laryngeal → place → manner → nasal → timing
+   ```
 
-## 5. Example Vectors
+   and applied to the vector **in that order** (order matters, e.g. `asp`
+   then `creaky`).
 
-Format: 15‑tuple `(lips_closed, lips_rounded, tt_pos, tt_height, tb_pos, tongue_root, vel_open, lateral_ratio, voiced, cg, sg, laryngeal_tension, duration, jet_focus, effective_oral_area)`, followed by airstream label.
+Every token carries a **latin identifier** — a scholarly feature name, not
+the symbol itself and not a folk name:
 
-### `/p/` (pulmonic)
-`(1.0, 0.0, 0.55, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0)`
+| IPA | latin | | IPA | latin |
+|-----|-------|-|-----|-------|
+| `p` | `vl.bil.pls` | | `t͡ʃ` | `vl.pst.afc` |
+| `b` | `vd.bil.pls` | | `ʘ` | `vl.bil.clk` |
+| `s` | `vl.alv.frc` | | `i` | `front.cls.unr.vwl` |
+| `ʃ` | `vl.pst.frc` | | `a` | `front.opn.unr.vwl` |
+| `m` | `vd.bil.nas` | | `ʰ` | `asp` |
 
-### `/t/` (pulmonic)
-`(0.0, 0.0, 0.55, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0)`
+Abbreviations: `vl` voiceless, `vd` voiced, `pls` plosive, `nas` nasal,
+`trl` trill, `tap`, `frc` fricative, `lat` lateral, `apx` approximant,
+`afc` affricate, `clk` click, `ejt` ejective, `imp` implosive, `bil`
+bilabial, `lbd` labiodental, `den` dental, `alv` alveolar, `pst`
+postalveolar, `rfl` retroflex, `alvpal` alveolo‑palatal, `pal` palatal,
+`vel` velar, `uvu` uvular, `pha` pharyngeal, `epl` epiglottal, `glo`
+glottal, `cls` close, `ncls` near‑close, `cmid` close‑mid, `omid`
+open‑mid, `nopn` near‑open, `opn` open, `unr` unrounded, `rnd` rounded,
+`vwl` vowel.
 
-### `/t͡s/` (pulmonic)
-`(0.0, 0.0, 0.55, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 1.3, 0.95, 0.10)`
+The full name table is data in [`src/names.tsv`](src/names.tsv) — edit it
+and re-run `make gen`.
 
-### `/s/` (pulmonic)
-`(0.0, 0.0, 0.55, 0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.8, 0.95, 0.08)`
+## Reverse direction
 
-### `/ʃ/` (pulmonic)
-`(0.0, 0.25, 0.25, 0.65, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.9, 0.85, 0.12)`
+`vec2ipa` maps a vector back to IPA: find the nearest base segment
+(weighted Mahalanobis), then greedily add the modifier that most reduces
+the residual distance (up to 4). Verified: **all 132 base segments
+round-trip losslessly** (forward → reverse → forward reproduces the vector
+to ≤ 0.02 per dimension). Modifier reconstruction is approximate for
+combinations the greedy search cannot separate (e.g. a ligature that is
+not a table entry).
 
-### `/i/` (pulmonic)
-`(0.0, -0.3, 0.55, 0.25, 1.0, -0.4, 0.0, 0.0, 1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.4)`
+## Supported notations
 
-### `/a/` (pulmonic)
-`(0.0, 0.0, 0.55, 0.25, 0.4, 0.0, 0.0, 0.0, 1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 1.0)`
+- All 132 base segments of `IPA_VECTORS.md` (vowels, consonants,
+  affricates, co‑articulated, ejectives, implosives, clicks).
+- ExtIPA base segments not in the table: `ʬ ʭ ʩ ʪ ʫ ꞎ ᶑ ᴇ ɚ ɞ ɝ`
+  (see `EXTRA_BASE` in `src/ipa2vec_core.h`).
+- ASCII alias: Latin `g` == IPA `ɡ`.
+- Diacritics of §10: nasalised `̃`, long `ː`, half‑long `ˑ`, aspirated `ʰ`,
+  creaky `̰`, breathy `̤` (U+0324), pharyngealised `ˤ/̴`, velarised `ˠ`,
+  palatalised `ʲ`, labialised `ʷ`, syllabic `̩`, non‑syllabic `̯`,
+  unreleased `̚`, voiceless `̥`, voiced `̬`, nasal‑click `ᵑ` (preposed),
+  ejective `ʼ` (U+02BC, sets `cg=1 sg=0 lt=0.6 voiced=0` and airstream =
+  glottalic egressive), macron `◌̄` (U+0304, level tone).
+- extIPA/clinical marks: dental `̪`, linguolabial `̼`, laminal `̻`, raised
+  `̝`/`˔`, lowered `̞`, advanced `̟`, retracted `̠`, more/less rounded
+  `̹/̜`, bridged `͆`, apical `̺`, ATR `̘`, RTR `̙`, denasal `̻`,
+  mid‑centralised `̽`, rhotacised `˞`, extra‑short `̆`, fortis `͈`,
+  lenis `͉`, alveolar `͇`, whistled `͎`, labiodental `ᶹ`, sliding `͢`.
+- Ligature ties `͡` `͜` `͠` — table entries (`t͡ʃ`) match directly;
+  out‑of‑table pairs (`tɬ`) combine closure + release by the affricate
+  rule.
+- Implicit (no-tie) affricates per the IPA affricate table:
+  `ts dz tʃ dʒ tɕ dʑ ʈʂ ɖʐ tɬ dɮ cç ɟʝ p̪f` each become a single affricate
+  segment. Other letter pairs (`gp`) stay separate.
+- Precomposed Unicode characters (`ã ẽ ĩ õ ũ ỹ ạ ẹ ọ ụ é è ê ě ē ā ō ī ū ȅ`)
+  decompose to base + combining marks.
+- Tone letters `˥˦˧˨˩`/`꜒꜓꜔꜕꜖` (5‑level), Chinese tone classes
+  `꜀꜁꜂꜃꜄꜅꜆꜇`, upstep `ꜛ`, downstep `ꜜ`, global rise `↗`/fall `↘`,
+  and pitch diacritics — see [Tone system](#tone-system-5-level).
+- Superscript letters as modifiers (`ʳʴʵʶ ᵉᵌᵤ ᵢᵣ ᴬᴮᴼᴾᵁᵂ ᵊ ⁿ ˡ ˢ`),
+  releases (`ˀ` glottal onset, `ʱ` breathy/aspirated), offglides
+  (`ᶷ ᶣ ʸ`), stress marks `ˈ ˌ` (ignored), linking undertie `‿`
+  (ignored).
+- Dotless letters: `ȷ`→`j`; `ı` is `ɪ` when bare (obsolete, warning) but
+  plain `i` when followed by diacritics.
 
-### `/u/` (pulmonic)
-`(0.0, 1.0, 0.55, 0.25, -0.5, 0.0, 0.0, 0.0, 1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.4)`
+Unknown symbols produce a `U+XXXX` error with the byte offset.
 
-### `/o/` (pulmonic)
-`(0.0, 0.95, 0.55, 0.25, -0.5, 0.0, 0.0, 0.0, 1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.7)`
+## Tone system (5-level)
 
-### `/w/` (pulmonic)
-`(0.0, 1.0, 0.55, 0.25, -0.5, 0.0, 0.0, 0.0, 1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.3)`
+Tone letters after a segment are grouped into a 5‑field annotation printed
+after the vector as `(g1)?(g2)?(g3)?(g4)?(g5)` with `?` as the unknown
+placeholder and trailing empty groups omitted:
 
-### `/a̰/` (creaky voice, pulmonic)
-`(0.0, 0.0, 0.55, 0.25, 0.4, 0.0, 0.0, 0.0, 1.0, 0.7, 0.0, 0.7, 1.0, 0.0, 1.0)`
+| input | meaning | output |
+| ----- | ------- | ------ |
+| `ma˩˨` | 2 letters, single tone | `()?(1,2)` |
+| `ma˥˧˩` | 3 letters, 3‑degree single tone | `()?(5,3,1)` |
+| `ma˩˨꜓꜒` | 4 letters, single tone + tone sandhi | `()?(1,2)?(4,5)` |
+| `ma˥˦˧˨˩˩` | 6 letters, 3‑degree + 3‑degree sandhi | `()?(5,4,3)?(2,1,1)` |
+| `maꜛ` | upstep | `()?()?()?(-1,?)` |
+| `maꜜ` | downstep | `()?()?()?(1,?)` |
+| `ma↗` | global rise | `()?()?()?(?,1)` |
+| `ma↘` | global fall | `()?()?()?(?,-1)` |
+| `꜅` | Chinese tone class 6 | group 5 = `(-3)` |
 
-### `/ɓ/` (glottalic ingressive)
-`(1.0, 0.0, 0.55, 0.25, 0.0, 0.0, 0.0, 0.0, 1.0, 0.55, 0.0, 0.0, 0.0, 0.0, 0.0)`
+Groups: 1 = reserved, 2 = single tone, 3 = tone sandhi, 4 = upstep /
+downstep / global contour, 5 = Chinese tone class. Chinese tone classes
+`꜀꜁꜂꜃꜄꜅꜆꜇` map to `1, -1, 2, -2, 3, -3, 4, -4`. Tone marks bind to
+the preceding segment.
 
-### `/h/` (pulmonic)
-`(0.0, 0.0, 0.55, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.7, 0.0, 1.0)`
+## Regional / tradition modules
 
-### `/ʔ/` (glottalic egressive)
-`(0.0, 0.0, 0.55, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.5, 0.0, 0.0, 1.0)`
+Deprecated and regional symbols are organised into **modules** in
+`src/ipa2vec_core.h` (all active; the registry `ALIAS_MODULES` lists them):
 
-### Unification notes
+| module | symbols |
+| ------ | ------- |
+| `generic` | `?`→`ʔ`, `я`→`ʢ`, `∅ Ø` null, `ȷ ɫ ı` dotless/dark, small-capital glyphs |
+| `withdrawn` | ƍ σ ƺ ƪ ƻ ƾ ʦ ʣ ʧ ʤ ʨ ʥ ʇ ʗ ʖ ʞ ƥ ƭ ƈ ƙ ʠ ƞ ƫ ʓ ʆ ɼ ɩ ʚ ɷ ω ȣ |
+| `americanist` | š č ž ǰ ǧ ǯ ẋ ƛ ł λ |
+| `sinologist` | ɿ ʅ ʮ ʯ ᴀ ȡ ȶ ȵ ȴ |
+| `indologist` | ḍ ṭ ṇ ṛ ḷ ṣ ś ṃ ṅ ñ ḥ ḫ ẓ ẖ ḏ ṯ ġ ḡ ḻ ṟ ṁ |
+| `polish` | ź ć ż |
+| `teuthonista` | ƀ đ ǥ ǩ ȟ ǵ |
+| `koreanologist` | Ǝ→ɤ, `K P T` fortis |
+| `japanologist` | `Q` sokuon, `N` syllabic nasal |
+| `africanist` | ȹ ȸ |
+| `oed` | ᵻ ᵿ |
+| `uppercase` | `G`→`ɢ`, `R`→`ʀ`, `Œ`→`ɶ` (only explicitly listed; no shape extrapolation) |
 
-- **Vowel height is consonantal constriction degree** on one scale: `/i/` (0.4) → `/e/` (0.7) → `/a/` (1.0) differ only in `effective_oral_area`; `/u/` (0.4) → `/o/` (0.7) → `/ɔ/` (0.85) likewise. The same dimension covers plosive occlusion (0.0), frication (0.01–0.15) and approximants (0.3–0.6).
-- **Glides are non‑syllabic vowels**: `/w/` (0.3) sits just below `/u/` (0.4), `/j/` (0.35) just below `/i/` (0.4), so glide–vowel distances are small, as they should be.
-- **Vowel place**: `tb_pos` = backness (front +1.0 / central 0 / back −0.5), `lips_rounded` = rounding, `tongue_root` = ATR, `effective_oral_area` = height, `duration` = length (1.0 short / 2.0 long).
-- **Voicing and aspiration are independent**: `/b/` = (voiced 1.0, cg 0.2, sg 0.0) vs `/bʱ/` = (voiced 1.0, cg 0.2, sg 0.7) vs `/p/` = (voiced 0.0, cg 0.0, sg 0.4) vs `/pʰ/` = (voiced 0.0, cg 0.0, sg 0.9) — four distinct, non‑conflated points.
-- **Sibilance lives in `jet_focus` + `effective_oral_area`**, not in `duration`: fricative duration is place- and voicing-graded (anterior 0.5 → posterior 1.0, voiceless > voiced), so `/s/` (0.8) and `/ʃ/` (0.9) are separated by place, rounding, jet focus and area, not by an artificial length gap.
+## Inference reporting
 
-The complete vector table for the IPA inventory (vowels, pulmonic consonants, co‑articulated consonants, ejectives, implosives, clicks, and diacritic modifier rules) is provided in [IPA_VECTORS.md](IPA_VECTORS.md).
+Every inference the parser makes is reported to **stderr**:
 
----
+- `note: inferred tie: 'ts' -> 't͡s'` — implicit (no-tie) affricates merged
+- `note: inferred affricate with synthesized tie` — out-of-table pairs
+  (`tɬ`, `dɮ`, `cç`, `ɟʝ`, `p̪f`)
+- `note: ASCII 'g' interpreted as IPA ɡ`
+- `note: ... reinterpreted ...` — symbol reinterpretation: ASCII `'` →
+  unreleased, `′` → palatalization (Irish), `ʻ ‘ ‛` → weak aspiration,
+  `ʱ` → breathy/aspirated release
+- `note: '<alias>' -> <repl> (<name>)` — any deprecated / non-standard
+  mapping
+- `warning: '<alias>' -> <repl> (<name>)` — deprecated or ambiguous usage
+  where the formal reading was preferred (`ʞ`→`ǃ`, `Q`→gemination,
+  `K P T`→fortis, bare `ı`→`ɪ`)
 
-## 6. Learning the Metric Matrix M
+## Stress tests
 
-The metric matrix M is initialised as $\mathrm{diag}(w)$ with the default weights in `metric.json` (documented in `METRIC.md`). To tailor distances for a specific language or task, M can be learned from data:
+Run the full suite:
 
-- **Training data:** pairs of segments with target distances or similarity labels (from perceptual confusion matrices, phonological alternations, acoustic distances).
-- **Algorithms:**  
-  - **Diagonal weighting:** refine per‑dimension weights via contrastive or triplet loss.  
-  - **Full matrix:** use Large Margin Nearest Neighbour (LMNN), Neighbourhood Components Analysis (NCA), or end‑to‑end metric learning with a triplet loss, where M = LᵀL.
-- **Integration with airstream penalty:** the learning objective can incorporate the airstream penalty or treat it as post‑processing.
+```sh
+python3 tools/test_suite.py       # 122 checks: parsing, tone, regional,
+                                  # inference, warnings, round-trip
+```
 
-Because M is constant, the resulting space is a Euclidean space after linear transformation by L (where M = LᵀL), preserving computational efficiency.
+**The clinical/extIPA stress string** — every feature in one input
+(glottal onset, rhotacised vowel, apical, undertie, stress,
+mid-centralised, offglides, pharyngealisation, dentalisation, fricative
+release, syllable break, downstep, nasalised linguolabial, half-long,
+tone classes, 5-level tones, tone sandhi, global rise, prosodic breaks,
+creak, breathy, dotless i, diaeresis, labio-palatal offglide, syllabic,
+lateral release, non-syllabic, nasal release, denasal, palatalised,
+retracted, more-open, rhotacised, lowered, velarised, unreleased,
+extra-high tone, more-close, voiced, voiceless ring, retroflex hook,
+precomposed accented vowels, labiodental plosives (ȹ ȸ), alveolo-palatal
+(ȶ ȡ), ejectives, clicks, implosives, lateral affricates, pitch contours):
 
----
+```
+ˀɝ̺̆k‿ˈo̽ːᶷˌre̴̪pstˢ.ꜜã̼ˑd꜅˩˦˧꜕꜖꜒↗|ba̜˔z̟ʱ.tsᵊn↗‖z̥ı̤̃ˤt̬ṵ̈ːdᶣ.r̥ʰl̩pˡ.hr̯ʱdⁿ|
+βʷᵿ̻ʑ̩ʲːn̠↘‖ø̙˞˕dˠ̚‖ʎ̯e̘̋t̬˞̩ˤŋ̊.ɺ̢ é̙dɮ.ȹē̹ʟʈʼ.ȸè̜.ȶʎ̝̥ʼȅ̞ȡ.kʟ̝̊ʼě̝ʡ̯.tɬʼḛ̂ʙ.
+ʘe̤᷄ɗ.χʼe̥᷅ǃ.ʛe᷇ǂ.ɧe᷆t͡s.ʑe᷉ɡ͡b.ŋ͡mʍ̩ɥe᷈ɫ
+```
 
-## 7. Notes on Masking (Optional)
+`ipa2vec "<above>"` parses all **76 segments**; the tone annotation on the
+`d꜅˩˦˧꜕꜖꜒↗` group reads `tone=()?(1,4,3)?(2,1,5)?(?,1)?(-3)`.
 
-Although the distance computation uses all 15 dimensions, a **binary mask vector** can still be stored alongside the feature vector to indicate which dimensions are actively controlled by the segment. This mask is not used in the default distance formula, but it may serve as auxiliary information for:
-- Selective weighting (e.g., emphasising dimensions where both segments are active).
-- Visualisation or debugging.
+## Files
 
-To use a mask, one can define an effective metric matrix **M' = M ⊙ (mmᵀ)** where m is the joint mask (logical AND). However, the recommended baseline is to use the full M without masking, relying on the resting values to produce correct place distances.
+| File | Purpose |
+| ---- | ------- |
+| `src/ipa2vec_core.h` | shared core: UTF-8, modifiers, aliases (modules), lexer, canonicaliser, applier, reverse fit |
+| `src/ipa2vec_main.c` | `ipa2vec` — IPA → vectors (parse, IR, JSON) |
+| `src/vec2ipa_main.c` | `vec2ipa` — vectors → IPA (nearest, reverse fit, distance) |
+| `src/vec4ipa_main.c` | `vec4ipa` — inventory + both directions |
+| `src/vectors.h` | generated: 132 base segments + metric weights + latin names |
+| `src/names.tsv` | data: symbol → scholarly feature name (edit + `make gen`) |
+| `src/readme_embed.h` | generated: this README embedded for `vec4ipa -h` |
+| `tools/gen_vectors_h.py` | regenerates `src/vectors.h` |
+| `tools/gen_readme_embed.py` | regenerates `src/readme_embed.h` |
+| `tools/test_suite.py` | 122-check regression suite (incl. the stress string) |
+| `docs/SPEC.md` | the 16-D vector specification |
+| `IPA_VECTORS.md` | the 132-segment vector table (data for the generator) |
+| `METRIC.md` | metric derivation (weights, λ) |
+| `metric.json` | machine-readable weights + λ (v3) |
+| `Makefile` | build all three tools (auto `-municode` on Windows) |
 
----
+## License
 
-## 8. Summary of Degrees of Freedom
-
-- **Lip actions:** lips_closed, lips_rounded
-- **Tongue tip/blade:** tt_pos (dental → velar), tt_height (Maeda APEX: rest → full closure)
-- **Tongue body:** tb_pos (palatal +1 → epiglottal −1)
-- **Tongue root:** tongue_root
-- **Nasal port:** vel_open
-- **Lateral airflow:** lateral_ratio
-- **Laryngeal state:** voiced, cg, sg, laryngeal_tension
-- **Timing:** duration
-- **Sibilant jet:** jet_focus
-- **Aerodynamic area / vowel height:** effective_oral_area
-- **Airstream** (metadata, not a dimension): 4 categories
-
-This set captures the articulatory, aerodynamic, and laryngeal essence of all IPA segments while maintaining a clean, continuous, and learnable distance metric.
-
----
-
-## 9. Empirical Grounding of Values
-
-All anchor values are **normalised ratios of empirical quantities**; intermediate values are interpolated between anchors and are labelled `(interpolated)` where no direct measurement exists. Global normalisation: `duration` by short vowel ≈ 120 ms (short V = 1.0); `effective_oral_area` by ≈ 1.5 cm² (minimum oral area of an open vowel); `cg` ≈ 1 − open quotient (OQ); `sg` by glottal width (Kagaya 1974). Reported values are speaker- and context-dependent; anchors use central tendencies.
-
-| Dimension | Anchor | Empirical basis |
-| --------- | ------ | --------------- |
-| `lips_closed` | 0 / 1 | Complete bilabial contact for /p b m/ (x-ray/MRI occlusion) |
-| `lips_rounded` | −1 (spread /i/) … +1 (rounded /u/) | Lip protrusion/width measurements for rounding contrasts |
-| `tt_pos` | +1 interdental/dental, +0.55 alveolar, +0.25 postalv., +0.1 retroflex, 0 palatal, −1 velar | Tongue‑tip contact sites ordered from teeth to palate (palatography, MRI); rest +0.55 = relaxed apex projects to alveolar region (Maeda 1990 neutral configuration); habitual rest posture places the tip at the incisive papilla ≈ 5 mm behind the upper incisors (≈ +0.75; resting‑posture cephalometry, BMC Oral Health 2025) — documented, but muscle‑neutral rest is used for inactive articulators |
-| `tt_height` | rest 0.25, vowels 0.25, dental fricatives 0.5, laminal sibilants 0.6, apical/retroflex 0.8–0.9, tip closures 1.0 | Maeda (1990) APEX parameter (tongue‑tip height; affects F2); anchors ordered by tip‑raising scale `(interpolated between APEX settings)` |
-| `tb_pos` | +1 palatal → 0 central → −0.5 velar → −0.72 uvular → −0.89 pharyngeal → −1 epiglottal | Dorsal place along hard palate → velum → posterior pharynx (MRI area functions, Story, Titze & Hoffman 1996); −0.72/−0.89/−1.0 pinned to uvular/pharyngeal/epiglottal MRI sites; −0.5 velar is the central‑to‑uvular midpoint `(interpolated)` |
-| `tongue_root` | −1 ATR … +1 RTR | Pharyngeal width differences for ATR pairs (MRI: advanced root widens pharynx) |
-| `vel_open` | oral 0, nasalised V 0.8, nasal 1.0 | Velopharyngeal port area: nasal consonants require maximal port opening; nasal vowels partial opening |
-| `lateral_ratio` | 0 central … 1 fully lateral | Lateral airflow fraction measured aerodynamically for /l/ |
-| `voiced` | 0 / 1 | Vocal fold vibration (EGG, laryngoscopy) |
-| `cg` | 0 open, 0.2 modal, 0.55 implosive, 0.7 creaky, 1.0 closed (/ʔ/, ejective hold) | Open quotient: pressed/creaky OQ ≈ 0.3, modal ≈ 0.5, breathy 0.6–0.7 (Alku & Vilkman 1996; Henrich et al. 2005); cg ≈ 1 − OQ for phonatory states; full closure for glottal stop and ejective hold (Dent, Niimi & Lisker 1980); implosives 0.55 = constricted during downward glottal movement `(interpolated)` |
-| `sg` | 0 adducted, 0.4 voiceless unaspirated, 0.55 breathy, 0.7 voiced aspirated, 0.9 aspirated, 1.0 /h/ | Glottal width during stops: unaspirated < aspirated (Kagaya 1974); /h/ maximal abduction; voiced aspiration keeps folds vibrating with spread glottis (breathy source, Alku & Vilkman 1996) |
-| `laryngeal_tension` | −1 slack … +1 stiff | Intrinsic laryngeal EMG: ejectives show lateralis+vocalis peak; Korean fortis vs lax muscle activity (Dent et al. 1980; Kagaya 1974; Hirose et al. 1974) |
-| `duration` | fricatives 0.5–1.0, anterior → posterior, voiceless > voiced, sibilants > nonsibilants; affricates = 0.5 (closure) + fricative phase | English fricative durations: voiceless > voiced; nonsibilants (/f v θ ð/) shorter than sibilants (/s z ʃ ʒ/); within sibilants /ʃ/ > /s/ (Baum & Blumstein 1987; Crystal & House 1988; Maniwa, Jongman & Wade 2009). Non‑English places (χ ħ x) interpolated |
-| `jet_focus` | non‑sibilant 0.0 (flat spectrum); /s/ 0.95 > /ɕ/ 0.90 > /ʃ/ 0.85 > /ʂ/ 0.80, voiced ≈ −0.05 | Spectral peak location decreases as place moves backward (Al‑Khairy 2005); /s z/ peak ≈ 4–5 kHz vs /ʃ ʒ/ ≈ 2.5–3 kHz (Jongman et al. 2000); sibilants 10–15 dB louder than nonsibilants with sharp peaks (Strevens 1960; Behrens & Blumstein 1988); voicing lowers the spectral peak (Jongman et al. 2000) |
-| `effective_oral_area` | 0.0 occlusion; 0.01–0.15 fricative; 0.3–0.6 approximant; vowel high 0.4 → low 1.0 | Turbulence requires narrow constriction (≈ ≤0.2 cm², Stevens 1998); MRI area functions: close vowels have minimum areas ≈ 0.4–0.5 cm², open /ɑ/ ≈ 1.5 cm² (Story, Titze & Hoffman 1996); approximants intermediate |
-| **weights** | laryngeal & nasality 8.0; manner/duration/sibilance 2.0; place 1.0 | Perceptual robustness: voicing ≈ nasality discriminable at SNR −12 dB, affrication/duration ≈ 0 dB, place < +6 dB (Miller & Nicely 1955); w = 2^((t_place − t_feature)/6); replication caveat: Lovitt & Allen (2006) found voicing less robust, place more robust → treat as initialisation. See METRIC.md |
-
-### Key references
-
-- Baum, S. R. & Blumstein, S. E. (1987). Preliminary observations on the use of duration as a cue to syllable‑initial fricative consonant voicing in English. *JASA* 82:1073–1077.
-- Behrens, S. J. & Blumstein, S. E. (1988). Acoustic characteristics of English voiceless fricatives: A descriptive analysis. *J. Phonetics* 16:295–298.
-- Browman, C. P. & Goldstein, L. (1992). Articulatory phonology: An overview. *Phonetica* 49:155–180.
-- Crystal, T. H. & House, A. S. (1988). A note on the durations of fricatives in American English. *JASA* 84:1932–1935.
-- Dent, L., Niimi, S. & Lisker, L. (1980). Laryngeal adjustments in the production of voiceless unaspirated, aspirated, and glottalized stops. *JASA* 68:S101–S102.
-- Henrich, N., d'Alessandro, C., Doval, B. & Castellengo, M. (2005). Glottal open quotient in singing: Measurements and correlation with laryngeal mechanisms, vocal intensity, and fundamental frequency. *JASA* 117:1417–1430.
-- Alku, P. & Vilkman, E. (1996). A comparison of glottal voice source quantification parameters in breathy, normal, and pressed phonation. *Folia Phoniatrica* 48:240–254.
-- Jongman, A., Wayland, R. & Wong, S. (2000). Acoustic characteristics of English fricatives. *JASA* 108:1252–1263.
-- Kagaya, R. (1974). A fiberscopic and acoustic study of the Korean stops, affricates, and fricatives. *J. Phonetics* 2:161–180.
-- Lovitt, A. & Allen, J. B. (2006). 50 years late: Repeating Miller–Nicely 1955. *INTERSPEECH* 2006:2154–2157.
-- Maeda, S. (1990). Compensatory articulation during speech: Evidence from the analysis and synthesis of vocal‑tract shapes using an articulatory model. In *Speech Production and Speech Modelling*, 131–149.
-- Maniwa, K., Jongman, A. & Wade, T. (2009). Acoustic characteristics of clearly spoken English fricatives. *JASA* 125:3962–3973.
-- Miller, G. A. & Nicely, P. E. (1955). An analysis of perceptual confusions among some English consonants. *JASA* 27:338–352.
-- Al‑Khairy, M. (2005). *Acoustic characteristics of Arabic fricatives.* University of Florida dissertation.
-- Resting tongue posture: tip rests ≈ 5 mm behind the upper incisors at the incisive papilla ("N" point). *BMC Oral Health* (2025), 25, article 682 (cephalometric tongue‑position study).
-- Story, B. H., Titze, I. R. & Hoffman, E. A. (1996). Vocal tract area functions from magnetic resonance imaging. *JASA* 100:537–554.
-- Stevens, K. N. (1998). *Acoustic Phonetics.* MIT Press.
-- Strevens, P. (1960). Spectra of fricative noise in human speech. *Language and Speech* 3:32–49.
-
----
-
-**End of Specification**
+MIT — see [`LICENSE`](LICENSE).
