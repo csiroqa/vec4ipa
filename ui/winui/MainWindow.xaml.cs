@@ -492,7 +492,7 @@ namespace IPA2VectorUI
             HelpBtn.Content = zh ? "帮助" : "Help";
             LoopBtn.Content = zh ? "回环" : "Loop";
 
-            var menus = new[]
+            var menus = new (Microsoft.UI.Xaml.Controls.MenuFlyoutItemBase Ctl, string Text)[]
             {
                 (MExamples, zh ? "示例" : "Examples"),
                 (MOpen, zh ? "打开文件并转换..." : "Open file and convert..."),
@@ -517,7 +517,10 @@ namespace IPA2VectorUI
                 (MAbout, zh ? "关于" : "About"),
             };
             foreach (var (ctl, text) in menus)
-                ctl.Text = text;
+            {
+                if (ctl is MenuFlyoutItem mi) mi.Text = text;
+                else if (ctl is MenuFlyoutSubItem si) si.Text = text;
+            }
         }
 
         private void ViewTable_Click(object sender, RoutedEventArgs e)
