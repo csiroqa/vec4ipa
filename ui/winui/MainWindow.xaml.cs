@@ -87,17 +87,19 @@ namespace IPA2VectorUI
             InitStatus();
             ShowWelcome();
             UpdateButtons();
-            /* this machine's compositor can leave stale highlights;
-             * nudge a repaint when the selection changes */
+            /* force the selection-highlight layer to rebuild on every
+             * change (the compositor otherwise keeps the old paint) */
             OutputBox.SelectionChanged += (s, e) =>
             {
                 try
                 {
                     DispatcherQueue.TryEnqueue(() =>
                     {
-                        OutputBox.InvalidateMeasure();
-                        OutputBox.InvalidateArrange();
-                        OutputBox.UpdateLayout();
+                        var c = OutputBox.SelectionHighlightColor;
+                        OutputBox.SelectionHighlightColor =
+                            new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                                Microsoft.UI.Colors.Transparent);
+                        OutputBox.SelectionHighlightColor = c;
                     });
                 }
                 catch { }
