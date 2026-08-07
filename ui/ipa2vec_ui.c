@@ -360,6 +360,25 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int nCmdShow)
     icc.dwICC = ICC_BAR_CLASSES;
     InitCommonControlsEx(&icc);
 
+    /* Load the bundled fonts (OFL-licensed, ui/fonts/) from the folder
+     * beside the executable so a shipped copy needs no font install;
+     * CreateFontW below falls back to system-installed faces. */
+    {
+        wchar_t exe[MAX_PATH], fontpath[MAX_PATH];
+        if (GetModuleFileNameW(NULL, exe, MAX_PATH) &&
+            wcsrchr(exe, L'\\')) {
+            *(wcsrchr(exe, L'\\') + 1) = L'\0';
+            const wchar_t *fonts[] = {
+                L"fonts\\GentiumBookPlus-Regular.ttf",
+                L"fonts\\NewCM10-Bold.otf",
+            };
+            for (int i = 0; i < 2; i++) {
+                swprintf(fontpath, MAX_PATH, L"%s%s", exe, fonts[i]);
+                AddFontResourceExW(fontpath, FR_PRIVATE, 0);
+            }
+        }
+    }
+
     g_font = CreateFontW(-16, 0, 0, 0, FW_NORMAL, 0, 0, 0,
         DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, 0,
         L"Gentium Book Plus");

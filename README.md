@@ -32,16 +32,30 @@ The binaries embed the full table; they do not read any file at runtime.
 ## GUI wrapper (Windows)
 
 `ui/ipa2vec_ui.c` is a Win32 GUI front-end (`ipa2vec_ui.exe`,
-built by `make ipa2vec_ui`). It uses the **Gentium Book Plus** font
-(normative IPA letterforms) and currently provides:
+built by `make ipa2vec_ui`). It provides:
 
 - **File > Export command lines…** — a window showing the three CLI
   invocations (`ipa2vec`, `vec2ipa`, `vec4ipa`) for the current
   directory, with **Copy to clipboard** and **Save as .bat** buttons.
+- **File > Export tools…** — the three CLI executables are embedded
+  as resources in `ipa2vec_ui.exe`; this item writes them into a
+  folder of your choice, so a single shipped exe carries the whole
+  tool suite.
 - **File > Exit**, **Help > About**.
 
 Tool integration (input box, live IPA→vector→IPA round-trip) is
 planned for a later build.
+
+### Fonts
+
+The GUI text uses **Gentium Book Plus** and the application icon
+(`ui/assets/final_ink.svg`) renders its arrow glyph with
+**NewComputerModern10** — both SIL OFL 1.1 licensed. The files are
+shipped in `ui/fonts/` (`GentiumBookPlus-Regular.ttf`,
+`NewCM10-Bold.otf`) together with the license text (`OFL.txt`).
+The GUI loads them privately (`AddFontResourceEx` FR_PRIVATE) from
+`fonts/` next to the executable and falls back to system-installed
+faces when the folder is absent; no font installation is required.
 
 ## Usage
 
