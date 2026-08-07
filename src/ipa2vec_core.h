@@ -1447,7 +1447,10 @@ static IPA2VEC_MAYBE_UNUSED void nearest_base (const double v[NDIM], const SegEn
     *outd = bestd;
 }
 
-/* greedy modifier fit; returns number of modifiers chosen (<=4) */
+/* greedy modifier fit; returns number of modifiers chosen (<=4).
+ * A modifier is never chosen twice — nor an equivalent one with the same
+ * apply() function under a different glyph (e.g. raised ◌̝ vs ˔), which
+ * would otherwise stack as "ʂ̝˔". */
 static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const SegEntry *base,
                          const ModRec *mods[4])
 {
@@ -1459,8 +1462,11 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
         double bestd = seg_dist(target, cur);
         for (int i = 0; i < NMODS; i++) {
             if (!MODS[i].apply || is_ligature_cp(MODS[i].cp)) continue;
-            /* skip modifiers that were already applied and are idempotent
-             * (they would give zero improvement and loop) */
+            /* skip modifiers already chosen, or with the same effect */
+            int used = 0;
+            for (int k = 0; k < n; k++)
+                if (mods[k]->apply == MODS[i].apply) { used = 1; break; }
+            if (used) continue;
             double trial[NDIM];
             memcpy(trial, cur, sizeof(trial));
             MODS[i].apply(trial, NULL);
