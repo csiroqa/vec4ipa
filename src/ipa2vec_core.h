@@ -1486,16 +1486,84 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
 
 /* rebuild an IPA string from (base, modifier cps): base then combining
  * marks in canonical-feature order; the result is a valid *composed* form */
+/* does the base letter have a descender (below-line stroke)?  On such
+ * letters IPA convention places below-marks above the letter instead
+ * (e.g. ŋ̥ -> ŋ̊). */
+static IPA2VEC_MAYBE_UNUSED int has_descender(const char *s)
+{
+    /* descender letters: g ɡ ɢ ɠ ɣ ŋ ɳ ɲ ɴ ɟ ʝ ɧ ʡ ʢ ɮ ɬ? (ɬ no),
+     * j ȷ ç? (ç no), and any letter containing the combining cases below */
+    static const char *desc[] = {
+        "g", "\xc9\xa1", "\xc9\xa2", "\xc9\xa0", "\xc9\xa3",
+        "\xc5\x8b", "\xc9\xb3", "\xc9\xb2", "\xc9\xb4",
+        "\xc9\x9f", "\xca\x9d", "\xc9\xa7", "\xca\xa1", "\xca\xa2",
+        "\xc9\xae", "j", "\xc8\xb7", "q", "\xc9\xb5", "\xc9\xa6",
+        NULL };
+    for (int i = 0; desc[i]; i++)
+        if (strcmp(s, desc[i]) == 0)
+            return 1;
+    return 0;
+}
+
+/* combining-mark equivalents for spacing modifier letters: prefer the
+ * combining form when emitting (standard IPA uses ◌̝ not ˔, ◌̞ not ˕ …).
+ * Superscript letters (ʰ ʲ ʷ ˠ ˤ ʼ) are themselves standard IPA and are
+ * kept as-is. */
+static IPA2VEC_MAYBE_UNUSED const char *combining_form(const ModRec *m)
+{
+    switch (m->cp) {
+    case 0x02D4: return "\xcc\x9d";   /* ˔ raised  -> ◌̝ */
+    case 0x02D5: return "\xcc\x9e";   /* ˕ lowered -> ◌̞ */
+    default: return NULL;
+    }
+}
+
+/* order modifiers by feature tier before emitting */
+static IPA2VEC_MAYBE_UNUSED void order_mods(const ModRec **mods, int nmods)
+{
+    /* insertion sort by (tier, MODS index) — stable, standard IPA order */
+    for (int i = 1; i < nmods; i++) {
+        const ModRec *key = mods[i];
+        int j = i - 1;
+        while (j >= 0 && (int)mods[j]->tier > (int)key->tier) {
+            mods[j + 1] = mods[j];
+            j--;
+        }
+        mods[j + 1] = key;
+    }
+}
+
+/* build the IPA spelling: base letter + modifiers in feature-tier order.
+ * Standard symbols only: spacing modifier letters are replaced by their
+ * combining forms where one exists; below-marks on descender letters are
+ * moved above (voiceless ◌̥ -> ◌̊). */
 static IPA2VEC_MAYBE_UNUSED void build_ipa (const SegEntry *base, const ModRec **mods, int nmods,
-                      char *out, size_t outsz)
+                       char *out, size_t outsz)
 {
     snprintf(out, outsz, "%s", base->ipa);
     size_t used = strlen(out);
-    for (int i = 0; i < nmods; i++) {
-        /* append the modifier's printed combining mark */
-        size_t L = strlen(mods[i]->ipa);
+
+    /* copy to a local array so we can reorder without touching caller data */
+    const ModRec *ordered[8];
+    int n = nmods < 8 ? nmods : 8;
+    for (int i = 0; i < n; i++) ordered[i] = mods[i];
+    order_mods(ordered, n);
+
+    int desc = has_descender(base->ipa);
+
+    for (int i = 0; i < n; i++) {
+        const char *glyph = ordered[i]->ipa;
+        /* prefer the combining form of spacing modifier letters */
+        const char *comb = combining_form(ordered[i]);
+        if (comb) glyph = comb;
+        /* voiceless below-mark on a descender letter -> above ring */
+        if (desc && (ordered[i]->cp == 0x0325 || ordered[i]->cp == 0x030A ||
+                     ordered[i]->cp == 0x0308)) {
+            glyph = "\xcc\x8a";   /* ◌̊ voiceless ring (above) */
+        }
+        size_t L = strlen(glyph);
         if (used + L + 1 < outsz) {
-            memcpy(out + used, mods[i]->ipa, L);
+            memcpy(out + used, glyph, L);
             used += L;
             out[used] = 0;
         }
