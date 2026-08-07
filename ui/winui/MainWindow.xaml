@@ -16,6 +16,17 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
+        <!-- custom title bar (drag region, icon + title) -->
+        <Grid x:Name="TitleBar" Grid.Row="0" Height="28"
+              Background="Transparent">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                        Margin="12,0,0,0" Spacing="8">
+                <Image x:Name="TitleIcon" Width="16" Height="16"/>
+                <TextBlock x:Name="TitleText" Text="IPA2Vector Workbench"
+                           FontSize="13" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
         <Grid Grid.Row="1">
         <Grid.ColumnDefinitions>
             <ColumnDefinition x:Name="LeftCol" Width="560"/>
@@ -23,7 +34,7 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <!-- left column: inputs / output (output stretches with window) -->
-        <Grid Grid.Column="0" Padding="12" RowSpacing="8">
+        <Grid Grid.Column="0" Padding="12,0,12,8" RowSpacing="4">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -116,21 +127,22 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBox x:Name="VecInput" Grid.Column="0" FontSize="15"
                          AcceptsReturn="True" Height="72"
                          TextWrapping="Wrap"/>
-                <ComboBox x:Name="WidthCombo" Grid.Column="1" SelectedIndex="3"
-                          Width="110">
-                    <ComboBoxItem Content="width 0"/>
-                    <ComboBoxItem Content="width 1"/>
-                    <ComboBoxItem Content="width 2"/>
-                    <ComboBoxItem Content="width 3"/>
-                    <ComboBoxItem Content="width 4"/>
-                </ComboBox>
-                <Button x:Name="ReverseBtn" Grid.Column="2" Content="Reverse"
-                        Click="ReverseBtn_Click"/>
+                <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Top">
+                    <ComboBox x:Name="WidthCombo" SelectedIndex="3">
+                        <ComboBoxItem Content="width 0"/>
+                        <ComboBoxItem Content="width 1"/>
+                        <ComboBoxItem Content="width 2"/>
+                        <ComboBoxItem Content="width 3"/>
+                        <ComboBoxItem Content="width 4"/>
+                    </ComboBox>
+                    <Button x:Name="ReverseBtn" Content="Reverse"
+                            HorizontalAlignment="Stretch"
+                            Click="ReverseBtn_Click"/>
+                </StackPanel>
             </Grid>
 
             <Grid Grid.Row="4">
@@ -179,7 +191,7 @@
                    PointerCaptureLost="Splitter_Released"/>
 
         <!-- right column: soft-keyboard input box on top, keyboard below -->
-        <Grid Grid.Column="2" Margin="0,8,8,8">
+        <Grid Grid.Column="2" Margin="0,0,8,8">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -263,8 +275,7 @@
         </Grid>
 
         <!-- status bar -->
-        <Grid Grid.Row="2" Padding="12,4" Background="{ThemeResource LayerFillColorDefaultBrush}">
-            <TextBlock x:Name="StatusText" FontSize="12"
+        <Grid Grid.Row="2" Padding="12,4" Background="{ThemeResource LayerFillColorDefaultBrush}">            <TextBlock x:Name="StatusText" FontSize="12"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
         </Grid>
     </Grid>

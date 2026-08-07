@@ -233,7 +233,60 @@ namespace IPA2VectorUI
                     Environment.ProcessPath ?? "") ?? "";
                 string icon = Path.Combine(dir, "vec_ipa.ico");
                 if (File.Exists(icon))
+                {
                     appWindow.SetIcon(icon);
+                    TitleIcon.Source = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(
+                        new Uri(icon));
+                }
+                _appWindow = appWindow;
+                SetupTitleBar(appWindow);
+            }
+            catch { }
+        }
+
+        /* custom title bar: content extends into the caption area; the
+         * title row is the drag region (window buttons stay on the right) */
+        private void SetupTitleBar(AppWindow appWindow)
+        {
+            try
+            {
+                appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                double scale = GetDpiForWindow(hwnd) / 96.0;
+                int dragW = (int)(600 * scale);
+                int dragH = (int)(32 * scale);
+                appWindow.TitleBar.SetDragRectangles(new[]
+                {
+                    new Windows.Graphics.RectInt32(0, 0, dragW, dragH),
+                });
+                ApplyTitleBarTheme(appWindow);
+            }
+            catch { }
+        }
+
+        private void ApplyTitleBarTheme(AppWindow appWindow)
+        {
+            try
+            {
+                var c = _themeName == "Light"
+                    ? Windows.UI.Color.FromArgb(255, 0, 0, 0)
+                    : _themeName == "Dark"
+                        ? Windows.UI.Color.FromArgb(255, 255, 255, 255)
+                        : (Windows.UI.Color?)null;
+                var tb = appWindow.TitleBar;
+                if (c.HasValue)
+                {
+                    tb.ButtonForegroundColor = c.Value;
+                    tb.ButtonHoverForegroundColor = c.Value;
+                }
+                else
+                {
+                    tb.ButtonForegroundColor = null;
+                    tb.ButtonHoverForegroundColor = null;
+                }
+                tb.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
+                tb.ButtonHoverBackgroundColor =
+                    Windows.UI.Color.FromArgb(32, 127, 127, 127);
             }
             catch { }
         }
@@ -805,8 +858,12 @@ namespace IPA2VectorUI
             await dlg.ShowAsync();
         }
 
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern uint GetDpiForWindow(IntPtr hwnd);
+
         private void ApplyTheme(string name)
         {
+            _themeName = name;
             try
             {
                 var root = Content.XamlRoot?.Content as FrameworkElement;
@@ -827,6 +884,8 @@ namespace IPA2VectorUI
                 root.InvalidateMeasure();
                 root.InvalidateArrange();
                 root.UpdateLayout();
+                if (_appWindow != null)
+                    ApplyTitleBarTheme(_appWindow);
                 SetStatus("theme: " + name.ToLowerInvariant());
             }
             catch { }
