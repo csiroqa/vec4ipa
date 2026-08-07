@@ -182,7 +182,7 @@ static int run_forward(const char *str, int ir, int json, const char *irbase)
                    po.segs[s].note[0] ? "  [" : "", po.segs[s].note);
             const SegEntry *b; double d;
             nearest_base(po.segs[s].v, &b, &d);
-            const ModRec *mods[4] = {0};
+            const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
             int nm = fit_modifiers(po.segs[s].v, b, mods);
             char rebuilt[128];
             build_ipa(b, mods, nm, rebuilt, sizeof(rebuilt));
@@ -319,7 +319,7 @@ int main(int argc, char **argv)
                    d, AIRSTREAM_LABELS[b->airstream]);
             return 0;
         }
-        const ModRec *mods[4] = {0};
+        const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
         int nm = fit_modifiers(v, b, mods);
         char ipa[128];
         build_ipa(b, mods, nm, ipa, sizeof(ipa));

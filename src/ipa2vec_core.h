@@ -1450,17 +1450,23 @@ static IPA2VEC_MAYBE_UNUSED void nearest_base (const double v[NDIM], const SegEn
     *outd = bestd;
 }
 
-/* greedy modifier fit; returns number of modifiers chosen (<=4).
+/* greedy modifier fit; returns number of modifiers chosen (<= 3).
  * A modifier is never chosen twice — nor an equivalent one with the same
- * apply() function under a different glyph (e.g. raised ◌̝ vs ˔), which
- * would otherwise stack as "ʂ̝˔". */
+ * apply() function under a different glyph (e.g. raised ◌̝ vs ˔).
+ * Each added modifier must improve the distance by at least 8% (relative),
+ * otherwise it is judged noise and dropped — this keeps intermediate
+ * centroids (e.g. the average of two different segments) from stacking
+ * four diacritics onto a single letter. */
+#define IPA2VEC_FIT_MAX_MODS   3
+#define IPA2VEC_FIT_MIN_GAIN   0.08
+
 static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const SegEntry *base,
-                         const ModRec *mods[4])
+                         const ModRec *mods[IPA2VEC_FIT_MAX_MODS])
 {
     double cur[NDIM];
     memcpy(cur, base->v, sizeof(cur));
     int n = 0;
-    for (int round = 0; round < 4; round++) {
+    for (int round = 0; round < IPA2VEC_FIT_MAX_MODS; round++) {
         int besti = -1;
         double bestd = seg_dist(target, cur);
         for (int i = 0; i < NMODS; i++) {
@@ -1478,6 +1484,11 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
             if (d < bestd - 1e-9) { bestd = d; besti = i; }
         }
         if (besti < 0) break;
+        /* significance gate: require at least MIN_GAIN relative improvement
+         * over the previous distance (before this round) */
+        double prev = seg_dist(target, cur);
+        if (prev > 1e-12 && (prev - bestd) / prev < IPA2VEC_FIT_MIN_GAIN)
+            break;
         mods[n++] = &MODS[besti];
         MODS[besti].apply(cur, NULL);
     }
@@ -1518,14 +1529,55 @@ static IPA2VEC_MAYBE_UNUSED const char *combining_form(const ModRec *m)
     }
 }
 
-/* order modifiers by feature tier before emitting */
+/* IPA diacritic order (near -> far from the base letter), per the
+ * Handbook of the IPA and conventional practice:
+ *   1 phonation/voicing (̥ ̬ ̤ ̰ ʱ)
+ *   2 place micro-adjustment (̟ ̠ ̪ ̺ ̻ ̼ ̢)
+ *   3 manner (̝ ̞ ˔ ˕ ̽)
+ *   4 tongue root (̘ ̙)
+ *   5 secondary articulation (ʲ ʷ ˠ ˤ ̴)
+ *   6 nasality (̃)
+ *   7 release (ʰ ʼ ˡ ⁿ ᵊ ˢ ̚)
+ *   8 timing (ː ˑ ̆ ̩ ̯)
+ *   9 tone / everything else
+ * Lower number = closer to the letter. */
+static IPA2VEC_MAYBE_UNUSED int mod_priority(const ModRec *m)
+{
+    switch (m->cp) {
+    case 0x0325: case 0x030A: case 0x0308: case 0x032C:      /* voicing */
+    case 0x0304: case 0x0330: case 0x02B1:                    /* phonation */
+        return 1;
+    case 0x031F: case 0x0320: case 0x032A: case 0x033A:       /* place micro */
+    case 0x033B: case 0x033C: case 0x0322: case 0x0347:
+        return 2;
+    case 0x031D: case 0x031E: case 0x02D4: case 0x02D5:       /* manner */
+    case 0x033D:
+        return 3;
+    case 0x0318: case 0x0319:                                  /* tongue root */
+        return 4;
+    case 0x02B2: case 0x02B7: case 0x02E0: case 0x02E4:       /* secondary */
+    case 0x0334: case 0x02B8:
+        return 5;
+    case 0x0303: case 0x1D51: case 0x1D4B:                    /* nasality */
+        return 6;
+    case 0x02B0: case 0x02BC: case 0x02E1: case 0x207F:       /* release */
+    case 0x1D4A: case 0x02E2: case 0x031A: case 0x1D30:
+        return 7;
+    case 0x02D0: case 0x02D1: case 0x0306: case 0x0329:       /* timing */
+    case 0x032F:
+        return 8;
+    default:
+        return 9;
+    }
+}
+
+/* order modifiers by IPA diacritic order (stable) */
 static IPA2VEC_MAYBE_UNUSED void order_mods(const ModRec **mods, int nmods)
 {
-    /* insertion sort by (tier, MODS index) — stable, standard IPA order */
     for (int i = 1; i < nmods; i++) {
         const ModRec *key = mods[i];
         int j = i - 1;
-        while (j >= 0 && (int)mods[j]->tier > (int)key->tier) {
+        while (j >= 0 && mod_priority(mods[j]) > mod_priority(key)) {
             mods[j + 1] = mods[j];
             j--;
         }
@@ -1561,11 +1613,22 @@ static IPA2VEC_MAYBE_UNUSED void build_ipa (const SegEntry *base, const ModRec *
                      ordered[i]->cp == 0x0308)) {
             glyph = "\xcc\x8a";   /* ◌̊ voiceless ring (above) */
         }
-        size_t L = strlen(glyph);
-        if (used + L + 1 < outsz) {
-            memcpy(out + used, glyph, L);
-            used += L;
-            out[used] = 0;
+        /* strip the U+25CC dotted-circle placeholder from display glyphs
+         * (MODS entries are written "◌̝" for readability; the emitted IPA
+         * spelling carries only the combining mark itself) */
+        const unsigned char *g = (const unsigned char *)glyph;
+        while (*g) {
+            unsigned long cp;
+            int k = utf8_decode(g, &cp);
+            if (!k) break;
+            if (cp != 0x25CC) {
+                if (used + (size_t)k + 1 < outsz) {
+                    memcpy(out + used, g, (size_t)k);
+                    used += (size_t)k;
+                    out[used] = 0;
+                }
+            }
+            g += k;
         }
     }
 }

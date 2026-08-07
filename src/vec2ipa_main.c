@@ -133,7 +133,7 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    const ModRec *mods[4] = {0};
+    const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
     int nm = fit_modifiers(v, b, mods);
     char ipa[128];
     build_ipa(b, mods, nm, ipa, sizeof(ipa));
