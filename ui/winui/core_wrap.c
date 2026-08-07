@@ -143,12 +143,35 @@ EXPORT int ipa2v_kb_cons(char *out, size_t outsz)
     size_t L = 0;
     for (int i = 0; i < NSEG; i++) {
         if (is_vowel_name(NAME_TABLE[i])) continue;
+        if (SEG_TABLE[i].airstream != 0) continue;   /* pulmonic only */
         int n = snprintf(out + L, outsz - L, "%s\n", SEG_TABLE[i].ipa);
         if (n < 0 || (size_t)n >= outsz - L) break;
         L += n;
     }
     for (int i = 0; i < N_EXTRA; i++) {
         if (is_vowel_name(EXTRA_NAMES[i])) continue;
+        if (EXTRA_BASE[i].airstream != 0) continue;
+        int n = snprintf(out + L, outsz - L, "%s\n", EXTRA_BASE[i].ipa);
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
+    }
+    return (int)L;
+}
+
+/* non-pulmonic consonants: ejectives, implosives, clicks, percussives */
+EXPORT int ipa2v_kb_cons_np(char *out, size_t outsz)
+{
+    size_t L = 0;
+    for (int i = 0; i < NSEG; i++) {
+        if (is_vowel_name(NAME_TABLE[i])) continue;
+        if (SEG_TABLE[i].airstream == 0) continue;
+        int n = snprintf(out + L, outsz - L, "%s\n", SEG_TABLE[i].ipa);
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
+    }
+    for (int i = 0; i < N_EXTRA; i++) {
+        if (is_vowel_name(EXTRA_NAMES[i])) continue;
+        if (EXTRA_BASE[i].airstream == 0) continue;
         int n = snprintf(out + L, outsz - L, "%s\n", EXTRA_BASE[i].ipa);
         if (n < 0 || (size_t)n >= outsz - L) break;
         L += n;
@@ -541,6 +564,41 @@ EXPORT int ipa2v_vowel_positions(char *out, size_t outsz)
         if (row > 4) row = 4;
         int n = snprintf(out + L, outsz - L, "%s\t%d\t%d\n",
                          SEG_TABLE[i].ipa, row, col);
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
+    }
+    return (int)L;
+}
+
+/* consonant place: one "sym\ttt_pos\n" line per consonant (incl. EXTRA),
+ * tt_pos runs front (0, lips) to back (1, glottis) */
+EXPORT int ipa2v_kb_cons_pos(char *out, size_t outsz)
+{
+    size_t L = 0;
+    for (int i = 0; i < NSEG; i++) {
+        if (is_vowel_name(NAME_TABLE[i])) continue;
+        int n = snprintf(out + L, outsz - L, "%s\t%.4f\n",
+                         SEG_TABLE[i].ipa, SEG_TABLE[i].v[2]);
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
+    }
+    for (int i = 0; i < N_EXTRA; i++) {
+        if (is_vowel_name(EXTRA_NAMES[i])) continue;
+        int n = snprintf(out + L, outsz - L, "%s\t%.4f\n",
+                         EXTRA_BASE[i].ipa, EXTRA_BASE[i].v[2]);
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
+    }
+    return (int)L;
+}
+
+/* modifier tiers: one "sym\ttier\n" line per MODS entry */
+EXPORT int ipa2v_kb_mod_tiers(char *out, size_t outsz)
+{
+    size_t L = 0;
+    for (int i = 0; i < NMODS; i++) {
+        int n = snprintf(out + L, outsz - L, "%s\t%d\n",
+                         MODS[i].ipa, (int)MODS[i].tier);
         if (n < 0 || (size_t)n >= outsz - L) break;
         L += n;
     }

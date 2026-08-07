@@ -34,6 +34,10 @@ namespace IPA2VectorUI
             [MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder out_, int outsz);
 
         [DllImport("ipa2vec_core.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int ipa2v_kb_cons_np(
+            [MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder out_, int outsz);
+
+        [DllImport("ipa2vec_core.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern int ipa2v_kb_vowels(
             [MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder out_, int outsz);
 
@@ -141,6 +145,14 @@ namespace IPA2VectorUI
 
         [DllImport("ipa2vec_core.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern int ipa2v_vowel_positions(
+            [MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder out_, int outsz);
+
+        [DllImport("ipa2vec_core.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int ipa2v_kb_cons_pos(
+            [MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder out_, int outsz);
+
+        [DllImport("ipa2vec_core.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int ipa2v_kb_mod_tiers(
             [MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder out_, int outsz);
 
         /// <summary>--metric FILE: returns null on success, error text otherwise.</summary>
@@ -259,6 +271,41 @@ namespace IPA2VectorUI
             return map;
         }
 
+        /// <summary>Consonant place of articulation: sym -> tt_pos (0 front .. 1 back).</summary>
+        public static Dictionary<string, double> ConsPositions()
+        {
+            var sb = new StringBuilder(8192);
+            ipa2v_kb_cons_pos(sb, 8192);
+            var map = new Dictionary<string, double>();
+            foreach (var line in sb.ToString().Split('\n',
+                         StringSplitOptions.RemoveEmptyEntries))
+            {
+                var p = line.Split('\t');
+                if (p.Length == 2 && double.TryParse(p[1],
+                        System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out var d))
+                    map[p[0]] = d;
+            }
+            return map;
+        }
+
+        /// <summary>Modifier tiers: sym -> tier index.</summary>
+        public static Dictionary<string, int> ModTiers()
+        {
+            var sb = new StringBuilder(8192);
+            ipa2v_kb_mod_tiers(sb, 8192);
+            var map = new Dictionary<string, int>();
+            foreach (var line in sb.ToString().Split('\n',
+                         StringSplitOptions.RemoveEmptyEntries))
+            {
+                var p = line.Split('\t');
+                if (p.Length == 2 && int.TryParse(p[1], out var t))
+                    map[p[0]] = t;
+            }
+            return map;
+        }
+
         public static string? Forward(string ipa, out string? error)
         {
             error = null;
@@ -311,6 +358,7 @@ namespace IPA2VectorUI
         }
 
         public static string[] KeyboardCons() => KbList(ipa2v_kb_cons);
+        public static string[] KeyboardConsNp() => KbList(ipa2v_kb_cons_np);
         public static string[] KeyboardVowels() => KbList(ipa2v_kb_vowels);
         public static string[] KeyboardMods() => KbList(ipa2v_kb_mods);
         public static string[] KeyboardTones() => KbList(ipa2v_kb_tones);

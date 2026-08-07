@@ -16,58 +16,6 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <MenuBar Grid.Row="0">
-            <MenuBarItem Title="File">
-                <MenuFlyoutSubItem Text="Examples">
-                    <MenuFlyoutItem Text="English: tʰa (aspirated t + a)" Click="Example_Click"/>
-                    <MenuFlyoutItem Text="Mandarin: ma˥˩ (falling tone)" Click="Example_Click"/>
-                    <MenuFlyoutItem Text="Nasalised: ɛ̃ (nasalised vowel)" Click="Example_Click"/>
-                    <MenuFlyoutItem Text="Affricate: t͡ʃa (ch + a)" Click="Example_Click"/>
-                    <MenuFlyoutItem Text="Ejective: kʼa (ejective k)" Click="Example_Click"/>
-                    <MenuFlyoutItem Text="Click: ǃ̃o (nasal click)" Click="Example_Click"/>
-                </MenuFlyoutSubItem>
-                <MenuFlyoutItem Text="Open file and convert..." Click="OpenFileConvert_Click"/>
-                <MenuFlyoutSeparator/>
-                <MenuFlyoutItem Text="Export command lines..." Click="ExportCmd_Click"/>
-                <MenuFlyoutItem Text="Export tools (ipa2vec/vec2ipa/vec4ipa)..." Click="ExportTools_Click"/>
-                <MenuFlyoutSeparator/>
-                <MenuFlyoutItem Text="Exit" Click="Exit_Click"/>
-            </MenuBarItem>
-            <MenuBarItem Title="View">
-                <MenuFlyoutSubItem x:Name="ModulesSub" Text="Modules (schools)"/>
-                <MenuFlyoutItem Text="Base table" Click="ViewTable_Click"/>
-                <MenuFlyoutItem Text="Module details" Click="ViewModules_Click"/>
-                <MenuFlyoutItem Text="Statistics" Click="ViewStats_Click"/>
-                <MenuFlyoutItem Text="Metric weights" Click="ViewWeights_Click"/>
-                <MenuFlyoutSeparator/>
-                <MenuFlyoutItem Text="Load metric.json..." Click="LoadMetric_Click"/>
-                <MenuFlyoutItem Text="Compare symbols..." Click="Compare_Click"/>
-                <MenuFlyoutItem Text="Vector editor..." Click="VectorEditor_Click"/>
-                <MenuFlyoutItem Text="History..." Click="History_Click"/>
-                <MenuFlyoutSeparator/>
-                <ToggleMenuFlyoutItem Text="Feature names (tt_pos=0.55)" Click="FeatureNames_Click"/>
-                <MenuFlyoutSubItem Text="Theme">
-                    <RadioMenuFlyoutItem Text="System" GroupName="theme" IsChecked="True" Click="Theme_Click"/>
-                    <RadioMenuFlyoutItem Text="Light" GroupName="theme" Click="Theme_Click"/>
-                    <RadioMenuFlyoutItem Text="Dark" GroupName="theme" Click="Theme_Click"/>
-                </MenuFlyoutSubItem>
-                <MenuFlyoutSeparator/>
-                <MenuFlyoutItem Text="Convert + reverse loop" Click="Loop_Click"/>
-                <MenuFlyoutItem Text="Export table as CSV..." Click="ExportCsv_Click"/>
-                <MenuFlyoutItem Text="Save IR files (layer1/layer2)..." Click="SaveIr_Click"/>
-                <MenuFlyoutItem Text="Save output as..." Click="SaveOutput_Click"/>
-                <MenuFlyoutItem Text="Clear output" Click="ClearOutput_Click"/>
-            </MenuBarItem>
-            <MenuBarItem Title="Language">
-                <RadioMenuFlyoutItem Text="English" GroupName="lang" IsChecked="True" Click="Lang_Click"/>
-                <RadioMenuFlyoutItem Text="中文" GroupName="lang" Click="Lang_Click"/>
-            </MenuBarItem>
-            <MenuBarItem Title="Help">
-                <MenuFlyoutItem Text="Documentation" Click="Docs_Click"/>
-                <MenuFlyoutItem Text="About" Click="About_Click"/>
-            </MenuBarItem>
-        </MenuBar>
-
         <Grid Grid.Row="1">
         <Grid.ColumnDefinitions>
             <ColumnDefinition x:Name="LeftCol" Width="560"/>
@@ -84,28 +32,80 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
-                <TextBlock x:Name="LblIpa" Text="IPA input (click keyboard buttons or type):" FontSize="15"/>
+                <TextBlock x:Name="LblIpa" Text="Actions:" FontSize="15" Visibility="Collapsed"/>
             </Grid>
             <Grid Grid.Row="1" ColumnSpacing="6">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBox x:Name="IpaInput" Grid.Column="0" FontSize="18"
-                         AcceptsReturn="False"/>
-                <ComboBox x:Name="FormatCombo" Grid.Column="1" SelectedIndex="0"
-                          Width="112">
+                <Button x:Name="FileBtn" Grid.Column="0" Content="File" Padding="10,4">
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuFlyoutSubItem x:Name="MExamples" Text="Examples">
+                                <MenuFlyoutItem Text="English: tʰa (aspirated t + a)" Click="Example_Click"/>
+                                <MenuFlyoutItem Text="Mandarin: ma˥˩ (falling tone)" Click="Example_Click"/>
+                                <MenuFlyoutItem Text="Nasalised: ɛ̃ (nasalised vowel)" Click="Example_Click"/>
+                                <MenuFlyoutItem Text="Affricate: t͡ʃa (ch + a)" Click="Example_Click"/>
+                                <MenuFlyoutItem Text="Ejective: kʼa (ejective k)" Click="Example_Click"/>
+                                <MenuFlyoutItem Text="Click: ǃ̃o (nasal click)" Click="Example_Click"/>
+                            </MenuFlyoutSubItem>
+                            <MenuFlyoutItem x:Name="MOpen" Text="Open file and convert..." Click="OpenFileConvert_Click"/>
+                            <MenuFlyoutSeparator/>
+                            <MenuFlyoutItem x:Name="MExportCmd" Text="Export command lines..." Click="ExportCmd_Click"/>
+                            <MenuFlyoutItem x:Name="MExportTools" Text="Export tools (ipa2vec/vec2ipa/vec4ipa)..." Click="ExportTools_Click"/>
+                            <MenuFlyoutSeparator/>
+                            <MenuFlyoutItem x:Name="MExit" Text="Exit" Click="Exit_Click"/>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+                <Button x:Name="ViewBtn" Grid.Column="1" Content="View" Padding="10,4">
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem x:Name="MTable" Text="Base table" Click="ViewTable_Click"/>
+                            <MenuFlyoutItem x:Name="MModules" Text="Module details" Click="ViewModules_Click"/>
+                            <MenuFlyoutItem x:Name="MStats" Text="Statistics" Click="ViewStats_Click"/>
+                            <MenuFlyoutItem x:Name="MWeights" Text="Metric weights" Click="ViewWeights_Click"/>
+                            <MenuFlyoutSeparator/>
+                            <MenuFlyoutItem x:Name="MCompare" Text="Compare symbols..." Click="Compare_Click"/>
+                            <MenuFlyoutItem x:Name="MVectorEditor" Text="Vector editor..." Click="VectorEditor_Click"/>
+                            <MenuFlyoutItem x:Name="MHistory" Text="History..." Click="History_Click"/>
+                            <MenuFlyoutItem x:Name="MLoop" Text="Convert + reverse loop" Click="Loop_Click"/>
+                            <MenuFlyoutItem x:Name="MLoadMetric" Text="Load metric.json..." Click="LoadMetric_Click"/>
+                            <MenuFlyoutSeparator/>
+                            <MenuFlyoutItem x:Name="MExportCsv" Text="Export table as CSV..." Click="ExportCsv_Click"/>
+                            <MenuFlyoutItem x:Name="MSaveIr" Text="Save IR files (layer1/layer2)..." Click="SaveIr_Click"/>
+                            <MenuFlyoutItem x:Name="MSaveOutput" Text="Save output as..." Click="SaveOutput_Click"/>
+                            <MenuFlyoutItem x:Name="MClear" Text="Clear output" Click="ClearOutput_Click"/>
+                            <MenuFlyoutSeparator/>
+                            <MenuFlyoutItem x:Name="MSettings" Text="Settings..." Click="Settings_Click"/>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+                <Button x:Name="HelpBtn" Grid.Column="2" Content="Help" Padding="10,4">
+                    <Button.Flyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem x:Name="MDocs" Text="Documentation" Click="Docs_Click"/>
+                            <MenuFlyoutItem x:Name="MAbout" Text="About" Click="About_Click"/>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+                <Button x:Name="LoopBtn" Grid.Column="3" Content="Loop" Padding="10,4"
+                        Click="Loop_Click"/>
+                <ComboBox x:Name="FormatCombo" Grid.Column="4" SelectedIndex="0">
                     <ComboBoxItem Content="vectors"/>
                     <ComboBoxItem Content="IR"/>
                     <ComboBoxItem Content="JSON"/>
                 </ComboBox>
-                <Button x:Name="ConvertBtn" Grid.Column="2" Content="Convert"
+                <Button x:Name="ConvertBtn" Grid.Column="5" Content="Convert"
+                        Padding="10,4" HorizontalAlignment="Stretch"
                         Click="ConvertBtn_Click"/>
             </Grid>
 
@@ -134,26 +134,13 @@
             </Grid>
 
             <Grid Grid.Row="4">
-                <TextBlock x:Name="LblQuery" Text="Query one symbol:" FontSize="15"/>
-            </Grid>
-            <Grid Grid.Row="5" ColumnSpacing="6">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <TextBox x:Name="QueryInput" Grid.Column="0" FontSize="18"/>
-                <Button x:Name="QueryBtn" Grid.Column="1" Content="Query"
-                        Click="QueryBtn_Click"/>
-            </Grid>
-
-            <Grid Grid.Row="6">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="LblDist" Text="Distance between two symbols:" FontSize="15"/>
             </Grid>
-            <Grid Grid.Row="7" ColumnSpacing="6">
+            <Grid Grid.Row="5" ColumnSpacing="6">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
@@ -165,7 +152,7 @@
                         Click="DistBtn_Click"/>
             </Grid>
 
-            <Grid Grid.Row="8">
+            <Grid Grid.Row="6">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -177,7 +164,7 @@
                 <Button Grid.Column="2" Content="Clear" FontSize="12"
                         Padding="8,2" Click="ClearOutput_Click"/>
             </Grid>
-            <RichEditBox x:Name="OutputBox" Grid.Row="9" FontSize="15"
+            <RichEditBox x:Name="OutputBox" Grid.Row="7" FontSize="15"
                          TextWrapping="Wrap"
                          ScrollViewer.VerticalScrollBarVisibility="Auto"
                          MinHeight="80"/>
@@ -191,64 +178,88 @@
                    PointerCanceled="Splitter_Released"
                    PointerCaptureLost="Splitter_Released"/>
 
-        <!-- right column: IPA keyboard -->
-        <Pivot Grid.Column="2" x:Name="KeyboardPivot" Margin="0,8,8,8">
-            <PivotItem Header="Consonants">
-                <ScrollViewer ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl x:Name="ConsKeys">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <ItemsWrapGrid Orientation="Horizontal"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                    </ItemsControl>
-                </ScrollViewer>
-            </PivotItem>
-            <PivotItem Header="Vowels">
-                <ScrollViewer ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl x:Name="VowKeys">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <ItemsWrapGrid Orientation="Horizontal"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                    </ItemsControl>
-                </ScrollViewer>
-            </PivotItem>
-            <PivotItem Header="Modifiers">
-                <ScrollViewer ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl x:Name="ModKeys">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <ItemsWrapGrid Orientation="Horizontal"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                    </ItemsControl>
-                </ScrollViewer>
-            </PivotItem>
-            <PivotItem Header="Tones">
-                <ScrollViewer ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl x:Name="ToneKeys">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <ItemsWrapGrid Orientation="Horizontal"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                    </ItemsControl>
-                </ScrollViewer>
-            </PivotItem>
-            <PivotItem Header="Recent">
-                <ScrollViewer ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl x:Name="RecentKeys">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <ItemsWrapGrid Orientation="Horizontal"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                    </ItemsControl>
-                </ScrollViewer>
-            </PivotItem>
-        </Pivot>
+        <!-- right column: soft-keyboard input box on top, keyboard below -->
+        <Grid Grid.Column="2" Margin="0,8,8,8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <TextBox x:Name="IpaInputRight" Grid.Row="0"
+                     FontFamily="Gentium Book Plus" FontSize="24"
+                     MinHeight="44" Margin="0,0,0,6"
+                     PlaceholderText="IPA - soft keyboard input"
+                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                     ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
+            <ScrollViewer Grid.Row="1" x:Name="KeyboardScroll"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Padding="4,0,4,12" Spacing="2">
+                <TextBlock x:Name="LblCons" Text="Consonants" FontWeight="SemiBold" FontSize="14"
+                           Margin="0,6,0,2"/>
+                <ItemsControl x:Name="ConsKeys">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <TextBlock x:Name="LblNp" Text="Non-pulmonic" FontWeight="SemiBold" FontSize="14"
+                           Margin="0,10,0,2"/>
+                <ItemsControl x:Name="NpKeys">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <TextBlock x:Name="LblVow" Text="Vowels" FontWeight="SemiBold" FontSize="14"
+                           Margin="0,10,0,2"/>
+                <ItemsControl x:Name="VowKeys">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <TextBlock x:Name="LblDiac" Text="Diacritics" FontWeight="SemiBold" FontSize="14"
+                           Margin="0,10,0,2"/>
+                <ItemsControl x:Name="DiacKeys">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <TextBlock x:Name="LblLet" Text="Letters" FontWeight="SemiBold" FontSize="14"
+                           Margin="0,10,0,2"/>
+                <ItemsControl x:Name="LetterKeys">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <TextBlock x:Name="LblTone" Text="Tones" FontWeight="SemiBold" FontSize="14"
+                           Margin="0,10,0,2"/>
+                <ItemsControl x:Name="ToneKeys">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <TextBlock x:Name="LblRec" Text="Recent" FontWeight="SemiBold" FontSize="14"
+                           Margin="0,10,0,2"/>
+                <ItemsControl x:Name="RecentKeys">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+        </Grid>
         </Grid>
 
         <!-- status bar -->
