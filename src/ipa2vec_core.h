@@ -1621,6 +1621,9 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
         t.consumed = cons;
         for (int g = 0; g < 3; g++) { t.tkind[g] = 0; t.tone[g][0] = t.tone[g][1] = t.tone[g][2] = NAN; }
         out[n++] = t;
+        int seg_base_idx = n - 1;   /* base token of this segment: tone
+                                     * marks bind here even when modifiers
+                                     * follow (they occupy later tokens) */
         p += cons;
 
         /* synthesized implicit affricate: emit tie + release base */
@@ -1667,9 +1670,9 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
         for (int i = 0; i < npre_sandhi; i++) sandhibuf[nsandhi++] = pre_sandhi[i];
         if (pre_vec3_set) {
             /* 3-D tone vector preposed */
-            out[n-1].tkind[2] = 2;
+            out[seg_base_idx].tkind[2] = 2;
             for (int d = 0; d < 3; d++)
-                out[n-1].tone[2][d] = pre_vec3[d];
+                out[seg_base_idx].tone[2][d] = pre_vec3[d];
         }
 
         /* precomposed combining marks: emit as postposed modifier tokens
@@ -1724,13 +1727,13 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                      *   dim 0: upstep/downstep (kind 3, ±1)
                      *   dim 1: global rise/fall (kind 4, ±1)
                      *   dim 2: Chinese class (kind 2, ±1..±4) */
-                    out[n-1].tkind[2] = 2;
+                    out[seg_base_idx].tkind[2] = 2;
                     if (m->tone_kind == 3) {
-                        out[n-1].tone[2][0] = m->val[0];
+                        out[seg_base_idx].tone[2][0] = m->val[0];
                     } else if (m->tone_kind == 4) {
-                        out[n-1].tone[2][1] = m->val[1];
+                        out[seg_base_idx].tone[2][1] = m->val[1];
                     } else { /* kind 2: Chinese tone class */
-                        out[n-1].tone[2][2] = m->val[0];
+                        out[seg_base_idx].tone[2][2] = m->val[0];
                     }
                 }
                 p += k;
@@ -1823,35 +1826,35 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
          *   vec 1 (tone[0]) single tone: 1..3 letters
          *   vec 2 (tone[1]) tone sandhi: 4+ letters overflow here (and ꜖꜕꜔꜓꜒)
          *   vec 3 (tone[2]) 3-D: (upstep, global, class), default (0,0,0) */
-        if (out[n-1].kind == TK_BASE) {
+        if (out[seg_base_idx].kind == TK_BASE) {
             if (ntone >= 1) {
-                out[n-1].tkind[0] = 1;
+                out[seg_base_idx].tkind[0] = 1;
                 int c = ntone < 3 ? ntone : 3;
                 for (int k = 0; k < c; k++)
-                    out[n-1].tone[0][k] = tonebuf[k];
+                    out[seg_base_idx].tone[0][k] = tonebuf[k];
                 if (ntone == 1)
-                    out[n-1].tone[0][1] = tonebuf[0];   /* level tone */
+                    out[seg_base_idx].tone[0][1] = tonebuf[0];   /* level tone */
                 if (tone_digit && tone_letter)
                     fprintf(stderr,
                             "ipa2vec: warning: mixing superscript digits (¹²³⁴⁵) and tone letters (˩˨˧˦˥) for the same segment\n");
                 /* 4+ letters: remainder becomes tone sandhi (vec 2) */
                 if (ntone > 3) {
-                    out[n-1].tkind[1] = 1;
+                    out[seg_base_idx].tkind[1] = 1;
                     int r = ntone - 3;
                     int rc = r < 3 ? r : 3;
                     for (int k = 0; k < rc; k++)
-                        out[n-1].tone[1][k] = tonebuf[3 + k];
+                        out[seg_base_idx].tone[1][k] = tonebuf[3 + k];
                     if (r == 1)
-                        out[n-1].tone[1][1] = tonebuf[3];
+                        out[seg_base_idx].tone[1][1] = tonebuf[3];
                 }
             }
             if (nsandhi >= 1) {
-                out[n-1].tkind[1] = 1;
+                out[seg_base_idx].tkind[1] = 1;
                 int c = nsandhi < 3 ? nsandhi : 3;
                 for (int k = 0; k < c; k++)
-                    out[n-1].tone[1][k] = sandhibuf[k];
+                    out[seg_base_idx].tone[1][k] = sandhibuf[k];
                 if (nsandhi == 1)
-                    out[n-1].tone[1][1] = sandhibuf[0];
+                    out[seg_base_idx].tone[1][1] = sandhibuf[0];
             }
         }
     }
