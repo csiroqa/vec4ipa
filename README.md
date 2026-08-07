@@ -39,6 +39,7 @@ ipa2vec -v                  version
 vec2ipa <V0,...,V15>        nearest segment + modifier fit -> IPA
 vec2ipa -n <V0,...,V15>     nearest base segment only
 vec2ipa -d <A> <B>          weighted distance (Mahalanobis + airstream penalty λ)
+vec2ipa --width <0-4>       transcription narrowness (default 3)
 
 vec4ipa -i | -t             full information table (main + extIPA bases)
 vec4ipa -m                  regional modules and their symbols
@@ -136,12 +137,31 @@ and re-run `make gen`.
 ## Reverse direction
 
 `vec2ipa` maps a vector back to IPA: find the nearest base segment
-(weighted Mahalanobis), then greedily add the modifier that most reduces
-the residual distance (up to 4). Verified: **all 132 base segments
-round-trip losslessly** (forward → reverse → forward reproduces the vector
-to ≤ 0.02 per dimension). Modifier reconstruction is approximate for
-combinations the greedy search cannot separate (e.g. a ligature that is
-not a table entry).
+(weighted Mahalanobis, including `EXTRA_BASE` entries), then greedily add
+the modifier that most reduces the residual distance. Verified: **all 132
+base segments round-trip losslessly** (forward → reverse → forward
+reproduces the vector to ≤ 0.02 per dimension). Modifier reconstruction
+is approximate for combinations the greedy search cannot separate (e.g.
+a ligature that is not a table entry).
+
+### Transcription narrowness (`--width`)
+
+How many diacritics the reverse fit keeps is controlled by
+`-w/--width <0-4>` (default **3**): each level sets the maximum number
+of modifiers per segment and the minimum relative distance gain a
+modifier must achieve to be kept.
+
+| level | max mods | min gain | style |
+| ----- | -------- | -------- | ----- |
+| 0 | 2 | 25% | broadest — phonemic, few marks |
+| 1 | 3 | 10% | broad |
+| 2 | 4 | 4% | medium |
+| 3 | 6 | 1.5% | narrow (default) |
+| 4 | 10 | 0.1% | narrowest — keep almost every mark |
+
+Example (`t̬˞̩ˤ` → vector → back): `--width 0` gives `/ɾˤ˞/`,
+`--width 3` gives `/ɾ̝ˤ̆˞/`. (Place `--width` before `-r`/`-n` —
+those consume the vector argument that follows them.)
 
 ## Supported notations
 

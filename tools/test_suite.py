@@ -103,6 +103,27 @@ check("tone after modifier binds to base", ["a\u032f\u02e8"],
       expect_tone="tone=(2,2)")
 check("tone after rhoticised vowel", ["\u025d\u032f\u02e8\u02e9\u02e6"],
       expect_tone="tone=(2,1,4)")
+
+# ------------------------------------------------------------------
+# 7. Transcription narrowness (--width)
+# ------------------------------------------------------------------
+def width_vec(s):
+    r = subprocess.run([EXE, s], capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
+    m = re.search(r"\(([^)]+)\)", r.stdout)
+    return m.group(1) if m else "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
+
+wv = width_vec("t\u032c\u02de\u0329\u02e4")
+r0 = subprocess.run([VEC2IPA, "--width", "0", wv], capture_output=True,
+                    text=True, encoding="utf-8", errors="replace")
+r4 = subprocess.run([VEC2IPA, "--width", "4", wv], capture_output=True,
+                    text=True, encoding="utf-8", errors="replace")
+c0 = (r0.stdout or r0.stderr).count("+")
+c4 = (r4.stdout or r4.stderr).count("+")
+total += 1
+if c4 < c0:
+    fails += 1
+    print(f"FAIL: --width 4 mods={c4} < --width 0 mods={c0}")
 check("nasalised nasal warns", ["n\u0303"],
       expect_warn="nasalising the nasal n is redundant")
 check("nasalised vowel silent", ["a\u0303"], expect_rc=0)

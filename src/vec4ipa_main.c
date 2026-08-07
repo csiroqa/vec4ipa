@@ -139,6 +139,7 @@ static void usage(void)
     printf("\noptions:\n");
     printf("  -i, --information      full documentation (embedded README)\n");
     printf("  -h, --help             this help\n");
+    printf("  --width <0-4>          transcription narrowness (default 3)\n");
     printf("  -t, --table            full base table\n");
     printf("  -m, --modules          regional modules\n");
     printf("  -q, --query SYM        query a symbol\n");
@@ -254,6 +255,9 @@ int main(int argc, char **argv)
         if (!no_more_opts && strcmp(argv[i], "--") == 0) { no_more_opts = 1; continue; }
         if (opt_match(argv[i], "-h", "--help")) { usage(); return 0; }
         if (opt_school(argv[i])) continue;
+        int w = opt_width(argv[i], argc, argv, &i);
+        if (w == 1) continue;
+        if (w == -1) { fprintf(stderr, "vec4ipa: --width needs 0-4\n"); return 1; }
         if (opt_match(argv[i], "-i", "--information")) { printf("%s", EMBEDDED_README); return 0; }
         if (opt_match(argv[i], "-v", "--version")) {
             printf("vec4ipa %s (%d base segments + %d extIPA bases, %d modifiers)\n",

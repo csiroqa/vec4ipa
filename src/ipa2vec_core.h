@@ -2071,15 +2071,14 @@ static IPA2VEC_MAYBE_UNUSED void nearest_base (const double v[NDIM], const SegEn
     *outd = bestd;
 }
 
-/* greedy modifier fit; returns number of modifiers chosen (<= 3).
- * A modifier is never chosen twice — nor an equivalent one with the same
- * apply() function under a different glyph (e.g. raised ◌̝ vs ˔).
- * Each added modifier must improve the distance by at least 8% (relative),
- * otherwise it is judged noise and dropped — this keeps intermediate
- * centroids (e.g. the average of two different segments) from stacking
- * four diacritics onto a single letter. */
-#define IPA2VEC_FIT_MAX_MODS   6
-#define IPA2VEC_FIT_MIN_GAIN   0.015
+/* reverse-fit narrowness knobs: max modifiers per segment and the
+ * minimum relative distance gain a modifier must achieve to be kept.
+ * Adjustable at runtime (--width) so the output can range from broad
+ * (few diacritics) to narrow (all that help). */
+#define IPA2VEC_FIT_MAX_MODS   10     /* hard cap; array bound below */
+#define IPA2VEC_FIT_MIN_GAIN   0.0
+static int    g_fit_max_mods = 6;
+static double g_fit_min_gain = 0.015;
 
 static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const SegEntry *base,
                          const ModRec *mods[IPA2VEC_FIT_MAX_MODS])
@@ -2094,7 +2093,9 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
      * together and vowels never get a release mark. */
     int base_nasal = (base->v[6] >= 0.5);
     int base_is_vowel = (base->v[14] >= 0.5);
-    for (int round = 0; round < IPA2VEC_FIT_MAX_MODS; round++) {
+    int maxmods = g_fit_max_mods < IPA2VEC_FIT_MAX_MODS
+                  ? g_fit_max_mods : IPA2VEC_FIT_MAX_MODS;
+    for (int round = 0; round < maxmods; round++) {
         int besti = -1;
         double bestd = seg_dist(target, cur);
         for (int i = 0; i < NMODS; i++) {
@@ -2117,10 +2118,10 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
             if (d < bestd - 1e-9) { bestd = d; besti = i; }
         }
         if (besti < 0) break;
-        /* significance gate: require at least MIN_GAIN relative improvement
-         * over the previous distance (before this round) */
+        /* significance gate: require at least g_fit_min_gain relative
+         * improvement over the previous distance (before this round) */
         double prev = seg_dist(target, cur);
-        if (prev > 1e-12 && (prev - bestd) / prev < IPA2VEC_FIT_MIN_GAIN)
+        if (prev > 1e-12 && (prev - bestd) / prev < g_fit_min_gain)
             break;
         mods[n++] = &MODS[besti];
         apply_voicing_mod(cur, mods[n-1], base);
@@ -2372,6 +2373,38 @@ static IPA2VEC_MAYBE_UNUSED int opt_school(const char *arg)
         }
     }
     return 0;
+}
+
+/* transcription narrowness: --width <0-4>
+ *   0 broadest: max 2 mods, >=25% gain
+ *   1 broad:    max 3 mods, >=10% gain
+ *   2 medium:   max 4 mods, >=4% gain
+ *   3 narrow:   max 6 mods, >=1.5% gain (default)
+ *   4 narrowest: max 10 mods, >=0.1% gain (keep almost everything)
+ * Long form only (short -w is taken by vec4ipa's --weights).
+ * Returns 1 if matched (level set), -1 if malformed, 0 if not ours. */
+static IPA2VEC_MAYBE_UNUSED int opt_width(const char *arg, int argc, char **argv, int *i)
+{
+    static const int maxmods[5] = { 2, 3, 4, 6, 10 };
+    static const double mingain[5] = { 0.25, 0.10, 0.04, 0.015, 0.001 };
+    int level = -1;
+    if (strcmp(arg, "--width") == 0) {
+        if (*i + 1 >= argc) return -1;
+        const char *v = argv[++*i];
+        if (v[0] >= '0' && v[0] <= '4' && v[1] == 0)
+            level = v[0] - '0';
+        else return -1;
+    } else if (strncmp(arg, "--width=", 8) == 0) {
+        const char *v = arg + 8;
+        if (v[0] >= '0' && v[0] <= '4' && v[1] == 0)
+            level = v[0] - '0';
+        else return -1;
+    } else {
+        return 0;
+    }
+    g_fit_max_mods = maxmods[level];
+    g_fit_min_gain = mingain[level];
+    return 1;
 }
 
 /* option with a value: "-o FILE", "--output FILE" or "--output=FILE".
