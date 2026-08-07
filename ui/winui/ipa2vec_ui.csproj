@@ -7,11 +7,7 @@
     <Platforms>x64</Platforms>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <Nullable>enable</Nullable>
-    <PublishSingleFile>true</PublishSingleFile>
     <EnableMsixTooling>true</EnableMsixTooling>
-    <SelfContained>true</SelfContained>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <PublishDir>$(MSBuildProjectDirectory)\dist\</PublishDir>
     <RootNamespace>IPA2VectorUI</RootNamespace>
     <AssemblyName>ipa2vec_ui</AssemblyName>

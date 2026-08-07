@@ -344,6 +344,9 @@ namespace IPA2VectorUI
                 if (!double.TryParse(parts[i], System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture, out v[i]))
                     return $"Value #{i + 1} ('{parts[i]}') is not a number.";
+                if (!double.IsFinite(v[i]))
+                    return $"Value #{i + 1} ('{parts[i]}') must be finite " +
+                           "(no NaN or Infinity).";
             }
             var sb = new StringBuilder(512);
             ipa2v_reverse(v, width, sb, 512);

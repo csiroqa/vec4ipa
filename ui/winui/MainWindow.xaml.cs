@@ -27,6 +27,7 @@ namespace IPA2VectorUI
 
         public MainWindow(string[] args)
         {
+            _startupArgs = args;
             InitializeComponent();
             Title = "IPA2Vector Workbench";
             SetIcon();
@@ -106,7 +107,43 @@ namespace IPA2VectorUI
                 }
                 catch { }
             };
-            HandleArgs(args);
+            if (!InitCore())
+                return;
+            /* --help / --export-tools dialogs need XamlRoot; run them
+             * once the window is activated */
+            Activated += (s, e) =>
+            {
+                if (_argsPending)
+                {
+                    _argsPending = false;
+                    HandleArgs(_startupArgs);
+                }
+            };
+        }
+
+        /* returns false when ipa2vec_core.dll is missing (UI stays up
+         * with a clear status message instead of crashing) */
+        private bool InitCore()
+        {
+            try
+            {
+                _ = Core.Version;
+                BuildKeyboard();
+                _argsPending = true;
+                return true;
+            }
+            catch (System.DllNotFoundException)
+            {
+                StatusText.Text = "ipa2vec_core.dll not found next to the app - " +
+                                  "features are disabled";
+                return false;
+            }
+            catch (System.EntryPointNotFoundException)
+            {
+                StatusText.Text = "ipa2vec_core.dll is outdated or damaged - " +
+                                  "features are disabled";
+                return false;
+            }
         }
 
         private void InitStatus()
@@ -302,7 +339,12 @@ namespace IPA2VectorUI
             {
                 string a = args[i];
                 if (a == "--help" || a == "-h") showHelp = true;
-                else if (a == "--width" && i + 1 < args.Length) i++;
+                else if (a == "--width" && i + 1 < args.Length)
+                {
+                    string w = args[++i];
+                    if (w.Length == 1 && w[0] >= '0' && w[0] <= '4')
+                        WidthCombo.SelectedIndex = w[0] - '0';
+                }
                 else if (a == "--theme" && i + 1 < args.Length)
                     theme = args[++i];
                 else if (a == "-q" || a == "--query")
@@ -393,19 +435,18 @@ namespace IPA2VectorUI
 
         private readonly Dictionary<string, bool> _moduleOn = new();
         private string _themeName = "System";
+        private string[] _startupArgs = Array.Empty<string>();
+        private bool _argsPending;
 
         private async void Settings_Click(object sender, RoutedEventArgs e)
         {
             /* theme */
-            var themeRadio = new RadioButtons
-            {
-                Header = "Theme",
-                SelectedIndex = _themeName == "Light" ? 1
-                              : _themeName == "Dark" ? 2 : 0,
-            };
+            var themeRadio = new RadioButtons { Header = "Theme" };
             themeRadio.Items.Add("System");
             themeRadio.Items.Add("Light");
             themeRadio.Items.Add("Dark");
+            themeRadio.SelectedIndex = _themeName == "Light" ? 1
+                                      : _themeName == "Dark" ? 2 : 0;
 
             /* feature names */
             var featSwitch = new ToggleSwitch
@@ -415,13 +456,10 @@ namespace IPA2VectorUI
             };
 
             /* language */
-            var langRadio = new RadioButtons
-            {
-                Header = "Language",
-                SelectedIndex = _zh ? 1 : 0,
-            };
+            var langRadio = new RadioButtons { Header = "Language" };
             langRadio.Items.Add("English");
             langRadio.Items.Add("中文");
+            langRadio.SelectedIndex = _zh ? 1 : 0;
 
             /* school modules */
             var modsPanel = new StackPanel { Spacing = 2 };
@@ -491,11 +529,12 @@ namespace IPA2VectorUI
                 return;
 
             /* apply */
-            string theme = (string)themeRadio.SelectedItem;
+            string theme = themeRadio.SelectedItem as string ?? _themeName;
             _themeName = theme;
             ApplyTheme(theme);
             _featureNames = featSwitch.IsOn;
-            string lang = (string)langRadio.SelectedItem;
+            string lang = langRadio.SelectedItem as string
+                          ?? (_zh ? "中文" : "English");
             ApplyLang(lang == "中文");
             foreach (var (name, cb) in modBoxes)
             {
@@ -918,7 +957,12 @@ namespace IPA2VectorUI
         private void Loop_Click(object sender, RoutedEventArgs e)
         {
             string ipa = IpaInputRight.Text;
-            if (ipa.Length == 0) return;
+            if (string.IsNullOrWhiteSpace(ipa))
+            {
+                AppendOutput("=== IPA -> vectors ===\n" +
+                             "Nothing to convert - type or click an IPA symbol first.");
+                return;
+            }
             var rows = Core.ForwardRaw(ipa);
             if (rows == null || rows.Length == 0)
             {
@@ -951,12 +995,19 @@ namespace IPA2VectorUI
             if (file == null) return;
             try
             {
-                string csv = "symbol,feature,value\n";
-                var rows = Core.ForwardRaw(""); // no-op guard
-                _ = rows;
-                var names = Core.DimNames;
-                csv = Core.Table().Replace('\t', ',').Replace("\n", "\r\n");
-                await Windows.Storage.FileIO.WriteTextAsync(file, csv);
+                /* quote every cell: vectors contain commas */
+                var sb = new System.Text.StringBuilder();
+                foreach (var raw in Core.Table().Split('\n'))
+                {
+                    var cells = raw.Split('\t');
+                    for (int i = 0; i < cells.Length; i++)
+                    {
+                        if (i > 0) sb.Append(',');
+                        sb.Append('"').Append(cells[i].Replace("\"", "\"\"")).Append('"');
+                    }
+                    sb.AppendLine();
+                }
+                await Windows.Storage.FileIO.WriteTextAsync(file, sb.ToString());
                 SetStatus("CSV saved: " + file.Path);
             }
             catch (Exception ex)
@@ -1158,7 +1209,6 @@ namespace IPA2VectorUI
             ipa = ipa.Split(' ')[0]; // symbol = first token, rest is description
             IpaInputRight.Text = ipa;
             IpaInputRight.Focus(FocusState.Programmatic);
-            FormatCombo.SelectedIndex = 0;
             ConvertBtn_Click(sender, e);
         }
 
@@ -1172,10 +1222,22 @@ namespace IPA2VectorUI
                    cp == 0x1AB0 || (cp >= 0x1DC0 && cp <= 0x1DFF);
         }
 
+        private void AddHistory(string title, string body)
+        {
+            _history.Add((title, body));
+            while (_history.Count > 200)
+                _history.RemoveAt(0);
+        }
+
         private void ConvertBtn_Click(object sender, RoutedEventArgs e)
         {
             string ipa = IpaInputRight.Text;
-            if (ipa.Length == 0) return;
+            if (string.IsNullOrWhiteSpace(ipa))
+            {
+                AppendOutput("=== IPA -> vectors ===\n" +
+                             "Nothing to convert - type or click an IPA symbol first.");
+                return;
+            }
             int fmt = FormatCombo.SelectedIndex;
             string? result;
             switch (fmt)
@@ -1209,7 +1271,7 @@ namespace IPA2VectorUI
                         : $"=== IPA -> vectors ===\ninput: /{ipa}/\n" + result);
                     break;
             }
-            _history.Add(("Convert: " + ipa, result));
+            AddHistory("Convert: " + ipa, result);
             SetStatus("converted " + ipa.Length + " chars");
             IpaInputRight.Focus(FocusState.Programmatic);
         }
@@ -1229,7 +1291,7 @@ namespace IPA2VectorUI
             }
             string result = sb.ToString().TrimEnd();
             AppendOutput($"=== Vector -> IPA (width {width}) ===\n" + result);
-            _history.Add(("Reverse (width " + width + ")", result));
+            AddHistory("Reverse (width " + width + ")", result);
             SetStatus("reverse fit done (" + lines.Length + " vector(s))");
             VecInput.Focus(FocusState.Programmatic);
         }

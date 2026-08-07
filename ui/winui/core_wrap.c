@@ -60,10 +60,22 @@ EXPORT int ipa2v_reverse(const double *v, int width,
     double vv[NDIM];
     for (int i = 0; i < NDIM; i++) vv[i] = v[i];
 
+    /* guard: NaN/Inf would make nearest_base index out of bounds */
+    for (int i = 0; i < NDIM; i++) {
+        if (!(vv[i] == vv[i]) || vv[i] > 1e300 || vv[i] < -1e300) {
+            snprintf(out, outsz, "vector must contain finite values");
+            return -1;
+        }
+    }
+
     set_width_global(width);
 
     const SegEntry *b; double d;
     nearest_base(vv, &b, &d);
+    if (b < SEG_TABLE || b >= SEG_TABLE + NSEG + N_EXTRA) {
+        snprintf(out, outsz, "no nearest base segment found");
+        return -1;
+    }
     const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
     int nm = fit_modifiers(vv, b, mods);
     char ipa[128];
@@ -219,8 +231,8 @@ EXPORT int ipa2v_kb_tones(char *out, size_t outsz)
         L += n;
     }
     static const char extra[] = "\u203f\n \n";  /* ‿ and space */
-    if (L < outsz)
-        strncat(out + L, extra, outsz - L);
+    if (L + sizeof(extra) <= outsz)
+        memcpy(out + L, extra, sizeof(extra));
     return (int)strlen(out);
 }
 
