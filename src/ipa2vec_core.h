@@ -1439,7 +1439,11 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                     int k = utf8_decode(q, &cp);
                     if (!k) break;
                     const ModRec *m = find_mod(cp);
-                    if (m && m->tone_kind == 0 && !is_ligature_cp(cp)) {
+                    /* skip preposed airstream modifiers (ˀ glottal onset,
+                     * ᵑ nasal click release): they belong to the NEXT
+                     * segment, appending them would break the repl */
+                    if (m && m->tone_kind == 0 && !is_ligature_cp(cp) &&
+                        !(m->tier == TIER_AIRSTREAM && m->air < 0)) {
                         memcpy(buf + blen, q, (size_t)k);
                         blen += (size_t)k;
                         buf[blen] = 0;
