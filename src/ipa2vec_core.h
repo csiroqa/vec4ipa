@@ -253,6 +253,19 @@ static const SegEntry EXTRA_BASE[] = {
     /* ᶑ U+1D91: retroflex implosive (IPA 2018) */
     { "\xe1\xb6\x91", { 0.0, 0.0, 0.1, 0.9, 0.0, 0.0, 0.0, 0.0,
                         1.0, 0.55, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0 }, 2 },
+    /* ȶ U+0236: voiceless alveolo-palatal stop (curl notation, Sinologist);
+     * alveolo-palatal = tip at 0.25 with tongue body neutral (cf. ɕ ʑ) */
+    { "\xc8\xb6", { 0.0, 0.0, 0.25, 1.0, 0.0, 0.0, 0.0, 0.0,
+                    0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0, 1.0 }, 0 },
+    /* ȡ U+0221: voiced alveolo-palatal stop */
+    { "\xc8\xa1", { 0.0, 0.0, 0.25, 1.0, 0.0, 0.0, 0.0, 0.0,
+                    1.0, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 }, 0 },
+    /* ȵ U+0235: voiced alveolo-palatal nasal */
+    { "\xc8\xb5", { 0.0, 0.0, 0.25, 1.0, 0.0, 0.0, 1.0, 0.0,
+                    1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 }, 0 },
+    /* ȴ U+0234: voiced alveolo-palatal lateral */
+    { "\xc8\xb4", { 0.0, 0.0, 0.25, 1.0, 0.0, 0.0, 0.0, 1.0,
+                    1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.5, 1.0 }, 0 },
 };
 #define N_EXTRA ((int)(sizeof(EXTRA_BASE) / sizeof(EXTRA_BASE[0])))
 
@@ -267,6 +280,19 @@ static const char *EXTRA_NAMES[N_EXTRA] = {
     "velophar.frc",       /* ʩ */
     "rfl.lat.frc",        /* ꞎ */
     "rfl.imp",            /* ᶑ */
+    "alvpal.pls",         /* ȶ */
+    "alvpal.pls.vd",      /* ȡ */
+    "alvpal.nas",         /* ȵ */
+    "alvpal.lat",         /* ȴ */
+};
+
+/* school gate for EXTRA_BASE entries: index into ALIAS_MODULES
+ * (or -1 = always available).  The Sinologist curl letters ȶ ȡ ȵ ȴ
+ * follow the school's place split (cf. ɕ ʑ), so they are gated on
+ * --sinologist like the alias symbols. */
+static const int EXTRA_SCHOOL[N_EXTRA] = {
+    -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    4, 4, 4, 4,        /* sinologist (module index 4) */
 };
 
 /* longest-prefix base lookup against the 132-entry table */
@@ -989,10 +1015,6 @@ static const Alias ALIAS_SINOLOGIST[] = {
     { "\xCA\xAE", "\xC9\xB9\xCC\xAA\xCA\xB7", "apical dental rounded vowel", 0, 0   }, /* ʮ -> ɹ̪ʷ */
     { "\xCA\xAF", "\xC9\xBB\xCA\xB7", "apical retroflex rounded vowel", 0, 0   },     /* ʯ -> ɻʷ */
     { "\xE1\xB4\x80", "a\xCC\x88", "open central vowel", 0, 0   },                   /* ᴀ -> ä */
-    { "\xC8\xA1", "\xC9\x9F\xCC\x9F", "vd alveolo-palatal stop", 0, 0   },            /* ȡ -> ɟ̟ */
-    { "\xC8\xB6", "c\xCC\x9F", "vl alveolo-palatal stop", 0, 0   },                   /* ȶ -> c̟ */
-    { "\xC8\xB5", "\xC9\xB2\xCC\x9F", "vd alveolo-palatal nasal", 0, 0   },           /* ȵ -> ɲ̟ */
-    { "\xC8\xB4", "\xCA\x8E\xCC\x9F", "vd alveolo-palatal lateral", 0, 0   },         /* ȴ -> ʎ̟ */
 };
 
 /* --- module: Indologist / Semiticist (dotted letters) --- */
@@ -1247,6 +1269,21 @@ static const SegEntry *match_base_ex(const char *s, int *consumed)
         size_t L = strlen(EXTRA_BASE[i].ipa);
         if (strncmp(s, EXTRA_BASE[i].ipa, L) == 0) {
             if (consumed) *consumed = (int)L;
+            if (EXTRA_SCHOOL[i] >= 0 &&
+                !g_alias_on[EXTRA_SCHOOL[i]]) {
+                /* school-gated base (e.g. Sinologist ȶ ȡ ȵ ȴ):
+                 * resolve but warn like school alias symbols */
+                const char *nm = ALIAS_MODULES[EXTRA_SCHOOL[i]].name;
+                int seen = 0;
+                for (int w = 0; w < g_alias_n_warned; w++)
+                    if (g_alias_warned[w] == EXTRA_BASE[i].ipa) { seen = 1; break; }
+                if (!seen && g_alias_n_warned < 256) {
+                    g_alias_warned[g_alias_n_warned++] = EXTRA_BASE[i].ipa;
+                    fprintf(stderr,
+                            "ipa2vec: warning: using %s symbol '%s' — enable with --%s\n",
+                            nm, EXTRA_BASE[i].ipa, nm);
+                }
+            }
             return &EXTRA_BASE[i];
         }
     }

@@ -151,6 +151,9 @@ check("school flag order americanist first", ["--americanist", "--polish", "\u01
       expect_note="'ł' -> ɬ")
 check("school polish č", ["--polish", "\u010d"],
       expect_note="'č' -> t͡ʂ")
+check("sinologist ȶ warns by default", ["\u0236"],
+      expect_warn="sinologist symbol '\u0236'")
+check("sinologist ȶ silent with flag", ["--sinologist", "\u0236"], expect_rc=0)
 
 # ------------------------------------------------------------------
 # 6. No extrapolated uppercase

@@ -228,7 +228,7 @@ a warning. When a symbol exists in several enabled schools, the
 | `generic` | `?`→`ʔ`, `я`→`ʢ`, `∅ Ø` null, `ȷ ɫ ı` dotless/dark, small-capital glyphs |
 | `withdrawn` | ƍ σ ƺ ƪ ƻ ƾ ʦ ʣ ʧ ʤ ʨ ʥ ʇ ʗ ʖ ʞ ƥ ƭ ƈ ƙ ʠ ƞ ƫ ʓ ʆ ɼ ɩ ʚ ɷ ω ȣ |
 | `americanist` | š č ž ǰ ǧ ǯ ẋ ƛ ł λ |
-| `sinologist` | ɿ ʅ ʮ ʯ ᴀ ȡ ȶ ȵ ȴ |
+| `sinologist` | ɿ ʅ ʮ ʯ ᴀ, plus base segments ȶ ȡ ȵ ȴ (alveolo-palatal stop/nasal/lateral, gated on `--sinologist`) |
 | `indologist` | ḍ ṭ ṇ ṛ ḷ ṣ ś ṃ ṅ ñ ḥ ḫ ẓ ẖ ḏ ṯ ġ ḡ ḻ ṟ ṁ |
 | `polish` | ź ć ż, plus Polish values for č š ž ł (conflict with Americanist) |
 | `teuthonista` | ƀ đ ǥ ǩ ȟ ǵ |
