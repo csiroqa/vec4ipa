@@ -882,6 +882,12 @@ namespace IPA2VectorUI
                 IpaInput.Text = "";
                 _placeholder = false;
             }
+            /* combining modifiers (◌...) need a base symbol before them */
+            if (IpaInput.Text.Length == 0 && IsCombiningModifier(sym))
+            {
+                SetStatus("start with a base symbol first (e.g. t, a), then add " + sym);
+                return;
+            }
             IpaInput.Text += sym;
             IpaInput.SelectionStart = IpaInput.Text.Length;
             IpaInput.Focus(FocusState.Programmatic);
@@ -914,6 +920,16 @@ namespace IPA2VectorUI
             ConvertBtn_Click(sender, e);
         }
 
+        /* does the symbol start with U+25CC (dotted circle) or a
+         * combining mark? those must follow a base segment */
+        private static bool IsCombiningModifier(string sym)
+        {
+            if (sym.Length == 0) return false;
+            int cp = char.ConvertToUtf32(sym, 0);
+            return cp == 0x25CC || (cp >= 0x0300 && cp <= 0x036F) ||
+                   cp == 0x1AB0 || (cp >= 0x1DC0 && cp <= 0x1DFF);
+        }
+
         private void ConvertBtn_Click(object sender, RoutedEventArgs e)
         {
             string ipa = IpaInput.Text;
@@ -935,11 +951,15 @@ namespace IPA2VectorUI
                                            : Core.Forward(ipa, out _);
                     if (result == null)
                     {
+                        string hint = IsCombiningModifier(ipa)
+                            ? "The string starts with a combining mark.\n" +
+                              "Diacritics attach to the symbol before them -\n" +
+                              "type the base first, e.g. 't\u0306' (t + short)."
+                            : "Tip: put a space between syllables, e.g. 'ma ˥˩'.\n" +
+                              "If a symbol shows a red warning in the console,\n" +
+                              "enable its school module under View > Modules.";
                         AppendOutput("=== IPA -> vectors ===\n" +
-                                     "Hmm, I could not parse: /" + ipa + "/\n" +
-                                     "Tip: put a space between syllables, e.g. 'ma ˥˩'.\n" +
-                                     "If a symbol shows a red warning in the console,\n" +
-                                     "enable its school module under View > Modules.");
+                                     "Hmm, I could not parse: /" + ipa + "/\n" + hint);
                         break;
                     }
                     AppendOutput(_featureNames
