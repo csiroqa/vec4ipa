@@ -8,12 +8,21 @@ namespace IPA2VectorUI
     {
         private Window? _window;
 
+        /* diagnostic log lives in %TEMP%\IPA2VectorUI\, never in the
+         * app folder (keeps the dist/ output clean) */
+        private static string LogDir()
+        {
+            string dir = Path.Combine(Path.GetTempPath(), "IPA2VectorUI");
+            try { Directory.CreateDirectory(dir); } catch { }
+            return dir;
+        }
+
         private static void Log(string msg)
         {
             try
             {
                 File.AppendAllText(
-                    Path.Combine(AppContext.BaseDirectory, "startup.log"),
+                    Path.Combine(LogDir(), "startup.log"),
                     $"{DateTime.Now:HH:mm:ss.fff}: {msg}\n");
             }
             catch { }
@@ -27,7 +36,7 @@ namespace IPA2VectorUI
                 try
                 {
                     File.AppendAllText(
-                        Path.Combine(AppContext.BaseDirectory, "crash.log"),
+                        Path.Combine(LogDir(), "crash.log"),
                         $"{DateTime.Now}: {e.Exception}\n");
                 }
                 catch { }
@@ -41,7 +50,7 @@ namespace IPA2VectorUI
             Log("OnLaunched enter");
             try
             {
-                _window = new MainWindow();
+                _window = new MainWindow(Environment.GetCommandLineArgs());
                 Log("MainWindow created");
                 _window.Activate();
                 Log("MainWindow activated");
@@ -52,7 +61,7 @@ namespace IPA2VectorUI
                 try
                 {
                     File.AppendAllText(
-                        Path.Combine(AppContext.BaseDirectory, "crash.log"),
+                        Path.Combine(LogDir(), "crash.log"),
                         $"{DateTime.Now}: {ex}\n{ex.StackTrace}\n");
                 }
                 catch { }

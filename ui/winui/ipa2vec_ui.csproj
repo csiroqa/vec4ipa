@@ -17,6 +17,13 @@
     <AssemblyName>ipa2vec_ui</AssemblyName>
     <ApplicationIcon>..\vec_ipa.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>0.2.0</Version>
+    <Authors>vec4ipa contributors</Authors>
+    <Description>WinUI 3 workbench for the vec4ipa tool suite (IPA &lt;-&gt; 16-D vectors).</Description>
+    <Copyright>MIT</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/csiroqa/vec4ipa</RepositoryUrl>
+    <Product>IPA2Vector Workbench</Product>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.240923002" />
@@ -24,6 +31,15 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\vec_ipa.ico" Link="vec_ipa.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\ipa2vec.exe" Link="tools\ipa2vec.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\vec2ipa.exe" Link="tools\vec2ipa.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\vec4ipa.exe" Link="tools\vec4ipa.exe">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="..\ipa2vec_core.dll" Link="ipa2vec_core.dll">
