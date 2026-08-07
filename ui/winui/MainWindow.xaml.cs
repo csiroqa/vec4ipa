@@ -882,6 +882,10 @@ namespace IPA2VectorUI
                 IpaInput.Text = "";
                 _placeholder = false;
             }
+            /* keyboard buttons show diacritics on a dotted circle (◌,
+             * U+25CC) as a hint; strip the circle before inserting */
+            if (sym.Contains('\u25CC'))
+                sym = sym.Replace("\u25CC", "");
             /* combining modifiers (◌...) need a base symbol before them */
             if (IpaInput.Text.Length == 0 && IsCombiningModifier(sym))
             {
