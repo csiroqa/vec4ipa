@@ -155,10 +155,16 @@ typedef struct {
     double v[NDIM];
     int airstream;
     char note[96];
-    /* tone annotations: 5 groups, each up to 3 degrees;
-     * tone[g][0]==NAN means group empty. */
-    double tone[5][3];
-    int tkind[5];          /* 0 none, 1 contour, 2 class, 3 step, 4 global */
+    /* tone annotations — three extra vectors:
+     *   tone[0] 5-level letters / single tone  (¹²³⁴⁵, ˩˨˧˦˥)
+     *   tone[1] tone sandhi (꜖꜕꜔꜓꜒)
+     *   tone[2] 3-D vector (default (0,0,0)):
+     *       dim 0: upstep/downstep (ꜛꜜ)
+     *       dim 1: global rise/fall (↗↘)
+     *       dim 2: Chinese tone class (꜀꜁꜂꜃꜄꜅꜆꜇)
+     * NAN means "not set"; tone[0][0]==NAN means group empty. */
+    double tone[3][3];
+    int tkind[3];          /* 0 none, 1 contour, 2 = 3-D vector */
 } SegVec;
 
 static IPA2VEC_MAYBE_UNUSED double seg_dist (const double a[NDIM], const double b[NDIM])
@@ -547,17 +553,29 @@ static const ModRec MODS[] = {
     { 0x02B8, "ʸ",   "offglide_pal", TIER_PLACE,  -1, mod_offglide_pal,0, {0,0} , NULL, 1  },
     { 0x1DB7, "ᶷ",   "offglide_lab", TIER_PLACE,  -1, mod_offglide_lab,0, {0,0} , NULL, 1  },
     { 0x1DA3, "ᶣ",   "offglide_labpal", TIER_PLACE, -1, mod_offglide_pal, 0, {0,0} , NULL, 1  },
-    /* --- 5-level tone letters (high->low) --- */
+    /* --- 5-level tone letters (high->low) -> extra vector 1 --- */
     { 0x02E5, "˥", "tone_5",  TIER_COUNT, -1, NULL, 1, {5,0}, NULL, 1  },
     { 0x02E6, "˦", "tone_4",  TIER_COUNT, -1, NULL, 1, {4,0}, NULL, 1  },
     { 0x02E7, "˧", "tone_3",  TIER_COUNT, -1, NULL, 1, {3,0}, NULL, 1  },
     { 0x02E8, "˨", "tone_2",  TIER_COUNT, -1, NULL, 1, {2,0}, NULL, 1  },
     { 0x02E9, "˩", "tone_1",  TIER_COUNT, -1, NULL, 1, {1,0}, NULL, 1  },
-    { 0xA712, "꜒", "tone_5",  TIER_COUNT, -1, NULL, 1, {5,0}, NULL, 1  },
-    { 0xA713, "꜓", "tone_4",  TIER_COUNT, -1, NULL, 1, {4,0}, NULL, 1  },
-    { 0xA714, "꜔", "tone_3",  TIER_COUNT, -1, NULL, 1, {3,0}, NULL, 1  },
-    { 0xA715, "꜕", "tone_2",  TIER_COUNT, -1, NULL, 1, {2,0}, NULL, 1  },
-    { 0xA716, "꜖", "tone_1",  TIER_COUNT, -1, NULL, 1, {1,0}, NULL, 1  },
+    /* --- superscript digits (⁰¹²³⁴⁵⁶⁷⁸⁹ = pitch levels 0-9) -> vec 1 --- */
+    { 0x2070, "⁰", "pitch_0",  TIER_COUNT, -1, NULL, 1, {0,0}, NULL, 1  },
+    { 0x00B9, "¹", "pitch_1",  TIER_COUNT, -1, NULL, 1, {1,0}, NULL, 1  },
+    { 0x00B2, "²", "pitch_2",  TIER_COUNT, -1, NULL, 1, {2,0}, NULL, 1  },
+    { 0x00B3, "³", "pitch_3",  TIER_COUNT, -1, NULL, 1, {3,0}, NULL, 1  },
+    { 0x2074, "⁴", "pitch_4",  TIER_COUNT, -1, NULL, 1, {4,0}, NULL, 1  },
+    { 0x2075, "⁵", "pitch_5",  TIER_COUNT, -1, NULL, 1, {5,0}, NULL, 1  },
+    { 0x2076, "⁶", "pitch_6",  TIER_COUNT, -1, NULL, 1, {6,0}, NULL, 1  },
+    { 0x2077, "⁷", "pitch_7",  TIER_COUNT, -1, NULL, 1, {7,0}, NULL, 1  },
+    { 0x2078, "⁸", "pitch_8",  TIER_COUNT, -1, NULL, 1, {8,0}, NULL, 1  },
+    { 0x2079, "⁹", "pitch_9",  TIER_COUNT, -1, NULL, 1, {9,0}, NULL, 1  },
+    /* --- tone sandhi letters (꜖꜕꜔꜓꜒) -> extra vector 2 --- */
+    { 0xA712, "꜒", "sandhi_5", TIER_COUNT, -1, NULL, 5, {5,0}, NULL, 1  },
+    { 0xA713, "꜓", "sandhi_4", TIER_COUNT, -1, NULL, 5, {4,0}, NULL, 1  },
+    { 0xA714, "꜔", "sandhi_3", TIER_COUNT, -1, NULL, 5, {3,0}, NULL, 1  },
+    { 0xA715, "꜕", "sandhi_2", TIER_COUNT, -1, NULL, 5, {2,0}, NULL, 1  },
+    { 0xA716, "꜖", "sandhi_1", TIER_COUNT, -1, NULL, 5, {1,0}, NULL, 1  },
     /* --- Chinese tone classes 1..8 -> 1,-1,2,-2,3,-3,4,-4 --- */
     { 0xA700, "꜀", "class1",  TIER_COUNT, -1, NULL, 2, {1, 0}, NULL, 1  },
     { 0xA701, "꜁", "class2",  TIER_COUNT, -1, NULL, 2, {-1,0}, NULL, 1  },
@@ -581,17 +599,6 @@ static const ModRec MODS[] = {
     { 0x1DC9, "◌᷉", "pitch_fallrise", TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
     /* --- undertie (linking) — ignored --- */
     { 0x203F, "‿",   "link",     TIER_COUNT,     -1, NULL, 0, {0,0} , NULL, 1  },
-    /* --- superscript digits (pitch levels, e.g. ⁵²); ignored --- */
-    { 0x2070, "⁰", "pitch",     TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x00B9, "¹", "pitch",     TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x00B2, "²", "pitch",     TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x00B3, "³", "pitch",     TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x2074, "⁴", "pitch",     TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x2075, "⁵", "pitch",     TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x2076, "⁶", "pitch",     TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x2077, "⁷", "pitch",     TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x2078, "⁸", "pitch",     TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x2079, "⁹", "pitch",     TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
 };
 #define NMODS ((int)(sizeof(MODS) / sizeof(MODS[0])))
 
@@ -668,9 +675,10 @@ typedef struct {
     const ModRec *mod;    /* TK_MOD only */
     const SegEntry *seg;  /* TK_BASE only */
     int consumed;         /* bytes consumed from input (TK_BASE) */
-    /* tone data collected for the segment (filled on the TK_BASE token) */
-    int tkind[5];         /* per-group kind: 0 none, 1 contour, 2 class, 3 step, 4 global */
-    double tone[5][3];    /* group values; NAN = unknown placeholder */
+    /* tone data collected for the segment (filled on the TK_BASE token):
+     * 3 extra vectors — see SegVec. */
+    int tkind[3];         /* 0 none, 1 contour (tone[0] or tone[1]), 2 = 3-D vector */
+    double tone[3][3];    /* vector values; NAN = not set */
     int preposed;         /* TK_MOD only: modifier appeared BEFORE the base */
 } IrTok;
 
@@ -1191,9 +1199,15 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
 
         /* preposed modifiers (airstream) and tone marks */
         int pre_idx[4], npre = 0;
-        int pre_tone[4];     /* tone values collected preposed (5-level) */
+        int pre_tone[4];     /* tone values collected preposed (5-level, vec 1) */
         int npre_tone = 0;
-        int pre_class_val = 0; int pre_class_set = 0;
+        int pre_tone_digit = 0;   /* superscript-digit pitch seen (pitch_*) */
+        int pre_tone_letter = 0;  /* 5-level letter seen (tone_*) */
+        int pre_sandhi[4];   /* sandhi letters (vec 2) */
+        int npre_sandhi = 0;
+        /* 3-D vector (vec 3): dim0 step, dim1 global, dim2 class */
+        double pre_vec3[3] = { 0, 0, 0 };
+        int pre_vec3_set = 0;
         int pre_consumed = 0;   /* bytes consumed by preposed marks */
         while (p < end && pre_consumed < 16) {
             unsigned long cp;
@@ -1203,11 +1217,25 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
             if (!m) break;
             if (m->tone_kind != 0) {
                 if (m->tone_kind == 1) {
-                    if (npre_tone < 4) { pre_tone[npre_tone++] = (int)m->val[0]; p += k; pre_consumed += k; continue; }
-                } else if (m->tone_kind == 2) {
-                    pre_class_val = (int)m->val[0]; pre_class_set = 1; p += k; pre_consumed += k; continue;
-                } else if (m->tone_kind == 3) {
-                    p += k; pre_consumed += k; continue;  /* upstep/downstep preposed: skip (no base yet) */
+                    if (npre_tone < 4) {
+                        pre_tone[npre_tone++] = (int)m->val[0];
+                        if (m->latin && strncmp(m->latin, "pitch_", 6) == 0)
+                            pre_tone_digit = 1;
+                        else
+                            pre_tone_letter = 1;
+                        p += k; pre_consumed += k;
+                        continue;
+                    }
+                } else if (m->tone_kind == 5) {
+                    if (npre_sandhi < 4) { pre_sandhi[npre_sandhi++] = (int)m->val[0]; p += k; pre_consumed += k; continue; }
+                } else {
+                    /* 3-D vector component */
+                    if (m->tone_kind == 3) pre_vec3[0] = m->val[0];
+                    else if (m->tone_kind == 4) pre_vec3[1] = m->val[1];
+                    else pre_vec3[2] = m->val[0];
+                    pre_vec3_set = 1;
+                    p += k; pre_consumed += k;
+                    continue;
                 }
                 break;
             }
@@ -1436,7 +1464,7 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
         t.mod = NULL;
         t.seg = base;
         t.consumed = cons;
-        for (int g = 0; g < 5; g++) { t.tkind[g] = 0; t.tone[g][0] = t.tone[g][1] = t.tone[g][2] = NAN; }
+        for (int g = 0; g < 3; g++) { t.tkind[g] = 0; t.tone[g][0] = t.tone[g][1] = t.tone[g][2] = NAN; }
         out[n++] = t;
         p += cons;
 
@@ -1468,7 +1496,7 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                 rt.mod = NULL;
                 rt.seg = rel;
                 rt.consumed = synth_rel_len;
-                for (int g = 0; g < 5; g++) { rt.tkind[g] = 0; rt.tone[g][0] = rt.tone[g][1] = rt.tone[g][2] = NAN; }
+                for (int g = 0; g < 3; g++) { rt.tkind[g] = 0; rt.tone[g][0] = rt.tone[g][1] = rt.tone[g][2] = NAN; }
                 out[n++] = rt;
                 p += synth_rel_len;
             }
@@ -1477,12 +1505,16 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
         /* tone bookkeeping for this segment: 5-level letters collected here,
          * then grouped on segment end. */
         int tonebuf[8], ntone = 0;
+        int sandhibuf[8], nsandhi = 0;
+        int tone_digit = pre_tone_digit;   /* superscript-digit pitch seen */
+        int tone_letter = pre_tone_letter; /* 5-level letter seen */
         for (int i = 0; i < npre_tone; i++) tonebuf[ntone++] = pre_tone[i];
-        if (pre_class_set) {
-            /* Chinese tone class preposed -> group 5 */
-            out[n-1].tkind[4] = 2;
-            out[n-1].tone[4][0] = pre_class_val;
-            out[n-1].tone[4][1] = NAN;
+        for (int i = 0; i < npre_sandhi; i++) sandhibuf[nsandhi++] = pre_sandhi[i];
+        if (pre_vec3_set) {
+            /* 3-D tone vector preposed */
+            out[n-1].tkind[2] = 2;
+            for (int d = 0; d < 3; d++)
+                out[n-1].tone[2][d] = pre_vec3[d];
         }
 
         /* precomposed combining marks: emit as postposed modifier tokens
@@ -1517,21 +1549,34 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
             if (m->tier == TIER_AIRSTREAM && m->air < 0 && !is_ligature_cp(cp))
                 break;
             if (m->tone_kind != 0) {
-                /* tone mark: store into segment tone state */
-                if (m->tone_kind == 1) {           /* 5-level letter */
-                    if (ntone < 8) tonebuf[ntone++] = (int)m->val[0];
-                } else if (m->tone_kind == 2) {    /* Chinese tone class -> group 5 */
-                    out[n-1].tkind[4] = 2;
-                    out[n-1].tone[4][0] = m->val[0];
-                    out[n-1].tone[4][1] = NAN;
-                } else if (m->tone_kind == 3) {    /* upstep/downstep -> group 4 */
-                    out[n-1].tkind[3] = 3;
-                    out[n-1].tone[3][0] = m->val[0];
-                    out[n-1].tone[3][1] = NAN;
-                } else {                            /* global rise/fall -> group 4 */
-                    out[n-1].tkind[3] = 4;
-                    out[n-1].tone[3][0] = NAN;
-                    out[n-1].tone[3][1] = m->val[1];
+                /* tone mark: store into segment tone state.
+                 * Three extra vectors:
+                 *   tone[0] 5-level / single tone (kind 1)
+                 *   tone[1] sandhi (kind 5)
+                 *   tone[2] 3-D (kind 2 class, 3 step, 4 global) */
+                if (m->tone_kind == 1) {           /* 5-level letter -> vec 1 */
+                    if (ntone < 8) {
+                        tonebuf[ntone++] = (int)m->val[0];
+                        if (m->latin && strncmp(m->latin, "pitch_", 6) == 0)
+                            tone_digit = 1;
+                        else
+                            tone_letter = 1;
+                    }
+                } else if (m->tone_kind == 5) {    /* sandhi letter -> vec 2 */
+                    if (nsandhi < 8) sandhibuf[nsandhi++] = (int)m->val[0];
+                } else {
+                    /* 3-D vector (tone[2]), default (0,0,0):
+                     *   dim 0: upstep/downstep (kind 3, ±1)
+                     *   dim 1: global rise/fall (kind 4, ±1)
+                     *   dim 2: Chinese class (kind 2, ±1..±4) */
+                    out[n-1].tkind[2] = 2;
+                    if (m->tone_kind == 3) {
+                        out[n-1].tone[2][0] = m->val[0];
+                    } else if (m->tone_kind == 4) {
+                        out[n-1].tone[2][1] = m->val[1];
+                    } else { /* kind 2: Chinese tone class */
+                        out[n-1].tone[2][2] = m->val[0];
+                    }
                 }
                 p += k;
                 continue;
@@ -1584,43 +1629,39 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
             p += k;
         }
 
-        /* flush 5-level tone letters into groups (single tone / tone sandhi):
-         *   1 letter  -> (a)              level tone
-         *   2 letters -> (a,b)            single tone
-         *   3 letters -> (a,b,c)          single tone, 3-degree
-         *   4 letters -> (a,b) + (c,d)    single + sandhi
-         *   5 letters -> (a,b,c) + (d,e)
-         *   6 letters -> (a,b,c) + (d,e,f) */
-        if (ntone >= 1 && out[n-1].kind == TK_BASE) {
-            if (ntone == 1) {
+        /* flush 5-level tone letters into the three extra vectors:
+         *   vec 1 (tone[0]) single tone: 1..3 letters
+         *   vec 2 (tone[1]) tone sandhi: 4+ letters overflow here (and ꜖꜕꜔꜓꜒)
+         *   vec 3 (tone[2]) 3-D: (upstep, global, class), default (0,0,0) */
+        if (out[n-1].kind == TK_BASE) {
+            if (ntone >= 1) {
+                out[n-1].tkind[0] = 1;
+                int c = ntone < 3 ? ntone : 3;
+                for (int k = 0; k < c; k++)
+                    out[n-1].tone[0][k] = tonebuf[k];
+                if (ntone == 1)
+                    out[n-1].tone[0][1] = tonebuf[0];   /* level tone */
+                if (tone_digit && tone_letter)
+                    fprintf(stderr,
+                            "ipa2vec: warning: mixing superscript digits (¹²³⁴⁵) and tone letters (˩˨˧˦˥) for the same segment\n");
+                /* 4+ letters: remainder becomes tone sandhi (vec 2) */
+                if (ntone > 3) {
+                    out[n-1].tkind[1] = 1;
+                    int r = ntone - 3;
+                    int rc = r < 3 ? r : 3;
+                    for (int k = 0; k < rc; k++)
+                        out[n-1].tone[1][k] = tonebuf[3 + k];
+                    if (r == 1)
+                        out[n-1].tone[1][1] = tonebuf[3];
+                }
+            }
+            if (nsandhi >= 1) {
                 out[n-1].tkind[1] = 1;
-                out[n-1].tone[1][0] = tonebuf[0];
-                out[n-1].tone[1][1] = tonebuf[0];
-            } else if (ntone == 2) {
-                out[n-1].tkind[1] = 1;
-                out[n-1].tone[1][0] = tonebuf[0]; out[n-1].tone[1][1] = tonebuf[1];
-            } else if (ntone == 3) {
-                out[n-1].tkind[1] = 1;
-                out[n-1].tone[1][0] = tonebuf[0]; out[n-1].tone[1][1] = tonebuf[1];
-                out[n-1].tone[1][2] = tonebuf[2];
-            } else if (ntone == 4) {
-                out[n-1].tkind[1] = 1;
-                out[n-1].tone[1][0] = tonebuf[0]; out[n-1].tone[1][1] = tonebuf[1];
-                out[n-1].tkind[2] = 1;
-                out[n-1].tone[2][0] = tonebuf[2]; out[n-1].tone[2][1] = tonebuf[3];
-            } else if (ntone == 5) {
-                out[n-1].tkind[1] = 1;
-                out[n-1].tone[1][0] = tonebuf[0]; out[n-1].tone[1][1] = tonebuf[1];
-                out[n-1].tone[1][2] = tonebuf[2];
-                out[n-1].tkind[2] = 1;
-                out[n-1].tone[2][0] = tonebuf[3]; out[n-1].tone[2][1] = tonebuf[4];
-            } else { /* >= 6 */
-                out[n-1].tkind[1] = 1;
-                out[n-1].tone[1][0] = tonebuf[0]; out[n-1].tone[1][1] = tonebuf[1];
-                out[n-1].tone[1][2] = tonebuf[2];
-                out[n-1].tkind[2] = 1;
-                out[n-1].tone[2][0] = tonebuf[3]; out[n-1].tone[2][1] = tonebuf[4];
-                out[n-1].tone[2][2] = tonebuf[5];
+                int c = nsandhi < 3 ? nsandhi : 3;
+                for (int k = 0; k < c; k++)
+                    out[n-1].tone[1][k] = sandhibuf[k];
+                if (nsandhi == 1)
+                    out[n-1].tone[1][1] = sandhibuf[0];
             }
         }
     }
@@ -1703,7 +1744,7 @@ static IPA2VEC_MAYBE_UNUSED void apply_layer2 (IrTok *l2, int n2, SegVec *segs, 
             memcpy(out.v, base->v, sizeof(out.v));
             out.airstream = base->airstream;
             out.note[0] = 0;
-            for (int g = 0; g < 5; g++) {
+            for (int g = 0; g < 3; g++) {
                 out.tone[g][0] = NAN;
                 out.tone[g][1] = NAN;
                 out.tone[g][2] = NAN;
@@ -1986,24 +2027,34 @@ static IPA2VEC_MAYBE_UNUSED void build_ipa (const SegEntry *base, const ModRec *
 /* print the 5-group tone annotation, e.g.  ()?(1,2)?(4,5)  */
 static IPA2VEC_MAYBE_UNUSED void print_tone (const SegVec *sv)
 {
+    /* three extra vectors:
+     *   vec 0: single tone (contour, 1-3 levels) / ¹²³⁴⁵ digits
+     *   vec 1: tone sandhi (contour, 1-3 levels)
+     *   vec 2: 3-D (upstep, global, class); default (0,0,0)
+     * Empty vectors print as '?'; trailing consecutive '?' are dropped. */
     int last = -1;
-    for (int g = 0; g < 5; g++)
+    for (int g = 0; g < 3; g++)
         if (sv->tkind[g] != 0)
             last = g;
     if (last < 0) return;
     printf("  tone=");
     for (int g = 0; g <= last; g++) {
-        if (sv->tkind[g] == 0) { printf("%s()", g ? "?" : ""); continue; }
-        /* group 4 (step/global) and group 5 (class): (a,?) / (?,b) forms */
-        int nvals = 3;
-        if (sv->tkind[g] == 2) nvals = 1;      /* class: single value */
-        else if (sv->tkind[g] == 3) nvals = 2; /* step: (a,?) */
-        else if (sv->tkind[g] == 4) nvals = 2; /* global: (?,b) */
-        else {
-            /* contour: 2 or 3 values */
-            nvals = !isnan(sv->tone[g][2]) ? 3 : 2;
+        if (g) printf("?");
+        if (sv->tkind[g] == 0) continue;   /* empty vector placeholder */
+        if (g == 2) {
+            /* 3-D vector: always three values, default (0,0,0) */
+            printf("(");
+            for (int d = 0; d < 3; d++) {
+                if (d) printf(",");
+                if (isnan(sv->tone[2][d])) printf("0");
+                else printf("%g", sv->tone[2][d]);
+            }
+            printf(")");
+            continue;
         }
-        printf("%s(", g ? "?" : "");
+        /* contour: 2 or 3 values */
+        int nvals = !isnan(sv->tone[g][2]) ? 3 : 2;
+        printf("(");
         for (int k = 0; k < nvals; k++) {
             if (k) printf(",");
             if (isnan(sv->tone[g][k])) printf("?");

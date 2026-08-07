@@ -72,21 +72,28 @@ BIG = ("\u02c0\u025d\u0306\u033ak\u203f\u02c8o\u033d\u02d0\u1db7\u02cc"
 check("BIG clinical/extIPA string parses", [BIG], expect_rc=0)
 
 # ------------------------------------------------------------------
-# 2. Tone system
+# 2. Tone system — three extra vectors:
+#    vec1 single tone (¹²³⁴⁵ / ˩˨˧˦˥), vec2 sandhi (꜖꜕꜔꜓꜒),
+#    vec3 3-D (upstep, global, class), default (0,0,0)
+#    empty vectors print as '?', trailing '?' dropped
 # ------------------------------------------------------------------
-check("tone 2-letter", ["ma\u02e9\u02e8"], expect_tone="tone=()?(1,2)")
-check("tone 3-letter", ["ma\u02e5\u02e7\u02e9"], expect_tone="tone=()?(5,3,1)")
+check("tone 2-letter", ["ma\u02e9\u02e8"], expect_tone="tone=(1,2)")
+check("tone 3-letter", ["ma\u02e5\u02e7\u02e9"], expect_tone="tone=(5,3,1)")
 check("tone 4-letter single+sandhi", ["ma\u02e9\u02e8\ua713\ua712"],
-      expect_tone="tone=()?(1,2)?(4,5)")
+      expect_tone="tone=(1,2)?(4,5)")
 check("tone 6-letter", ["t\u02e5\u02e6\u02e7\u02e8\u02e9\u02e9"],
-      expect_tone="tone=()?(5,4,3)?(2,1,1)")
-check("upstep", ["ma\ua71b"], expect_tone="tone=()?()?()?(-1,?)")
-check("downstep", ["ma\ua71c"], expect_tone="tone=()?()?()?(1,?)")
-check("global rise", ["ma\u2197"], expect_tone="tone=()?()?()?(?,1)")
-check("global fall", ["ma\u2198"], expect_tone="tone=()?()?()?(?,-1)")
-check("tone class 6", ["ma\ua705"], expect_tone="tone=()?()?()?()?(-3)")
+      expect_tone="tone=(5,4,3)?(2,1,1)")
+check("tone digits", ["ma\u00b9\u00b2\u2074"], expect_tone="tone=(1,2,4)")
+check("tone sandhi letters", ["ma\ua716\ua715"], expect_tone="tone=?(1,2)")
+check("upstep", ["ma\ua71b"], expect_tone="tone=??(-1,0,0)")
+check("downstep", ["ma\ua71c"], expect_tone="tone=??(1,0,0)")
+check("global rise", ["ma\u2197"], expect_tone="tone=??(0,1,0)")
+check("global fall", ["ma\u2198"], expect_tone="tone=??(0,-1,0)")
+check("tone class 6", ["ma\ua705"], expect_tone="tone=??(0,0,-3)")
 check("tone+class combined", ["ma\u02e9\u02e8\ua705"],
-      expect_tone="tone=()?(1,2)?()?()?(-3)")
+      expect_tone="tone=(1,2)??(0,0,-3)")
+check("mixed digit+letter tone warns", ["ma\u00b9\u02e9"], expect_rc=0,
+      expect_warn="warning: mixing superscript digits")
 
 # ------------------------------------------------------------------
 # 3. Implicit affricates (no tie)
