@@ -90,20 +90,80 @@ def nll_weights(counts, D, loga):
         tot -= np.sum(counts[c] * np.log(P))
     return tot
 
-def objective(x, X, counts, rho):
-    u, loga = x[:16], x[16:]
+def vowel_consonant_penalty(X_all, weights, margin=0.2):
+    """Vowel-consonant separation anchors.
+
+    The confusion matrices (16 consonants) carry no signal for the vowel
+    space, so the fit can collapse dimensions that only matter there —
+    e.g. `effective_oral_area`, which per SPEC §1.9/§2.14 is the single
+    shared scale for vowel height AND consonantal constriction.  A
+    collapsed area weight makes nasalised/long vowels land on nasal
+    consonants (ãː → /ɲ/).
+
+    The anchors enforce that vowels and consonants are kept apart BY THE
+    DIMENSIONS THAT GENUINELY DIFFER between them (oral area, duration,
+    nasality): for every vowel-like base V (voiced, area ≥ 0.4,
+    duration 1.0) and each extension (nasalised ◌̃, long ː, both), the
+    nearest VOWEL base must stay closer than the nearest CONSONANT base,
+    with a margin.  This pins the vowel-consonant contrast without
+    over-constraining vowel-vowel distances (unlike per-base anchors,
+    which let the fit cheat by inflating vowel-internal distinctions).
+    Hinge penalty added to the objective."""
+    hinge = 0.0
+    n = len(X_all)
+    is_vowel = [X_all[i][8] >= 0.5 and X_all[i][14] >= 0.4
+                and X_all[i][12] >= 1.0 for i in range(n)]
+    v_idx = [i for i in range(n) if is_vowel[i]]
+    c_idx = [i for i in range(n) if not is_vowel[i]]
+    for i in v_idx:
+        v = X_all[i]
+        for nas, long in ((1, 0), (0, 1), (1, 1)):
+            ext = v.copy()
+            if nas:
+                ext[6] = 0.8
+            if long:
+                ext[12] = 2.0
+            def d(j):
+                return np.sqrt(np.sum(weights * (ext - X_all[j]) ** 2))
+            d_v = min(d(j) for j in v_idx)
+            d_c = min(d(j) for j in c_idx)
+            hinge += max(0.0, d_v - d_c + margin)
+    return hinge
+
+def objective(x, X, counts, rho, X_all=None, rho_anchor=0.0, margin=0.2,
+              free=None, fixed=None):
+    """x = [log w (free dims), log a (n_cond)]; free/fixed: dim indices."""
+    n_cond = counts.shape[0]
+    u = np.zeros(16)
+    if fixed is not None:
+        u[list(fixed)] = np.log(np.clip(np.array(TIER_INIT)[list(fixed)], 1e-9, None))
+    u[free] = x[:len(free)]
+    loga = x[len(free):]
     w = np.exp(u)
     D = distance_matrix(X, w)
     nll = nll_weights(counts, D, loga)
     reg = rho * np.sum((u - np.log(TIER_INIT)) ** 2)
-    return nll + reg
+    anc = 0.0
+    if rho_anchor > 0 and X_all is not None:
+        anc = vowel_consonant_penalty(X_all, w, margin)
+    return nll + reg + rho_anchor * anc
 
-def fit_weights(X, counts, rho=RHO, x0=None):
+FIXED_DIMS = (5, 7, 11, 15)   # tongue_root, lateral_ratio, laryngeal_tension,
+                              # airflow_direction — no signal in the 16-consonant
+                              # set, kept at tier defaults during the fit
+
+def fit_weights(X, counts, rho=RHO, x0=None, X_all=None, rho_anchor=0.0, margin=0.2):
+    free = [i for i in range(16) if i not in FIXED_DIMS]
     n_cond = counts.shape[0]
     if x0 is None:
-        x0 = np.concatenate([np.log(TIER_INIT), np.zeros(n_cond)])
-    res = minimize(objective, x0, args=(X, counts, rho), method='L-BFGS-B')
-    return np.exp(res.x[:16]), np.exp(res.x[16:]), res
+        x0 = np.concatenate([np.log(np.array(TIER_INIT)[free]), np.zeros(n_cond)])
+    res = minimize(objective, x0, args=(X, counts, rho, X_all, rho_anchor,
+                                        margin, free, FIXED_DIMS),
+                   method='L-BFGS-B')
+    u = np.zeros(16)
+    u[list(FIXED_DIMS)] = np.log(np.clip(np.array(TIER_INIT)[list(FIXED_DIMS)], 1e-9, None))
+    u[free] = res.x[:len(free)]
+    return np.exp(u), np.exp(res.x[len(free):]), res
 
 def postprocess(w, X):
     w = w.copy()
@@ -155,11 +215,16 @@ def loco(X, counts, weights):
 
 def main():
     write = '--write' in sys.argv
+    rho_anchor = 1.0   # vowel-consonant hinge strength (keeps the vowel space sane)
+    for a in sys.argv:
+        if a.startswith('--anchor='):
+            rho_anchor = float(a.split('=', 1)[1])
     cons, counts = load_counts()
     vecs = load_vectors()
     X = np.array([vecs['ɡ' if c == 'g' else c] for c in cons])
+    X_all = np.array(list(vecs.values()))
 
-    w_raw, a, res = fit_weights(X, counts)
+    w_raw, a, res = fit_weights(X, counts, X_all=X_all, rho_anchor=rho_anchor)
     w = postprocess(w_raw, X)
 
     published = np.array(json.load(open(METRIC_JSON, encoding='utf-8'))['weights'])
