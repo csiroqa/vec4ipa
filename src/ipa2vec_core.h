@@ -2123,11 +2123,19 @@ static IPA2VEC_MAYBE_UNUSED void nearest_base (const double v[NDIM], const SegEn
 static int    g_fit_max_mods = 6;
 static double g_fit_min_gain = 0.015;
 
+static IPA2VEC_MAYBE_UNUSED int mod_priority(const ModRec *m);   /* fwd: canonical order (see below) */
+
 static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const SegEntry *base,
                          const ModRec *mods[IPA2VEC_FIT_MAX_MODS])
 {
-    double cur[NDIM];
-    memcpy(cur, base->v, sizeof(cur));
+    /* The greedy search picks the best single modifier each round, but the
+     * chosen set must be applied in the SAME canonical order (combining
+     * marks first, then spacing superscripts, each by feature tier) that
+     * the parser will use when the emitted IPA is re-parsed.  Applying
+     * them in greedy pick order would give a different vector than the
+     * emitted string reproduces (order matters for interacting mods like
+     * rnd_more vs whistled on v[1]).  So the chosen list is kept sorted
+     * by mod_priority and every evaluation re-applies the whole set. */
     int n = 0;
     /* nasality spelling depends on the base: vowels AND nasal
      * consonants use ◌̃ (mod_nasal); oral consonants use the
@@ -2140,7 +2148,18 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
                   ? g_fit_max_mods : IPA2VEC_FIT_MAX_MODS;
     for (int round = 0; round < maxmods; round++) {
         int besti = -1;
-        double bestd = seg_dist(target, cur);
+        double trial[NDIM];
+        double curd = 1e300;
+        /* distance of the current chosen set, applied canonically */
+        if (n == 0) {
+            curd = seg_dist(target, base->v);
+        } else {
+            memcpy(trial, base->v, sizeof(trial));
+            for (int k = 0; k < n; k++)
+                apply_voicing_mod(trial, mods[k], base);
+            curd = seg_dist(target, trial);
+        }
+        double bestd = curd;
         for (int i = 0; i < NMODS; i++) {
             if (!MODS[i].apply || is_ligature_cp(MODS[i].cp)) continue;
             if (!MODS[i].reverse) continue;   /* input-tolerance only */
@@ -2154,20 +2173,38 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
                 !(base_is_vowel || base_nasal)) continue;
             if (MODS[i].apply == mod_nasal_rel &&
                 (base_is_vowel || base_nasal)) continue;
-            double trial[NDIM];
-            memcpy(trial, cur, sizeof(trial));
-            apply_voicing_mod(trial, &MODS[i], base);
+            /* evaluate: base + mods[0..n-1] + candidate, applied in
+             * canonical order (the order the emitted IPA re-parses in) */
+            const ModRec *ins[IPA2VEC_FIT_MAX_MODS + 1];
+            int ni = 0, placed = 0;
+            for (int k = 0; k < n; k++) {
+                if (!placed && mod_priority(&MODS[i]) < mod_priority(mods[k]))
+                    { ins[ni++] = &MODS[i]; placed = 1; }
+                ins[ni++] = mods[k];
+            }
+            if (!placed) ins[ni++] = &MODS[i];
+            memcpy(trial, base->v, sizeof(trial));
+            for (int k = 0; k < ni; k++)
+                apply_voicing_mod(trial, ins[k], base);
             double d = seg_dist(target, trial);
             if (d < bestd - 1e-9) { bestd = d; besti = i; }
         }
         if (besti < 0) break;
         /* significance gate: require at least g_fit_min_gain relative
          * improvement over the previous distance (before this round) */
-        double prev = seg_dist(target, cur);
-        if (prev > 1e-12 && (prev - bestd) / prev < g_fit_min_gain)
+        if (curd > 1e-12 && (curd - bestd) / curd < g_fit_min_gain)
             break;
-        mods[n++] = &MODS[besti];
-        apply_voicing_mod(cur, mods[n-1], base);
+        /* insert the winner in canonical position */
+        const ModRec *ins[IPA2VEC_FIT_MAX_MODS + 1];
+        int ni = 0, placed = 0;
+        for (int k = 0; k < n; k++) {
+            if (!placed && mod_priority(&MODS[besti]) < mod_priority(mods[k]))
+                { ins[ni++] = &MODS[besti]; placed = 1; }
+            ins[ni++] = mods[k];
+        }
+        if (!placed) ins[ni++] = &MODS[besti];
+        for (int k = 0; k < ni; k++) mods[k] = ins[k];
+        n = ni;
     }
     return n;
 }
@@ -2219,34 +2256,33 @@ static IPA2VEC_MAYBE_UNUSED const char *combining_form(const ModRec *m)
  *   8 timing (ː ˑ ̆ ̩ ̯)
  *   9 tone / everything else
  * Lower number = closer to the letter. */
+/* A modifier is "spacing" when its emitted glyph is a modifier-letter /
+ * superscript character that advances the cursor horizontally (ʼ ʰ ʲ ʷ
+ * ˠ ˤ ˡ ˢ ˣ ˞ ː ˑ ʳ …) rather than a zero-width combining mark that
+ * overlays the base letter.  Such characters are typographically new
+ * characters, not marks on the base, so they are emitted AFTER all
+ * combining marks.  (mod_phar emits ˤ U+02E4 — spacing; mod_voiceless
+ * emits ◌̥/◌̊ — combining; ˔ ˕ are converted to their combining forms.) */
+static IPA2VEC_MAYBE_UNUSED int mod_is_spacing(const ModRec *m)
+{
+    if (m->apply == mod_phar) return 1;        /* emitted as ˤ U+02E4 */
+    if (m->apply == mod_voiceless) return 0;   /* emitted as ◌̥/◌̊ */
+    if (combining_form(m)) return 0;           /* ˔ ˕ -> ◌̝ ◌̞ */
+    const unsigned char *g = (const unsigned char *)m->ipa;
+    unsigned long cp;
+    int k = utf8_decode(g, &cp);
+    if (!k) return 1;
+    return cp != 0x25CC;   /* stored with the ◌ placeholder = combining */
+}
+
+/* canonical modifier order: combining marks first, then spacing
+ * superscripts, each in the feature-tier order the parser applies
+ * (airstream → laryngeal → place → manner → nasal → timing), stable
+ * within a group and tier.  Re-parsing re-sorts by tier, so the emitted
+ * spelling reproduces the same vector. */
 static IPA2VEC_MAYBE_UNUSED int mod_priority(const ModRec *m)
 {
-    switch (m->cp) {
-    case 0x0325: case 0x030A: case 0x0308: case 0x032C:      /* voicing */
-    case 0x0304: case 0x0330: case 0x02B1:                    /* phonation */
-        return 1;
-    case 0x031F: case 0x0320: case 0x032A: case 0x033A:       /* place micro */
-    case 0x033B: case 0x033C: case 0x0322: case 0x0347:
-        return 2;
-    case 0x031D: case 0x031E: case 0x02D4: case 0x02D5:       /* manner */
-    case 0x033D:
-        return 3;
-    case 0x0318: case 0x0319:                                  /* tongue root */
-        return 4;
-    case 0x02B2: case 0x02B7: case 0x02E0: case 0x02E4:       /* secondary */
-    case 0x0334: case 0x02B8:
-        return 5;
-    case 0x0303: case 0x1D51: case 0x1D4B:                    /* nasality */
-        return 6;
-    case 0x02B0: case 0x02BC: case 0x02E1: case 0x207F:       /* release */
-    case 0x1D4A: case 0x02E2: case 0x02E3: case 0x031A: case 0x1D30:
-        return 7;
-    case 0x02D0: case 0x02D1: case 0x0306: case 0x0329:       /* timing */
-    case 0x032F:
-        return 8;
-    default:
-        return 9;
-    }
+    return (mod_is_spacing(m) ? TIER_COUNT : 0) + (int)m->tier;
 }
 
 /* order modifiers by IPA diacritic order (stable) */
@@ -2263,16 +2299,38 @@ static IPA2VEC_MAYBE_UNUSED void order_mods(const ModRec **mods, int nmods)
     }
 }
 
-/* build the IPA spelling: base letter + modifiers in feature-tier order.
+/* does the base spelling end in spacing superscript marks (e.g. qʼ, lˠ)?
+ * Return a pointer to the first such trailing mark (0 if none). */
+static IPA2VEC_MAYBE_UNUSED const char *base_tail_marks(const char *s)
+{
+    /* modifier letters / superscripts: U+02B0-02FF, U+1D00-1D7F */
+    const unsigned char *p = (const unsigned char *)s;
+    const char *tail = NULL;
+    while (*p) {
+        unsigned long cp;
+        int k = utf8_decode(p, &cp);
+        if (!k) break;
+        if ((cp >= 0x02B0 && cp <= 0x02FF) ||
+            (cp >= 0x1D00 && cp <= 0x1D7F)) {
+            if (!tail) tail = (const char *)p;   /* start of trailing run */
+        } else {
+            tail = NULL;   /* run broken by a letter */
+        }
+        p += k;
+    }
+    return tail;
+}
+
+/* build the IPA spelling: base letter (without its own trailing spacing
+ * marks) + combining marks in feature-tier order, then all spacing
+ * superscript marks (the base's own + the fitted modifiers) last, in
+ * feature-tier order.
  * Standard symbols only: spacing modifier letters are replaced by their
  * combining forms where one exists; below-marks on descender letters are
  * moved above (voiceless ◌̥ -> ◌̊). */
 static IPA2VEC_MAYBE_UNUSED void build_ipa (const SegEntry *base, const ModRec **mods, int nmods,
                        char *out, size_t outsz)
 {
-    snprintf(out, outsz, "%s", base->ipa);
-    size_t used = strlen(out);
-
     /* copy to a local array so we can reorder without touching caller data */
     const ModRec *ordered[8];
     int n = nmods < 8 ? nmods : 8;
@@ -2280,22 +2338,79 @@ static IPA2VEC_MAYBE_UNUSED void build_ipa (const SegEntry *base, const ModRec *
     order_mods(ordered, n);
 
     int desc = has_descender(base->ipa);
+    const char *tail = base_tail_marks(base->ipa);
+    size_t corelen = tail ? (size_t)(tail - base->ipa) : strlen(base->ipa);
+    size_t used = 0;
+    if (corelen + 1 <= outsz) {
+        memcpy(out, base->ipa, corelen);
+        used = corelen;
+        out[used] = 0;
+    }
 
+    /* pass 0: combining marks (attach to the base letter) */
     for (int i = 0; i < n; i++) {
-        const char *glyph = ordered[i]->ipa;
+        const ModRec *m = ordered[i];
+        if (mod_is_spacing(m)) continue;
+        const char *glyph = m->ipa;
         /* prefer the combining form of spacing modifier letters */
-        const char *comb = combining_form(ordered[i]);
+        const char *comb = combining_form(m);
         if (comb) glyph = comb;
         /* voiceless: standard form is ◌̥ (below ring); on descender
          * letters the below ring collides with the descender, so the
          * above ring ◌̊ is used instead (ŋ̥ -> ŋ̊, but m̥ stays m̥).
          * The choice depends on the letter, not on which MODS glyph was
          * picked during fitting. */
-        if (ordered[i]->apply == mod_voiceless)
+        if (m->apply == mod_voiceless)
             glyph = desc ? "\xcc\x8a" : "\xcc\xa5";
         /* pharyngealised: emit the unambiguous superscript ˤ (U+02E4)
          * rather than the velarised-or-pharyngealised overlay ◌̴ */
-        if (ordered[i]->apply == mod_phar)
+        if (m->apply == mod_phar)
+            glyph = "\xcb\xa4";
+        /* strip the U+25CC dotted-circle placeholder from display glyphs
+         * (MODS entries are written "◌̝" for readability; the emitted IPA
+         * spelling carries only the combining mark itself) */
+        const unsigned char *g = (const unsigned char *)glyph;
+        while (*g) {
+            unsigned long cp;
+            int k = utf8_decode(g, &cp);
+            if (!k) break;
+            if (cp != 0x25CC) {
+                if (used + (size_t)k + 1 < outsz) {
+                    memcpy(out + used, g, (size_t)k);
+                    used += (size_t)k;
+                    out[used] = 0;
+                }
+            }
+            g += k;
+        }
+    }
+
+    /* the base's own trailing spacing marks come before any fitted ones */
+    if (tail && used + strlen(tail) + 1 <= outsz) {
+        memcpy(out + used, tail, strlen(tail));
+        used += strlen(tail);
+        out[used] = 0;
+    }
+
+    /* pass 1: spacing superscripts from the fitted modifiers (typographic
+     * new characters — appended last) */
+    for (int i = 0; i < n; i++) {
+        const ModRec *m = ordered[i];
+        if (!mod_is_spacing(m)) continue;
+        const char *glyph = m->ipa;
+        /* prefer the combining form of spacing modifier letters */
+        const char *comb = combining_form(m);
+        if (comb) glyph = comb;
+        /* voiceless: standard form is ◌̥ (below ring); on descender
+         * letters the below ring collides with the descender, so the
+         * above ring ◌̊ is used instead (ŋ̥ -> ŋ̊, but m̥ stays m̥).
+         * The choice depends on the letter, not on which MODS glyph was
+         * picked during fitting. */
+        if (m->apply == mod_voiceless)
+            glyph = desc ? "\xcc\x8a" : "\xcc\xa5";
+        /* pharyngealised: emit the unambiguous superscript ˤ (U+02E4)
+         * rather than the velarised-or-pharyngealised overlay ◌̴ */
+        if (m->apply == mod_phar)
             glyph = "\xcb\xa4";
         /* strip the U+25CC dotted-circle placeholder from display glyphs
          * (MODS entries are written "◌̝" for readability; the emitted IPA

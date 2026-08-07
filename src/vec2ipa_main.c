@@ -145,6 +145,7 @@ int main(int argc, char **argv)
 
     const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
     int nm = fit_modifiers(v, b, mods);
+    order_mods(mods, nm);   /* canonical order — same as the rebuilt IPA */
     char ipa[128];
     build_ipa(b, mods, nm, ipa, sizeof(ipa));
     printf("/%s/  (%s", b->ipa, base_name(b));
