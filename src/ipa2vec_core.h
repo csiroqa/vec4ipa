@@ -1292,6 +1292,14 @@ static const SegEntry *match_base_ex(const char *s, int *consumed)
     return NULL;
 }
 
+/* feature name of any base (SEG_TABLE or EXTRA_BASE) */
+static IPA2VEC_MAYBE_UNUSED const char *base_name(const SegEntry *b)
+{
+    if (b >= SEG_TABLE && b < SEG_TABLE + NSEG)
+        return NAME_TABLE[b - SEG_TABLE];
+    return EXTRA_NAMES[b - EXTRA_BASE];
+}
+
 static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS], int *nout, char *err, size_t errsz);
 
 static IPA2VEC_MAYBE_UNUSED int lex (const char *input, IrTok out[MAX_TOKS], int *nout, char *err, size_t errsz)
@@ -1949,24 +1957,36 @@ static IPA2VEC_MAYBE_UNUSED void apply_layer2 (IrTok *l2, int n2, SegVec *segs, 
             while (i < n2 && (l2[i].kind == TK_MOD || l2[i].kind == TK_LIG)) {
                 if (l2[i].kind == TK_MOD) {
                     if (l2[i].mod && l2[i].mod->apply) {
-                        /* nasalising a nasal consonant (ñ) is redundant —
-                         * the tilde on a nasal base lowers its nasality in
-                         * the vector, which usually means a different
-                         * place (e.g. ñ -> ɲ).  Warn and suggest. */
-                        if (l2[i].mod->apply == mod_nasal &&
-                            base && base->v[6] >= 0.5 &&
-                            !out.note[0]) {
-                            const char *guess = NULL;
-                            if (strcmp(base->ipa, "n") == 0) guess = "\xC9\xB2";     /* ɲ */
-                            else if (strcmp(base->ipa, "m") == 0) guess = "\xC9\xB1"; /* ɱ */
-                            else if (strcmp(base->ipa, "\xC5\x8B") == 0) guess = "\xC9\xB4"; /* ŋ -> ɴ */
-                            if (guess)
+                        /* nasality spelling rules (input tolerance):
+                         *  - nasalising a nasal consonant (ñ) is redundant
+                         *    and lowers its nasality (usually a place
+                         *    shift: ñ -> ɲ)
+                         *  - vowels take ◌̃, oral consonants take ⁿ */
+                        int base_nasal = base && base->v[6] >= 0.5;
+                        int base_vowel = base && base->v[14] >= 0.5;
+                        if (l2[i].mod->apply == mod_nasal && !out.note[0]) {
+                            if (base_nasal) {
+                                const char *guess = NULL;
+                                if (strcmp(base->ipa, "n") == 0) guess = "\xC9\xB2";     /* ɲ */
+                                else if (strcmp(base->ipa, "m") == 0) guess = "\xC9\xB1"; /* ɱ */
+                                else if (strcmp(base->ipa, "\xC5\x8B") == 0) guess = "\xC9\xB4"; /* ŋ -> ɴ */
+                                if (guess)
+                                    fprintf(stderr,
+                                            "ipa2vec: warning: nasalising the nasal %s is redundant — did you mean %s?\n",
+                                            base->ipa, guess);
+                                else
+                                    fprintf(stderr,
+                                            "ipa2vec: warning: nasalising the nasal %s is redundant\n",
+                                            base->ipa);
+                            } else if (!base_vowel) {
                                 fprintf(stderr,
-                                        "ipa2vec: warning: nasalising the nasal %s is redundant — did you mean %s?\n",
-                                        base->ipa, guess);
-                            else
+                                        "ipa2vec: warning: oral consonant %s nasalises with ◌ⁿ, not ◌̃\n",
+                                        base->ipa);
+                            }
+                        } else if (l2[i].mod->apply == mod_nasal_rel && !out.note[0]) {
+                            if (base_vowel)
                                 fprintf(stderr,
-                                        "ipa2vec: warning: nasalising the nasal %s is redundant\n",
+                                        "ipa2vec: warning: vowel %s nasalises with ◌̃, not ◌ⁿ\n",
                                         base->ipa);
                         }
                         apply_voicing_mod(out.v, l2[i].mod, base);

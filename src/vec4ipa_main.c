@@ -316,7 +316,7 @@ int main(int argc, char **argv)
         const SegEntry *b; double d;
         nearest_base(v, &b, &d);
         if (nearest_only) {
-            printf("/%s/  %s  d=%.4f  (%s)\n", b->ipa, NAME_TABLE[b - SEG_TABLE],
+            printf("/%s/  %s  d=%.4f  (%s)\n", b->ipa, base_name(b),
                    d, AIRSTREAM_LABELS[b->airstream]);
             return 0;
         }
@@ -324,7 +324,7 @@ int main(int argc, char **argv)
         int nm = fit_modifiers(v, b, mods);
         char ipa[128];
         build_ipa(b, mods, nm, ipa, sizeof(ipa));
-        printf("/%s/  (%s", b->ipa, NAME_TABLE[b - SEG_TABLE]);
+        printf("/%s/  (%s", b->ipa, base_name(b));
         for (int j = 0; j < nm; j++) printf(" +%s", mods[j]->latin);
         printf(")  d=%.4f  ->  /%s/\n", d, ipa);
         return 0;

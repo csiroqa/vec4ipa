@@ -102,6 +102,10 @@ check("standalone tone class", ["\ua705"], expect_tone="tone=??(0,0,-3)")
 check("nasalised nasal warns", ["n\u0303"],
       expect_warn="nasalising the nasal n is redundant")
 check("nasalised vowel silent", ["a\u0303"], expect_rc=0)
+check("vowel nasal-release warns", ["a\u207f"],
+      expect_warn="vowel a nasalises with ◌̃")
+check("oral consonant tilde warns", ["t\u0303"],
+      expect_warn="oral consonant t nasalises with ◌ⁿ")
 
 # ------------------------------------------------------------------
 # 3. Implicit affricates (no tie)
