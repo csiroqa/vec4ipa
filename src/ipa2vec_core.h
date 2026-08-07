@@ -305,7 +305,7 @@ static const ModRec MODS[] = {
     { 0x0347, "◌͇",  "alveolar",  TIER_PLACE,     -1, mod_alveolar_mark, 0, {0,0} , NULL, 1  },
     { 0x034E, "◌͎",  "whistled",  TIER_MANNER,    -1, mod_whistled,    0, {0,0} , NULL, 1  },
     { 0x1DB9, "◌ᶹ",  "labiodental", TIER_PLACE,   -1, mod_lbd_mark,    0, {0,0} , NULL, 1  },
-    { 0x0362, "◌͢",  "sliding",   TIER_TIMING,    -1, mod_sliding,     0, {0,0} , NULL, 1  },
+    { 0x0362, "◌͢",  "sliding",   TIER_TIMING,    -1, mod_sliding,     0, {0,0} , NULL, 0  },
     { 0x0323, "◌̣",  "lowered",   TIER_MANNER,    -1, mod_lowered,      0, {0,0} , NULL, 1  },
     { 0x0325, "◌̥",  "vl",        TIER_LARYNGEAL, -1, mod_voiceless,    0, {0,0} , NULL, 1  },
     { 0x0329, "◌̩",  "syl",       TIER_TIMING,    -1, mod_syl,          0, {0,0} , NULL, 1  },
@@ -355,26 +355,26 @@ static const ModRec MODS[] = {
     { 0x02E2, "ˢ",   "fric_release", TIER_MANNER, -1, mod_fric_release,0, {0,0} , NULL, 1  },
     { 0x02E4, "ˤ",   "phar",      TIER_PLACE,     -1, mod_phar,        0, {0,0} , NULL, 1  },
     /* superscript letters as diacritics (IPA letters used as modifiers) */
-    { 0x02B3, "ʳ",   "sup_rhot_r",   TIER_MANNER, -1, mod_sup_rhot1,   0, {0,0} , NULL, 1  },
-    { 0x02B4, "ʴ",   "sup_rhot_ʁ",   TIER_MANNER, -1, mod_sup_rhot1,   0, {0,0} , NULL, 1  },
-    { 0x02B5, "ʵ",   "sup_rhot_ʕ",   TIER_MANNER, -1, mod_sup_rhot1,   0, {0,0} , NULL, 1  },
-    { 0x02B6, "ʶ",   "sup_rhot_ʢ",   TIER_MANNER, -1, mod_sup_rhot1,   0, {0,0} , NULL, 1  },
-    { 0x1D49, "ᵉ",   "sup_e",        TIER_PLACE,  -1, mod_sup_front,   0, {0,0} , NULL, 1  },
-    { 0x1D4C, "ᵌ",   "sup_ɛ",        TIER_MANNER, -1, mod_sup_mid,     0, {0,0} , NULL, 1  },
-    { 0x1D64, "ᵤ",   "sup_u",        TIER_PLACE,  -1, mod_sup_back,    0, {0,0} , NULL, 1  },
-    { 0x1D62, "ᵢ",   "sub_i",        TIER_PLACE,  -1, mod_sup_front,   0, {0,0} , NULL, 1  },
-    { 0x1D63, "ᵣ",   "sub_r",        TIER_MANNER, -1, mod_sup_rhot1,   0, {0,0} , NULL, 1  },
-    { 0x1D30, "ᴰ",   "sup_h",        TIER_LARYNGEAL, -1, mod_asp,       0, {0,0} , NULL, 1  },
-    { 0x1D3B, "ᴻ",   "sup_N",        TIER_NASAL,  -1, mod_nasal_rel,   0, {0,0} , NULL, 1  },
-    { 0x1D2C, "ᴬ",   "sup_A",        TIER_NASAL,  -1, mod_sup_open,    0, {0,0} , NULL, 1  },
-    { 0x1D2E, "ᴮ",   "sup_B",        TIER_MANNER, -1, mod_sup_stop,    0, {0,0} , NULL, 1  },
-    { 0x1D3C, "ᴼ",   "sup_O",        TIER_PLACE,  -1, mod_sup_back,    0, {0,0} , NULL, 1  },
-    { 0x1D3E, "ᴾ",   "sup_P",        TIER_MANNER, -1, mod_sup_stop,    0, {0,0} , NULL, 1  },
-    { 0x1D41, "ᵁ",   "sup_U",        TIER_PLACE,  -1, mod_sup_back,    0, {0,0} , NULL, 1  },
-    { 0x1D42, "ᵂ",   "sup_W",        TIER_PLACE,  -1, mod_lab,         0, {0,0} , NULL, 1  },
-    { 0x02D2, "˒",   "light",        TIER_TIMING, -1, mod_sliding,     0, {0,0} , NULL, 1  },
-    { 0x02D3, "˓",   "dark",         TIER_TIMING, -1, mod_sliding,     0, {0,0} , NULL, 1  },
-    { 0x02D9, "˙",   "lengthened",   TIER_TIMING, -1, mod_long,        0, {0,0} , NULL, 1  },
+    { 0x02B3, "ʳ",   "sup_rhot_r",   TIER_MANNER, -1, mod_sup_rhot1,   0, {0,0} , NULL, 0  },
+    { 0x02B4, "ʴ",   "sup_rhot_ʁ",   TIER_MANNER, -1, mod_sup_rhot1,   0, {0,0} , NULL, 0  },
+    { 0x02B5, "ʵ",   "sup_rhot_ʕ",   TIER_MANNER, -1, mod_sup_rhot1,   0, {0,0} , NULL, 0  },
+    { 0x02B6, "ʶ",   "sup_rhot_ʢ",   TIER_MANNER, -1, mod_sup_rhot1,   0, {0,0} , NULL, 0  },
+    { 0x1D49, "ᵉ",   "sup_e",        TIER_PLACE,  -1, mod_sup_front,   0, {0,0} , NULL, 0  },
+    { 0x1D4C, "ᵌ",   "sup_ɛ",        TIER_MANNER, -1, mod_sup_mid,     0, {0,0} , NULL, 0  },
+    { 0x1D64, "ᵤ",   "sup_u",        TIER_PLACE,  -1, mod_sup_back,    0, {0,0} , NULL, 0  },
+    { 0x1D62, "ᵢ",   "sub_i",        TIER_PLACE,  -1, mod_sup_front,   0, {0,0} , NULL, 0  },
+    { 0x1D63, "ᵣ",   "sub_r",        TIER_MANNER, -1, mod_sup_rhot1,   0, {0,0} , NULL, 0  },
+    { 0x1D30, "ᴰ",   "sup_h",        TIER_LARYNGEAL, -1, mod_asp,       0, {0,0} , NULL, 0  },
+    { 0x1D3B, "ᴻ",   "sup_N",        TIER_NASAL,  -1, mod_nasal_rel,   0, {0,0} , NULL, 0  },
+    { 0x1D2C, "ᴬ",   "sup_A",        TIER_NASAL,  -1, mod_sup_open,    0, {0,0} , NULL, 0  },
+    { 0x1D2E, "ᴮ",   "sup_B",        TIER_MANNER, -1, mod_sup_stop,    0, {0,0} , NULL, 0  },
+    { 0x1D3C, "ᴼ",   "sup_O",        TIER_PLACE,  -1, mod_sup_back,    0, {0,0} , NULL, 0  },
+    { 0x1D3E, "ᴾ",   "sup_P",        TIER_MANNER, -1, mod_sup_stop,    0, {0,0} , NULL, 0  },
+    { 0x1D41, "ᵁ",   "sup_U",        TIER_PLACE,  -1, mod_sup_back,    0, {0,0} , NULL, 0  },
+    { 0x1D42, "ᵂ",   "sup_W",        TIER_PLACE,  -1, mod_lab,         0, {0,0} , NULL, 0  },
+    { 0x02D2, "˒",   "light",        TIER_TIMING, -1, mod_sliding,     0, {0,0} , NULL, 0  },
+    { 0x02D3, "˓",   "dark",         TIER_TIMING, -1, mod_sliding,     0, {0,0} , NULL, 0  },
+    { 0x02D9, "˙",   "lengthened",   TIER_TIMING, -1, mod_long,        0, {0,0} , NULL, 0  },
     /* --- preposed modifiers --- */
     { 0x1D51, "ᵑ",   "nas_click", TIER_AIRSTREAM, -1, mod_nasal_click, 0, {0,0} , NULL, 1  },
     { 0x1D4B, "ᵋ",   "nas_rel",   TIER_AIRSTREAM, -1, mod_nasal,       0, {0,0} , NULL, 1  },
@@ -1502,13 +1502,14 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
  * (e.g. ŋ̥ -> ŋ̊). */
 static IPA2VEC_MAYBE_UNUSED int has_descender(const char *s)
 {
-    /* descender letters: g ɡ ɢ ɠ ɣ ŋ ɳ ɲ ɴ ɟ ʝ ɧ ʡ ʢ ɮ ɬ? (ɬ no),
-     * j ȷ ç? (ç no), and any letter containing the combining cases below */
+    /* descender letters (below-line stroke): g ɡ ɢ ɠ ɣ ŋ ɳ ɲ ɴ ɟ ʝ ɧ ʡ ʢ
+     * ɮ ɻ ɽ ꞎ j ȷ q ɦ — on these, below-marks go above (ŋ̥ -> ŋ̊) */
     static const char *desc[] = {
         "g", "\xc9\xa1", "\xc9\xa2", "\xc9\xa0", "\xc9\xa3",
         "\xc5\x8b", "\xc9\xb3", "\xc9\xb2", "\xc9\xb4",
         "\xc9\x9f", "\xca\x9d", "\xc9\xa7", "\xca\xa1", "\xca\xa2",
-        "\xc9\xae", "j", "\xc8\xb7", "q", "\xc9\xb5", "\xc9\xa6",
+        "\xc9\xae", "\xc9\xbb", "\xc9\xbd", "\xea\x9e\xae",
+        "j", "\xc8\xb7", "q", "\xc9\xa6",
         NULL };
     for (int i = 0; desc[i]; i++)
         if (strcmp(s, desc[i]) == 0)
@@ -1608,11 +1609,17 @@ static IPA2VEC_MAYBE_UNUSED void build_ipa (const SegEntry *base, const ModRec *
         /* prefer the combining form of spacing modifier letters */
         const char *comb = combining_form(ordered[i]);
         if (comb) glyph = comb;
-        /* voiceless below-mark on a descender letter -> above ring */
-        if (desc && (ordered[i]->cp == 0x0325 || ordered[i]->cp == 0x030A ||
-                     ordered[i]->cp == 0x0308)) {
-            glyph = "\xcc\x8a";   /* ◌̊ voiceless ring (above) */
-        }
+        /* voiceless: standard form is ◌̥ (below ring); on descender
+         * letters the below ring collides with the descender, so the
+         * above ring ◌̊ is used instead (ŋ̥ -> ŋ̊, but m̥ stays m̥).
+         * The choice depends on the letter, not on which MODS glyph was
+         * picked during fitting. */
+        if (ordered[i]->apply == mod_voiceless)
+            glyph = desc ? "\xcc\x8a" : "\xcc\xa5";
+        /* pharyngealised: emit the unambiguous superscript ˤ (U+02E4)
+         * rather than the velarised-or-pharyngealised overlay ◌̴ */
+        if (ordered[i]->apply == mod_phar)
+            glyph = "\xcb\xa4";
         /* strip the U+25CC dotted-circle placeholder from display glyphs
          * (MODS entries are written "◌̝" for readability; the emitted IPA
          * spelling carries only the combining mark itself) */
