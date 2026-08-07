@@ -22,3 +22,4 @@ ui/winui/obj/
 ui/ipa2vec_core.dll
 ui/winui/ipa2vec_ui.sln
 
+ui/winui/dist/

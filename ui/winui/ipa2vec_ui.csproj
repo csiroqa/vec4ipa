@@ -13,6 +13,9 @@
     <SelfContained>true</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <PublishDir>$(MSBuildProjectDirectory)\dist\</PublishDir>
     <RootNamespace>IPA2VectorUI</RootNamespace>
     <AssemblyName>ipa2vec_ui</AssemblyName>
     <ApplicationIcon>..\vec_ipa.ico</ApplicationIcon>
