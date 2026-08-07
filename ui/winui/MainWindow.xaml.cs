@@ -87,6 +87,8 @@ namespace IPA2VectorUI
             InitStatus();
             ShowWelcome();
             UpdateButtons();
+            /* clicking away clears the selection highlight */
+            OutputBox.LostFocus += (s, e) => OutputBox.SelectionLength = 0;
             HandleArgs(args);
         }
 
@@ -1008,6 +1010,7 @@ namespace IPA2VectorUI
             OutputBox.Text = string.IsNullOrEmpty(OutputBox.Text)
                 ? text : OutputBox.Text + "\n" + text;
             OutputBox.SelectionStart = OutputBox.Text.Length;
+            OutputBox.SelectionLength = 0;
             ScrollToEnd();
         }
 
@@ -1016,8 +1019,12 @@ namespace IPA2VectorUI
         {
             try
             {
-                var sv = FindDescendant<ScrollViewer>(OutputBox);
-                sv?.ChangeView(null, double.PositiveInfinity, null);
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    var sv = FindDescendant<ScrollViewer>(OutputBox);
+                    if (sv != null)
+                        sv.ChangeView(null, sv.ScrollableHeight, null);
+                });
             }
             catch { }
         }
