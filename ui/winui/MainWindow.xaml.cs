@@ -217,6 +217,7 @@ namespace IPA2VectorUI
         private async void HandleArgs(string[] args)
         {
             string? input = null, query = null, vec = null, exportDir = null;
+            string? theme = null;
             bool reverse = false, showHelp = false;
             var rest = new List<string>();
             for (int i = 1; i < args.Length; i++)
@@ -224,6 +225,8 @@ namespace IPA2VectorUI
                 string a = args[i];
                 if (a == "--help" || a == "-h") showHelp = true;
                 else if (a == "--width" && i + 1 < args.Length) i++;
+                else if (a == "--theme" && i + 1 < args.Length)
+                    theme = args[++i];
                 else if (a == "-q" || a == "--query")
                 {
                     if (i + 1 < args.Length) query = args[++i];
@@ -239,6 +242,12 @@ namespace IPA2VectorUI
                 else if (input == null) input = a;
             }
             Core.SetArgs(rest.ToArray());
+
+            if (theme != null)
+            {
+                string t = theme;
+                DispatcherQueue.TryEnqueue(() => ApplyTheme(t));
+            }
 
             if (showHelp)
             {
@@ -623,14 +632,53 @@ namespace IPA2VectorUI
         private void Theme_Click(object sender, RoutedEventArgs e)
         {
             var item = (RadioMenuFlyoutItem)sender;
-            var root = Content.XamlRoot.Content as FrameworkElement;
-            if (root == null) return;
-            switch (item.Text)
+            ApplyTheme(item.Text);
+        }
+
+        private void ApplyTheme(string name)
+        {
+            try
             {
-                case "Light": root.RequestedTheme = ElementTheme.Light; break;
-                case "Dark": root.RequestedTheme = ElementTheme.Dark; break;
-                default: root.RequestedTheme = ElementTheme.Default; break;
+                var root = Content.XamlRoot?.Content as FrameworkElement;
+                if (root == null) return;
+                ElementTheme theme;
+                switch (name)
+                {
+                    case "Light": theme = ElementTheme.Light; break;
+                    case "Dark": theme = ElementTheme.Dark; break;
+                    default: theme = ElementTheme.Default; break;
+                }
+                root.RequestedTheme = theme;
+                /* WinUI 3: some controls (Pivot, TextBox) do not follow
+                 * a root theme change; set them explicitly */
+                KeyboardPivot.RequestedTheme = theme;
+                OutputBox.RequestedTheme = theme;
+                SetStatus("theme: " + name.ToLowerInvariant());
+                ForceRepaint();
             }
+            catch { }
+        }
+
+        /* WinUI 3 does not always refresh the swap chain when the
+         * theme changes on the element tree; force a repaint. */
+        private void ForceRepaint()
+        {
+            try
+            {
+                var root = Content.XamlRoot?.Content as FrameworkElement;
+                if (root == null) return;
+                root.InvalidateMeasure();
+                root.InvalidateArrange();
+                root.UpdateLayout();
+                if (_appWindow != null)
+                {
+                    var pos = _appWindow.Position;
+                    _appWindow.Move(new Windows.Graphics.PointInt32(
+                        pos.X + 1, pos.Y));
+                    _appWindow.Move(pos);
+                }
+            }
+            catch { }
         }
 
         private void Loop_Click(object sender, RoutedEventArgs e)
