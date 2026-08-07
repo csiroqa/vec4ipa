@@ -40,7 +40,11 @@ namespace IPA2VectorUI
                     e.Handled = true;
                 }
             };
-            IpaInput.TextChanged += (s, e) => UpdateButtons();
+            IpaInput.TextChanged += (s, e) =>
+            {
+                if (IpaInput.Text != "t\u02b0a") _placeholder = false;
+                UpdateButtons();
+            };
             VecInput.TextChanged += (s, e) => UpdateButtons();
             QueryInput.TextChanged += (s, e) => UpdateButtons();
             DistA.TextChanged += (s, e) => UpdateButtons();
@@ -119,6 +123,7 @@ namespace IPA2VectorUI
                 "Example to try:  t\u02b0a  (aspirated stop + open vowel)";
             OutputBox.Text = welcome;
             IpaInput.Text = "t\u02b0a";
+            _placeholder = true;
             _history.Add(("Welcome", welcome));
         }
 
@@ -820,6 +825,7 @@ namespace IPA2VectorUI
         private readonly Dictionary<string, Button> _recentBtns = new();
         private readonly List<(string Title, string Body)> _history = new();
         private bool _featureNames;
+        private bool _placeholder;
 
         private void AddKeys(ItemsControl host, string[] symbols,
                              bool appendTieKeys)
@@ -869,6 +875,13 @@ namespace IPA2VectorUI
 
         private void AppendToInput(string sym)
         {
+            /* the welcome example ("tʰa") is a placeholder: the first
+             * symbol the user picks replaces it instead of appending */
+            if (_placeholder)
+            {
+                IpaInput.Text = "";
+                _placeholder = false;
+            }
             IpaInput.Text += sym;
             IpaInput.SelectionStart = IpaInput.Text.Length;
             IpaInput.Focus(FocusState.Programmatic);
