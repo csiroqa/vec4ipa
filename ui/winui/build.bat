@@ -46,9 +46,9 @@ gcc -O2 -std=c11 -Wno-unused-function -Wno-unused-variable ^
 if errorlevel 1 exit /b 1
 
 echo [2/2] publishing WinUI 3 app ...
-"%MSBUILD%" ipa2vec_ui.csproj /restore /p:Configuration=Release /p:Platform=x64 /p:PublishSingleFile=false /t:Publish /v:m
+"%MSBUILD%" vec4ipa_ui.csproj /restore /p:Configuration=Release /p:Platform=x64 /p:PublishSingleFile=false /t:Publish /v:m
 if errorlevel 1 exit /b 1
 
 echo.
-echo Done: dist\ipa2vec_ui.exe  (self-contained folder, no install needed)
+echo Done: dist\vec4ipa_ui.exe  (self-contained folder, no install needed)
 endlocal

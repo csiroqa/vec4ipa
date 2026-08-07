@@ -20,7 +20,7 @@ ui/app.res
 ui/winui/bin/
 ui/winui/obj/
 ui/ipa2vec_core.dll
-ui/winui/ipa2vec_ui.sln
+ui/winui/vec4ipa_ui.sln
 
 ui/winui/dist/
 ui/winui/.vs/

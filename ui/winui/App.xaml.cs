@@ -2,17 +2,17 @@ using Microsoft.UI.Xaml;
 using System;
 using System.IO;
 
-namespace IPA2VectorUI
+namespace Vec4ipaUI
 {
     public partial class App : Application
     {
         private Window? _window;
 
-        /* diagnostic log lives in %TEMP%\IPA2VectorUI\, never in the
+        /* diagnostic log lives in %TEMP%\vec4ipa\, never in the
          * app folder (keeps the dist/ output clean) */
         private static string LogDir()
         {
-            string dir = Path.Combine(Path.GetTempPath(), "IPA2VectorUI");
+            string dir = Path.Combine(Path.GetTempPath(), "vec4ipa");
             try { Directory.CreateDirectory(dir); } catch { }
             return dir;
         }

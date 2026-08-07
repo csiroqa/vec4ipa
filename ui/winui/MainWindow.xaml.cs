@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace IPA2VectorUI
+namespace Vec4ipaUI
 {
     public sealed partial class MainWindow : Window
     {
@@ -21,7 +21,7 @@ namespace IPA2VectorUI
         private string _statePath =
             Path.Combine(Environment.GetFolderPath(
                 Environment.SpecialFolder.ApplicationData),
-                "IPA2VectorUI", "window.ini");
+                "vec4ipa", "window.ini");
 
         public MainWindow() : this(Array.Empty<string>()) { }
 
@@ -29,7 +29,7 @@ namespace IPA2VectorUI
         {
             _startupArgs = args;
             InitializeComponent();
-            Title = "IPA2Vector Workbench";
+            Title = "vec4ipa Workbench";
             SetIcon();
             RestoreState();
             BuildKeyboard();
@@ -61,6 +61,20 @@ namespace IPA2VectorUI
             VecInput.TextChanged += (s, e) => UpdateButtons();
             DistA.TextChanged += (s, e) => UpdateButtons();
             DistB.TextChanged += (s, e) => UpdateButtons();
+            /* remember which text box has focus so the soft keyboard
+             * types into it and keeps it focused */
+            IpaInputRight.GotFocus += (s, e) => _focusedBox = IpaInputRight;
+            VecInput.GotFocus += (s, e) => _focusedBox = VecInput;
+            DistA.GotFocus += (s, e) => _focusedBox = DistA;
+            DistB.GotFocus += (s, e) => _focusedBox = DistB;
+            /* clicking a section header scrolls the keyboard to it */
+            LblCons.Tapped += (s, e) => ScrollToSection(LblCons);
+            LblNp.Tapped += (s, e) => ScrollToSection(LblNp);
+            LblVow.Tapped += (s, e) => ScrollToSection(LblVow);
+            LblDiac.Tapped += (s, e) => ScrollToSection(LblDiac);
+            LblLet.Tapped += (s, e) => ScrollToSection(LblLet);
+            LblTone.Tapped += (s, e) => ScrollToSection(LblTone);
+            LblRec.Tapped += (s, e) => ScrollToSection(LblRec);
             VecInput.KeyDown += (s, e) =>
             {
                 if (e.Key == Windows.System.VirtualKey.Enter)
@@ -166,7 +180,7 @@ namespace IPA2VectorUI
         private void ShowWelcome()
         {
             string welcome =
-                "Welcome to IPA2Vector Workbench!\n" +
+                "Welcome to vec4ipa Workbench\n" +
                 "---------------------------------\n\n" +
                 "1. Type or click an IPA string below (or pick an example\n" +
                 "   from File > Examples).\n" +
@@ -374,9 +388,9 @@ namespace IPA2VectorUI
                 var dlg = new ContentDialog
                 {
                     XamlRoot = Content.XamlRoot,
-                    Title = "IPA2Vector Workbench - usage",
+                    Title = "vec4ipa Workbench - usage",
                     Content =
-                        "ipa2vec_ui [OPTIONS] [IPA-STRING]\n\n" +
+                        "vec4ipa_ui [OPTIONS] [IPA-STRING]\n\n" +
                         "  --width 0-4         reverse-fit narrowness (default 3)\n" +
                         "  -q, --query SYM     query one symbol on startup\n" +
                         "  -r, --reverse VEC   16-D vector -> IPA on startup\n" +
@@ -437,12 +451,18 @@ namespace IPA2VectorUI
         private string _themeName = "System";
         private string[] _startupArgs = Array.Empty<string>();
         private bool _argsPending;
+        private TextBox? _focusedBox; // soft-keyboard target (last focused box)
+        private TextBox? _kbPressedBox; // box focused when a key was pressed
+        private bool _slideMode;         // glide-typing across keys
 
         private async void Settings_Click(object sender, RoutedEventArgs e)
         {
             /* theme */
-            var themeRadio = new RadioButtons { Header = "Theme" };
-            themeRadio.Items.Add("System");
+            var themeRadio = new RadioButtons
+            {
+                Header = _zh ? "主题" : "Theme",
+            };
+            themeRadio.Items.Add(_zh ? "跟随系统" : "System");
             themeRadio.Items.Add("Light");
             themeRadio.Items.Add("Dark");
             themeRadio.SelectedIndex = _themeName == "Light" ? 1
@@ -451,12 +471,16 @@ namespace IPA2VectorUI
             /* feature names */
             var featSwitch = new ToggleSwitch
             {
-                Header = "Vector output shows feature names (tt_pos=0.55)",
+                Header = _zh ? "向量输出显示特征名（tt_pos=0.55）"
+                             : "Vector output shows feature names (tt_pos=0.55)",
                 IsOn = _featureNames,
             };
 
             /* language */
-            var langRadio = new RadioButtons { Header = "Language" };
+            var langRadio = new RadioButtons
+            {
+                Header = _zh ? "语言" : "Language",
+            };
             langRadio.Items.Add("English");
             langRadio.Items.Add("中文");
             langRadio.SelectedIndex = _zh ? 1 : 0;
@@ -479,7 +503,8 @@ namespace IPA2VectorUI
 
             var metricText = new TextBlock
             {
-                Text = "Metric: compiled-in defaults (metric.json v4)",
+                Text = _zh ? "度量：编译内置默认值（metric.json v4）"
+                           : "Metric: compiled-in defaults (metric.json v4)",
                 FontSize = 13,
                 Margin = new Thickness(0, 4, 0, 0),
             };
@@ -490,12 +515,12 @@ namespace IPA2VectorUI
                 Content = new StackPanel { Spacing = 10, Children =
                 {
                     themeRadio, featSwitch, langRadio,
-                    new TextBlock { Text = "School modules", FontWeight =
+                    new TextBlock { Text = _zh ? "学校模块" : "School modules", FontWeight =
                         Microsoft.UI.Text.FontWeights.SemiBold },
                     modsPanel,
                     new Button
                     {
-                        Content = "Load metric.json...",
+                        Content = _zh ? "加载 metric.json..." : "Load metric.json...",
                         HorizontalAlignment = HorizontalAlignment.Left,
                     },
                     metricText,
@@ -505,10 +530,10 @@ namespace IPA2VectorUI
             var dlg = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot,
-                Title = "Settings",
+                Title = _zh ? "设置" : "Settings",
                 Content = content,
-                PrimaryButtonText = "OK",
-                CloseButtonText = "Cancel",
+                PrimaryButtonText = _zh ? "确定" : "OK",
+                CloseButtonText = _zh ? "取消" : "Cancel",
             };
             ((Button)((StackPanel)content.Content).Children[5]).Click +=
                 async (s2, e2) =>
@@ -595,15 +620,11 @@ namespace IPA2VectorUI
                 (MModules, zh ? "模块详情" : "Module details"),
                 (MStats, zh ? "统计" : "Statistics"),
                 (MWeights, zh ? "度量权重" : "Metric weights"),
-                (MCompare, zh ? "比较符号..." : "Compare symbols..."),
                 (MVectorEditor, zh ? "向量编辑器..." : "Vector editor..."),
                 (MHistory, zh ? "历史..." : "History..."),
-                (MLoop, zh ? "转换 + 反向回环" : "Convert + reverse loop"),
-                (MLoadMetric, zh ? "加载 metric.json..." : "Load metric.json..."),
                 (MExportCsv, zh ? "导出表格为 CSV..." : "Export table as CSV..."),
                 (MSaveIr, zh ? "保存 IR 文件（layer1/layer2）..." : "Save IR files (layer1/layer2)..."),
                 (MSaveOutput, zh ? "输出另存为..." : "Save output as..."),
-                (MClear, zh ? "清空输出" : "Clear output"),
                 (MSettings, zh ? "设置..." : "Settings..."),
                 (MDocs, zh ? "文档" : "Documentation"),
                 (MAbout, zh ? "关于" : "About"),
@@ -613,6 +634,17 @@ namespace IPA2VectorUI
                 if (ctl is MenuFlyoutItem mi) mi.Text = text;
                 else if (ctl is MenuFlyoutSubItem si) si.Text = text;
             }
+            FilterBox.PlaceholderText = zh ? "筛选符号（名称或符号）…" : "filter symbols (name or symbol)…";
+            LblFav.Text = zh ? "收藏" : "Favorites";
+            LblCons.Text = zh ? "辅音" : "Consonants";
+            LblNp.Text = zh ? "非肺部气流" : "Non-pulmonic";
+            LblVow.Text = zh ? "元音" : "Vowels";
+            LblDiac.Text = zh ? "附加符号" : "Diacritics";
+            LblLet.Text = zh ? "修饰字母" : "Letters";
+            LblTone.Text = zh ? "声调" : "Tones";
+            LblRec.Text = zh ? "最近使用" : "Recent";
+            DistA.PlaceholderText = zh ? "符号 A" : "symbol A";
+            DistB.PlaceholderText = zh ? "符号 B" : "symbol B";
         }
 
         private void ViewTable_Click(object sender, RoutedEventArgs e)
@@ -688,9 +720,25 @@ namespace IPA2VectorUI
 
         private void DistBtn_Click(object sender, RoutedEventArgs e)
         {
-            AppendOutput($"=== Distance {DistA.Text} ~ {DistB.Text} ===\n" +
-                         Core.Distance(DistA.Text, DistB.Text));
-            SetStatus("distance computed");
+            string a = DistA.Text, b = DistB.Text;
+            var va = Core.ForwardRaw(a);
+            var vb = Core.ForwardRaw(b);
+            var sb = new System.Text.StringBuilder();
+            if (va == null || vb == null || va.Length != 1 || vb.Length != 1)
+            {
+                sb.AppendLine("need exactly one segment per symbol");
+            }
+            else
+            {
+                var names = Core.DimNames;
+                sb.AppendLine($"{a} vs {b}:");
+                for (int i = 0; i < Core.NDIM; i++)
+                    sb.AppendLine($"  {names[i],-22} {va[0][i],8:F4}  {vb[0][i],8:F4}  diff {vb[0][i] - va[0][i],+8:F4}");
+                sb.AppendLine("  weighted distance: " + Core.Distance(a, b));
+            }
+            AppendOutput($"=== Compare {a} ~ {b} ===\n" +
+                         sb.ToString().TrimEnd());
+            SetStatus("comparison shown");
         }
 
         private async void SaveOutput_Click(object sender, RoutedEventArgs e)
@@ -760,33 +808,6 @@ namespace IPA2VectorUI
             {
                 SetStatus("open failed: " + ex.Message);
             }
-        }
-
-        private void Compare_Click(object sender, RoutedEventArgs e)
-        {
-            string a = DistA.Text, b = DistB.Text;
-            if (a.Length == 0 || b.Length == 0)
-            {
-                SetStatus("type two symbols in the Distance boxes first");
-                return;
-            }
-            var va = Core.ForwardRaw(a);
-            var vb = Core.ForwardRaw(b);
-            var sb = new System.Text.StringBuilder();
-            if (va == null || vb == null || va.Length != 1 || vb.Length != 1)
-            {
-                sb.AppendLine("need exactly one segment per symbol");
-            }
-            else
-            {
-                var names = Core.DimNames;
-                sb.AppendLine($"{a} vs {b}:");
-                for (int i = 0; i < Core.NDIM; i++)
-                    sb.AppendLine($"  {names[i],-22} {va[0][i],8:F4}  {vb[0][i],8:F4}  diff {vb[0][i] - va[0][i],+8:F4}");
-                sb.AppendLine("  weighted distance: " + Core.Distance(a, b));
-            }
-            AppendOutput("=== Compare ===\n" + sb.ToString().TrimEnd());
-            SetStatus("comparison shown");
         }
 
         private void VectorEditor_Click(object sender, RoutedEventArgs e)
@@ -1043,41 +1064,154 @@ namespace IPA2VectorUI
             Splitter.ReleasePointerCapture(e.Pointer);
         }
 
+        private readonly List<string> _allCons = new();
+        private readonly List<string> _allNp = new();
+        private readonly List<string> _allVow = new();
+        private readonly List<string> _allDiac = new();
+        private readonly List<string> _allLet = new();
+        private readonly List<string> _allTone = new();
+        private readonly List<string> _favorites = new();
+        private string _favPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "vec4ipa", "favorites.txt");
+
+        /* manner weight from the symbol's info text, for an intuitive
+         * plosive -> affricate -> fricative -> nasal -> lateral -> approx
+         * order inside each place group */
+        private static int MannerWeight(string info)
+        {
+            if (info.Contains(".pls")) return 0;
+            if (info.Contains(".afr")) return 1;
+            if (info.Contains(".frc")) return 2;
+            if (info.Contains(".nas")) return 3;
+            if (info.Contains(".lat")) return 4;
+            if (info.Contains(".tap") || info.Contains(".flp")) return 5;
+            if (info.Contains(".trill")) return 6;
+            if (info.Contains(".appr")) return 7;
+            return 8;
+        }
+
         private void BuildKeyboard()
         {
+            try { _favorites.AddRange(File.ReadAllLines(_favPath)); }
+            catch { }
+            /* dedupe and cap */
+            var seen = new HashSet<string>();
+            _favorites.RemoveAll(s => !seen.Add(s));
+            if (_favorites.Count > 200)
+                _favorites.RemoveRange(200, _favorites.Count - 200);
+
             var consPos = Core.ConsPositions();
             double Pos(string s) =>
                 consPos.TryGetValue(s, out var d) ? d : 0.5;
-            AddKeys(ConsKeys, Core.KeyboardCons()
-                .OrderBy(Pos).ToArray(), appendTieKeys: true);
-            AddKeys(NpKeys, Core.KeyboardConsNp()
-                .OrderBy(Pos).ToArray(), appendTieKeys: false);
-            /* vowels: sort by trapezium position (row, col) so the flow
-             * layout approximates the IPA vowel chart */
+
+            _allCons.Clear();
+            _allCons.AddRange(Core.KeyboardCons().OrderBy(Pos)
+                .ThenBy(s => MannerWeight(Info(s))));
+            _allCons.AddRange(TieComposites);
+            _allNp.Clear();
+            _allNp.AddRange(Core.KeyboardConsNp().OrderBy(Pos)
+                .ThenBy(s => MannerWeight(Info(s))));
+
             var pos = Core.VowelPositions();
-            var vowels = Core.KeyboardVowels().ToList();
-            vowels.Sort((a, b) =>
+            _allVow.Clear();
+            _allVow.AddRange(Core.KeyboardVowels().OrderBy(s =>
             {
-                (int Row, int Col) pa = pos.TryGetValue(a, out var x)
-                    ? x : (0, 0);
-                (int Row, int Col) pb = pos.TryGetValue(b, out var y)
-                    ? y : (0, 0);
-                int r = pa.Row.CompareTo(pb.Row);
-                return r != 0 ? r : pa.Col.CompareTo(pb.Col);
-            });
-            AddKeys(VowKeys, vowels.ToArray(), appendTieKeys: false);
-            /* modifiers split: combining diacritics vs standalone letters,
-             * each ordered by feature tier (airstream/laryngeal/place/
-             * manner/nasal/timing) */
+                (int Row, int Col) p = pos.TryGetValue(s, out var v)
+                    ? v : (0, 0);
+                return p.Row * 100 + p.Col;
+            }));
+
             var tiers = Core.ModTiers();
             int Tier(string s) => tiers.TryGetValue(s, out var t) ? t : 6;
-            var comb = Core.KeyboardMods().Where(IsCombiningModifier)
-                .OrderBy(Tier).ToArray();
-            var letters = Core.KeyboardMods().Where(m => !IsCombiningModifier(m))
-                .OrderBy(Tier).ToArray();
-            AddKeys(DiacKeys, comb, appendTieKeys: false, fontSize: 20);
-            AddKeys(LetterKeys, letters, appendTieKeys: false, fontSize: 16);
-            AddKeys(ToneKeys, Core.KeyboardTones(), appendTieKeys: false);
+            _allDiac.Clear();
+            _allDiac.AddRange(Core.KeyboardMods()
+                .Where(IsCombiningModifier).OrderBy(Tier));
+            _allLet.Clear();
+            _allLet.AddRange(Core.KeyboardMods()
+                .Where(m => !IsCombiningModifier(m)).OrderBy(Tier));
+            _allTone.Clear();
+            _allTone.AddRange(Core.KeyboardTones());
+
+            RebuildKeyboard("");
+        }
+
+        private string Info(string sym)
+        {
+            if (!_symInfo.TryGetValue(sym, out var info))
+            {
+                info = QuerySymbol(sym);
+                _symInfo[sym] = info;
+            }
+            return info;
+        }
+
+        /* rebuild every section applying the current filter */
+        private void RebuildKeyboard(string filter)
+        {
+            bool Matches(string sym)
+            {
+                if (filter.Length == 0) return true;
+                if (sym.Contains(filter)) return true;
+                return Info(sym).Contains(filter, StringComparison.OrdinalIgnoreCase);
+            }
+            ConsKeys.Items.Clear();
+            NpKeys.Items.Clear();
+            VowKeys.Items.Clear();
+            DiacKeys.Items.Clear();
+            LetterKeys.Items.Clear();
+            ToneKeys.Items.Clear();
+            FavKeys.Items.Clear();
+
+            foreach (var s in _allCons.Where(Matches))
+                ConsKeys.Items.Add(MakeKey(s));
+            if (ConsKeys.Items.Count == 0) ConsKeys.Items.Add(new TextBlock
+            {
+                Text = "(no matches)", Foreground =
+                    new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                        Microsoft.UI.Colors.Gray), Margin = new Thickness(4, 2, 0, 2),
+            });
+            foreach (var s in _allNp.Where(Matches))
+                NpKeys.Items.Add(MakeKey(s));
+            foreach (var s in _allVow.Where(Matches))
+                VowKeys.Items.Add(MakeKey(s));
+            foreach (var s in _allDiac.Where(Matches))
+                DiacKeys.Items.Add(MakeKey(s, fontSize: 20));
+            foreach (var s in _allLet.Where(Matches))
+                LetterKeys.Items.Add(MakeKey(s, fontSize: 16));
+            foreach (var s in _allTone.Where(Matches))
+                ToneKeys.Items.Add(MakeKey(s));
+
+            LblFav.Visibility = _favorites.Count > 0
+                ? Visibility.Visible : Visibility.Collapsed;
+            if (_favorites.Count > 0)
+                foreach (var s in _favorites.Where(Matches))
+                    FavKeys.Items.Add(MakeKey(s));
+        }
+
+        private void FilterBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            RebuildKeyboard(FilterBox.Text.Trim());
+        }
+
+        private void LblFav_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            ScrollToSection(LblFav);
+        }
+
+        private void ToggleFavorite(string sym)
+        {
+            if (_favorites.Contains(sym))
+                _favorites.Remove(sym);
+            else
+                _favorites.Add(sym);
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(_favPath)!);
+                File.WriteAllLines(_favPath, _favorites);
+            }
+            catch { }
+            RebuildKeyboard(FilterBox.Text.Trim());
         }
 
         private static readonly string[] TieComposites =
@@ -1094,21 +1228,43 @@ namespace IPA2VectorUI
         private bool _placeholder;   // IPA input still holds the welcome example
         private bool _programmatic;  // text changes made by code (not the user)
 
-        private void AddKeys(ItemsControl host, string[] symbols,
-                             bool appendTieKeys, double fontSize = 14)
-        {
-            foreach (var sym in symbols)
-                host.Items.Add(MakeKey(sym, fontSize));
-            if (appendTieKeys)
-                foreach (var sym in TieComposites)
-                    host.Items.Add(MakeKey(sym, fontSize: 13));
-        }
-
         /* query a symbol; a dotted-circle prefix (◌) is stripped so the
          * display never shows the "dotted circle (placeholder)" entry */
-        private static string QuerySymbol(string sym)
+        /* IPA feature abbreviations -> Chinese (for tooltips/details) */
+        private static readonly Dictionary<string, string> TermMap =
+            new()
+            {
+                { "vl", "清" }, { "vd", "浊" }, { "asp", "送气" },
+                { "blab", "双唇" }, { "lab.dnt", "唇齿" }, { "dnt", "齿" },
+                { "alv", "齿龈" }, { "rfl", "卷舌" }, { "alvpal", "龈腭" },
+                { "pal", "硬腭" }, { "vel", "软腭" }, { "uul", "小舌" },
+                { "phr", "咽" }, { "epi", "会厌" }, { "glt", "喉" },
+                { "pls", "塞音" }, { "nas", "鼻音" }, { "frc", "擦音" },
+                { "appr", "近音" }, { "lat", "边音" }, { "tap", "闪音" },
+                { "flp", "拍音" }, { "trill", "颤音" }, { "afr", "塞擦音" },
+                { "per", "敲击" }, { "vwl", "元音" }, { "cls", "高" },
+                { "omid", "半开" }, { "mid", "中" }, { "opn", "开" },
+                { "unr", "不圆唇" }, { "rnd", "圆唇" }, { "cnt", "央" },
+                { "fr", "前" }, { "bk", "后" }, { "rhot", "卷舌化" },
+                { "ej", "挤喉" }, { "unr", "不圆唇" },
+                { "pulmonic", "肺部气流" }, { "glottalic egressive", "挤喉音" },
+                { "glottalic ingressive", "内爆音" }, { "lingual", "搭嘴音" },
+                { "percussive", "敲击音" },
+            };
+
+        /* translate "vl.alv.pls" -> "清·齿龈·塞音" */
+        private static string TranslateTerms(string text)
         {
-            if (sym.Contains('\u25CC'))
+            foreach (var (en, zh) in TermMap)
+            {
+                if (text.Contains(en))
+                    text = text.Replace(en, zh);
+            }
+            return text;
+        }
+
+        private static string QuerySymbol(string sym)
+        {            if (sym.Contains('\u25CC'))
                 sym = sym.Replace("\u25CC", "");
             return Core.Query(sym);
         }
@@ -1126,24 +1282,51 @@ namespace IPA2VectorUI
             };
             if (!_symInfo.ContainsKey(sym))
                 _symInfo[sym] = QuerySymbol(sym);
-            ToolTipService.SetToolTip(btn, _symInfo[sym]);
-            btn.Click += (s, e) => AppendToInput(sym);
+            ToolTipService.SetToolTip(btn, _zh ? TranslateTerms(_symInfo[sym]) : _symInfo[sym]);
+            /* press = type immediately; keep the pointer down and glide
+             * over neighbouring keys to type several symbols (like a
+             * phone keyboard). Focus is captured on press so the symbol
+             * lands in the box the user was editing. */
+            btn.PointerPressed += (s, e) =>
+            {
+                try
+                {
+                    _kbPressedBox = FocusManager.GetFocusedElement(
+                        Content.XamlRoot) as TextBox;
+                }
+                catch { }
+                _slideMode = true;
+                AppendToInput(sym);
+                e.Handled = true;
+            };
+            btn.PointerEntered += (s, e) =>
+            {
+                if (_slideMode)
+                    AppendToInput(sym);
+            };
+            btn.PointerReleased += (s, e) => _slideMode = false;
+            btn.PointerCanceled += (s, e) => _slideMode = false;
+            btn.PointerCaptureLost += (s, e) => _slideMode = false;
             btn.DoubleTapped += (s, e) =>
             {
+                bool fav = _favorites.Contains(sym);
                 var dlg = new ContentDialog
                 {
                     XamlRoot = Content.XamlRoot,
                     Title = $"Symbol {sym}",
                     Content = new TextBlock
                     {
-                        Text = _symInfo[sym],
+                        Text = _zh ? TranslateTerms(_symInfo[sym]) : _symInfo[sym],
                         FontSize = 15,
                         FontFamily = new Microsoft.UI.Xaml.Media.FontFamily(
                             "Gentium Book Plus"),
                         TextWrapping = TextWrapping.Wrap,
                     },
+                    PrimaryButtonText = fav
+                        ? "Remove from favorites" : "Add to favorites",
                     CloseButtonText = "OK",
                 };
+                dlg.PrimaryButtonClick += (s2, e2) => ToggleFavorite(sym);
                 dlg.ShowAsync();
             };
             return btn;
@@ -1160,12 +1343,17 @@ namespace IPA2VectorUI
 
         private void AppendToInput(string sym)
         {
+            /* the soft keyboard types into the text box that currently
+             * has focus (falling back to the IPA input), and keeps it */
+            var target = _kbPressedBox ?? _focusedBox ?? IpaInputRight;
+            _kbPressedBox = null;
+
             /* the welcome example ("tʰa") is a placeholder: the first
              * symbol the user picks replaces it instead of appending */
-            if (_placeholder)
+            if (target == IpaInputRight && _placeholder)
             {
                 _programmatic = true;
-                IpaInputRight.Text = "";
+                target.Text = "";
                 _programmatic = false;
                 _placeholder = false;
             }
@@ -1174,16 +1362,20 @@ namespace IPA2VectorUI
             if (sym.Contains('\u25CC'))
                 sym = sym.Replace("\u25CC", "");
             /* combining modifiers (◌...) need a base symbol before them */
-            if (IpaInputRight.Text.Length == 0 && IsCombiningModifier(sym))
+            if (target.Text.Length == 0 && IsCombiningModifier(sym))
             {
                 SetStatus("start with a base symbol first (e.g. t, a), then add " + sym);
                 return;
             }
+            int pos = target.SelectionStart;
             _programmatic = true;
-            IpaInputRight.Text += sym;
-            IpaInputRight.SelectionStart = IpaInputRight.Text.Length;
+            target.Text = target.Text.Insert(pos, sym);
+            target.SelectionStart = pos + sym.Length;
             _programmatic = false;
-            IpaInputRight.Focus(FocusState.Programmatic);
+            /* keep focus in the box (the keyboard button grabbed it) */
+            target.Focus(FocusState.Programmatic);
+            if (target == IpaInputRight)
+                ScrollRightInput();
             if (_recentBtns.TryGetValue(sym, out var old))
                 RecentKeys.Items.Remove(old);
             _recent.Remove(sym);
@@ -1332,6 +1524,20 @@ namespace IPA2VectorUI
             ScrollToEnd();
         }
 
+        private void ScrollToSection(FrameworkElement header)
+        {
+            try
+            {
+                var scroll = KeyboardScroll;
+                var transform = header.TransformToVisual(
+                    (UIElement)scroll.Content);
+                var pt = transform.TransformPoint(
+                    new Windows.Foundation.Point(0, 0));
+                scroll.ChangeView(null, Math.Max(0, pt.Y - 6), null);
+            }
+            catch { }
+        }
+
         /* keep the caret visible when the input overflows horizontally */
         private void ScrollRightInput()
         {
@@ -1390,7 +1596,7 @@ namespace IPA2VectorUI
             var dlg = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot,
-                Title = "About IPA2Vector Workbench",
+                Title = "About vec4ipa Workbench",
                 Content = "Version " + ver + "\n"
                           + "Core: ipa2vec_core.dll " + Core.Version + "\n\n"
                           + "WinUI 3 workbench for the vec4ipa tool suite:\n"
@@ -1427,7 +1633,7 @@ namespace IPA2VectorUI
         {
             string dir = AppContext.BaseDirectory;
             string text =
-                "# IPA2Vector CLI commands\n" +
+                "# vec4ipa CLI commands\n" +
                 $"# app directory: {dir}\n\n" +
                 ":: ipa2vec - IPA -> 16-D vectors\n" +
                 $"\"{Path.Combine(dir, "tools", "ipa2vec.exe")}\" --width 3 -i \"\\\"\\u02c8t\\u02b0a\\\"\"\n\n" +

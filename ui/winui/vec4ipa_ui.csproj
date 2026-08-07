@@ -9,8 +9,8 @@
     <Nullable>enable</Nullable>
     <EnableMsixTooling>true</EnableMsixTooling>
     <PublishDir>$(MSBuildProjectDirectory)\dist\</PublishDir>
-    <RootNamespace>IPA2VectorUI</RootNamespace>
-    <AssemblyName>ipa2vec_ui</AssemblyName>
+    <RootNamespace>Vec4ipaUI</RootNamespace>
+    <AssemblyName>vec4ipa_ui</AssemblyName>
     <ApplicationIcon>..\vec_ipa.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>0.2.0</Version>
@@ -19,7 +19,7 @@
     <Copyright>MIT</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/csiroqa/vec4ipa</RepositoryUrl>
-    <Product>IPA2Vector Workbench</Product>
+    <Product>vec4ipa Workbench</Product>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.240923002" />

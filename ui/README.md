@@ -1,4 +1,4 @@
-# IPA2Vector UI (WinUI 3 workbench)
+# vec4ipa UI (WinUI 3 workbench)
 
 A single-file, self-contained Windows GUI for the **vec4ipa** tool
 suite (IPA strings ↔ 16-D articulatory vectors), built with **WinUI 3**
@@ -10,12 +10,12 @@ called via P/Invoke — numbers are identical to the command line.
 
 ```
 ui/
-├── ipa2vec_ui.c            legacy Win32 wrapper (superseded, kept for reference)
+├── vec4ipa_ui.c            legacy Win32 wrapper (superseded, kept for reference)
 ├── app.rc / app.res        Win32 resources (legacy)
 ├── assets/                 application icon sources (SVG/PNG)
 ├── fonts/                  Gentium Book Plus + NewComputerModern10 (SIL OFL 1.1)
 └── winui/                  the WinUI 3 front-end
-    ├── ipa2vec_ui.csproj   project (unpackaged, self-contained)
+    ├── vec4ipa_ui.csproj   project (unpackaged, self-contained)
     ├── App.xaml(.cs)       application entry, startup diagnostics
     ├── MainWindow.xaml(.cs) the whole workbench UI
     ├── Core.cs             P/Invoke bindings to ipa2vec_core.dll
@@ -60,7 +60,7 @@ ui\winui\build.bat clean      # remove build output
 ```
 
 Output: `ui\winui\dist\` — a self-contained folder with
-`ipa2vec_ui.exe`, runnable without installing anything.
+`vec4ipa_ui.exe`, runnable without installing anything.
 
 > Single-file (`PublishSingleFile`) publishing is **not** supported:
 > WindowsAppSDK self-contained apps fail at startup in that mode
@@ -69,7 +69,7 @@ Output: `ui\winui\dist\` — a self-contained folder with
 ## Command line
 
 ```
-ipa2vec_ui [OPTIONS] [IPA-STRING]
+vec4ipa_ui [OPTIONS] [IPA-STRING]
   --width 0-4          reverse-fit narrowness (default 3)
   -q, --query SYM      query one symbol on startup
   -r, --reverse VEC    16-D vector -> IPA on startup
@@ -89,7 +89,7 @@ text; the app falls back to system fonts if they are absent.
 ## Notes
 
 - Startup diagnostics (`startup.log`, `crash.log`) go to
-  `%TEMP%\IPA2VectorUI\`, never into the app folder.
+  `%TEMP%\vec4ipa\`, never into the app folder.
 - On some systems the compositor does not repaint theme resources
   after a runtime theme switch; the workbench sets container
   backgrounds explicitly to compensate.

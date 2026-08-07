@@ -7,7 +7,7 @@ VECTORS_H := $(SRC)/vectors.h
 
 TARGETS := ipa2vec vec2ipa vec4ipa
 ifeq ($(OS),Windows_NT)
-TARGETS += ui/ipa2vec_ui
+TARGETS += ui/vec4ipa_ui
 endif
 
 # Windows: wmain-based UTF-8 argv handling needs -municode
@@ -27,8 +27,8 @@ vec4ipa: $(SRC)/vec4ipa_main.c $(SRC)/readme_embed.h $(VECTORS_H)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SRC)/vec4ipa_main.c
 
 # Win32 GUI wrapper (Windows only) — lives in ui/
-ui/ipa2vec_ui: ui/ipa2vec_ui.c ui/app.res
-	$(CC) $(CFLAGS) -mwindows -municode -o $@ ui/ipa2vec_ui.c ui/app.res \
+ui/vec4ipa_ui: ui/vec4ipa_ui.c ui/app.res
+	$(CC) $(CFLAGS) -mwindows -municode -o $@ ui/vec4ipa_ui.c ui/app.res \
 	    -lcomctl32 -lcomdlg32 -lshlwapi -lshell32 -lole32
 
 ui/app.res: ui/app.rc ui/vec_ipa.ico ipa2vec.exe vec2ipa.exe vec4ipa.exe

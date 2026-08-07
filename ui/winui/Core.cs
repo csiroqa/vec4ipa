@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace IPA2VectorUI
+namespace Vec4ipaUI
 {
     /// <summary>P/Invoke bindings for ipa2vec_core.dll (MinGW, built from
     /// ui/winui/core_wrap.c + src/ipa2vec_core.h).</summary>

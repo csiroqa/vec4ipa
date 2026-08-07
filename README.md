@@ -23,7 +23,7 @@ regenerate generated headers).
 ```sh
 make            # builds ./ipa2vec ./vec2ipa ./vec4ipa
                 # (Windows: wmain + -municode for UTF-8 argv;
-                #  plus ./ipa2vec_ui, the Win32 GUI wrapper in ui/)
+                #  plus ./vec4ipa_ui, the Win32 GUI wrapper in ui/)
 make gen        # regenerate src/vectors.h and src/readme_embed.h
 ```
 
@@ -31,14 +31,14 @@ The binaries embed the full table; they do not read any file at runtime.
 
 ## GUI wrapper (Windows)
 
-`ui/ipa2vec_ui.c` is a Win32 GUI front-end (`ipa2vec_ui.exe`,
-built by `make ipa2vec_ui`). It provides:
+`ui/vec4ipa_ui.c` is a Win32 GUI front-end (`vec4ipa_ui.exe`,
+built by `make vec4ipa_ui`). It provides:
 
 - **File > Export command lines…** — a window showing the three CLI
   invocations (`ipa2vec`, `vec2ipa`, `vec4ipa`) for the current
   directory, with **Copy to clipboard** and **Save as .bat** buttons.
 - **File > Export tools…** — the three CLI executables are embedded
-  as resources in `ipa2vec_ui.exe`; this item writes them into a
+  as resources in `vec4ipa_ui.exe`; this item writes them into a
   folder of your choice, so a single shipped exe carries the whole
   tool suite.
 - **File > Exit**, **Help > About**.
