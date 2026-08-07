@@ -231,8 +231,13 @@ static IPA2VEC_MAYBE_UNUSED void mod_lab (double v[NDIM], const void *m) { (void
 static IPA2VEC_MAYBE_UNUSED void mod_syl (double v[NDIM], const void *m) { (void)m; v[12] += 0.5; }
 static IPA2VEC_MAYBE_UNUSED void mod_nosyl (double v[NDIM], const void *m) { (void)m; v[12] -= 0.5; }
 static IPA2VEC_MAYBE_UNUSED void mod_unrel (double v[NDIM], const void *m) { (void)m; v[12] = 0.1; }
-static IPA2VEC_MAYBE_UNUSED void mod_voiceless (double v[NDIM], const void *m) { (void)m; v[8] = 0.0; v[9] = 0.0; v[10] = 0.4; }
-static IPA2VEC_MAYBE_UNUSED void mod_voiced (double v[NDIM], const void *m) { (void)m; v[8] = 1.0; v[9] = 0.2; v[10] = 0.0; }
+/* Partial voicing / devoicing: ◌̬ pushes a voiceless segment toward the
+ * voiced end but does NOT turn it into the voiced counterpart (t̬ ≠ d),
+ * and ◌̥ pushes a voiced segment toward the voiceless end (d̥ ≠ t).
+ * The sequence t → t̬ → d̥ → d therefore advances in small steps.
+ * Absolute values make the modifier idempotent (t̬̬ = t̬). */
+static IPA2VEC_MAYBE_UNUSED void mod_voiceless (double v[NDIM], const void *m) { (void)m; v[8] = 0.3; v[9] = 0.1; v[10] = 0.2; }
+static IPA2VEC_MAYBE_UNUSED void mod_voiced (double v[NDIM], const void *m) { (void)m; v[8] = 0.7; v[9] = 0.1; v[10] = 0.2; }
 static IPA2VEC_MAYBE_UNUSED void mod_nasal_click (double v[NDIM], const void *m){ (void)m; v[6] = 1.0; v[8] = 1.0; v[9] = 0.2; v[10] = 0.0; v[12] = 1.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_dental (double v[NDIM], const void *m) { (void)m; v[2] = 1.0; if (v[3] < 0.5) v[3] = 0.5; }
 static IPA2VEC_MAYBE_UNUSED void mod_raised (double v[NDIM], const void *m) { (void)m; v[3] += 0.15; }
