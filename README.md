@@ -147,7 +147,7 @@ a ligature that is not a table entry).
 ### Transcription narrowness (`--width`)
 
 How many diacritics the reverse fit keeps is controlled by
-`-w/--width <0-4>` (default **3**): each level sets the maximum number
+`--width <0-4>` (default **3**): each level sets the maximum number
 of modifiers per segment and the minimum relative distance gain a
 modifier must achieve to be kept.
 
