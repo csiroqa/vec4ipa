@@ -514,6 +514,7 @@ static const ModRec MODS[] = {
     { 0x02C8, "ˈ",   "stress_1",  TIER_COUNT,     -1, NULL, 0, {0,0} , NULL, 1  },
     { 0x02CC, "ˌ",   "stress_2",  TIER_COUNT,     -1, NULL, 0, {0,0} , NULL, 1  },
     { 0x02D0, "ː",   "long",      TIER_TIMING,    -1, mod_long,        0, {0,0} , NULL, 1  },
+    { 0x0051, "Q",   "gemination",TIER_TIMING,    -1, mod_long,        0, {0,0} , NULL, 1  },
     { 0x02D1, "ˑ",   "half",      TIER_TIMING,    -1, mod_half,        0, {0,0} , NULL, 1  },
     { 0x02D4, "˔",   "raised",    TIER_MANNER,    -1, mod_raised,      0, {0,0} , NULL, 1  },
     { 0x02D5, "˕",   "lowered",   TIER_MANNER,    -1, mod_lowered,     0, {0,0} , NULL, 1  },
@@ -933,7 +934,7 @@ static const Alias ALIAS_EQUIV[] = {
 /* --- module: withdrawn / obsolete IPA symbols --- */
 static const Alias ALIAS_WITHDRAWN[] = {
     { "\xC6\x8D", "z\xCA\xB7", "labialized vd alveolo-dental fricative", 0, 0   },  /* ƍ -> zʷ */
-    { "\xC3\xB3", "s\xCA\xB7", "labialized vl alveolo-dental fricative", 0, 0   },  /* σ -> sʷ */
+    { "\xCF\x83", "s\xCA\xB7", "labialized vl alveolo-dental fricative", 0, 0   },  /* σ -> sʷ */
     { "\xC6\xBA", "ʒ\xCA\xB7", "labialized vd postalveolar fricative", 0, 0   },    /* ƺ -> ʒʷ */
     { "\xC6\xAA", "ʃ\xCA\xB7", "labialized vl postalveolar fricative", 0, 0   },    /* ƪ -> ʃʷ */
     { "\xC6\xBB", "d\xCD\xA1z", "vd alveolar affricate (withdrawn 1976)", 0, 0   }, /* ƻ -> d͡z */
@@ -963,7 +964,7 @@ static const Alias ALIAS_WITHDRAWN[] = {
     { "\xC9\xA9", "\xC9\xAA", "near-close near-front unrounded vowel (rejected)", 0, 0   }, /* ɩ -> ɪ */
     { "\xCA\x9A", "\xC9\x9E", "open-mid central rounded vowel (misprint)", 0, 0   }, /* ʚ -> ɞ */
     { "\xC9\xB7", "\xCA\x8A", "near-close near-back rounded vowel (rejected)", 0, 0   },   /* ɷ -> ʊ */
-    { "\xCF\x89", "\xC9\xAF\xCC\xBD", "mid-centralised close back unrounded vowel", 0, 0   }, /* ω -> ɯ̽ */
+    { "\xCF\x89", "\xCA\x8A\xCC\x9C", "near-close near-back unrounded vowel", 0, 0   },    /* ω -> ʊ̜ */
     { "\xC8\xA3", "\xC9\xA4", "close-mid back unrounded vowel (mistake)", 0, 0   },  /* ȣ -> ɤ */
 };
 
