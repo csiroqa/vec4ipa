@@ -94,6 +94,11 @@ check("tone+class combined", ["ma\u02e9\u02e8\ua705"],
       expect_tone="tone=(1,2)??(0,0,-3)")
 check("mixed digit+letter tone warns", ["ma\u00b9\u02e9"], expect_rc=0,
       expect_warn="warning: mixing superscript digits")
+check("standalone global rise", ["\u2197"], expect_tone="tone=??(0,1,0)")
+check("standalone global fall", ["\u2198"], expect_tone="tone=??(0,-1,0)")
+check("standalone upstep", ["\ua71b"], expect_tone="tone=??(-1,0,0)")
+check("standalone downstep", ["\ua71c"], expect_tone="tone=??(1,0,0)")
+check("standalone tone class", ["\ua705"], expect_tone="tone=??(0,0,-3)")
 
 # ------------------------------------------------------------------
 # 3. Implicit affricates (no tie)

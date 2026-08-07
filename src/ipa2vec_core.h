@@ -1514,6 +1514,28 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                         continue;
                     }
                 }
+                /* standalone tone marks (↗ ↘ ꜛ ꜜ, tone classes): no segment
+                 * needed — record the 3-D tone vector on a null segment
+                 * (silent, v=0) so prosodic marks survive the parse */
+                if (pre_vec3_set) {
+                    if (n >= MAX_TOKS) goto full;
+                    IrTok t;
+                    t.kind = TK_BASE;
+                    t.preposed = 0;
+                    t.ipa = "";
+                    t.latin = "tone-only";
+                    t.tier = TIER_COUNT;
+                    t.mod = NULL;
+                    t.seg = NULL;
+                    t.consumed = pre_consumed;
+                    for (int g = 0; g < 3; g++) { t.tkind[g] = 0; t.tone[g][0] = t.tone[g][1] = t.tone[g][2] = NAN; }
+                    t.tkind[2] = 2;
+                    for (int d = 0; d < 3; d++)
+                        t.tone[2][d] = pre_vec3[d];
+                    out[n++] = t;
+                    p += pre_consumed;
+                    continue;
+                }
                 p -= pre_consumed;
                 utf8_decode(p, &cp);
                 snprintf(err, errsz,
@@ -1901,8 +1923,15 @@ static IPA2VEC_MAYBE_UNUSED void apply_layer2 (IrTok *l2, int n2, SegVec *segs, 
         if (l2[i].kind == TK_BASE) {
             SegVec out;
             const SegEntry *base = l2[i].seg;
-            memcpy(out.v, base->v, sizeof(out.v));
-            out.airstream = base->airstream;
+            if (base) {
+                memcpy(out.v, base->v, sizeof(out.v));
+                out.airstream = base->airstream;
+            } else {
+                /* tone-only segment (standalone ↗ ↘ ꜛ ꜜ, tone class):
+                 * silent, zero vector */
+                memset(out.v, 0, sizeof(out.v));
+                out.airstream = 0;
+            }
             out.note[0] = 0;
             for (int g = 0; g < 3; g++) {
                 out.tone[g][0] = NAN;
