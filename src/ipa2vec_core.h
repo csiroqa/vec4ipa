@@ -1949,6 +1949,26 @@ static IPA2VEC_MAYBE_UNUSED void apply_layer2 (IrTok *l2, int n2, SegVec *segs, 
             while (i < n2 && (l2[i].kind == TK_MOD || l2[i].kind == TK_LIG)) {
                 if (l2[i].kind == TK_MOD) {
                     if (l2[i].mod && l2[i].mod->apply) {
+                        /* nasalising a nasal consonant (ñ) is redundant —
+                         * the tilde on a nasal base lowers its nasality in
+                         * the vector, which usually means a different
+                         * place (e.g. ñ -> ɲ).  Warn and suggest. */
+                        if (l2[i].mod->apply == mod_nasal &&
+                            base && base->v[6] >= 0.5 &&
+                            !out.note[0]) {
+                            const char *guess = NULL;
+                            if (strcmp(base->ipa, "n") == 0) guess = "\xC9\xB2";     /* ɲ */
+                            else if (strcmp(base->ipa, "m") == 0) guess = "\xC9\xB1"; /* ɱ */
+                            else if (strcmp(base->ipa, "\xC5\x8B") == 0) guess = "\xC9\xB4"; /* ŋ -> ɴ */
+                            if (guess)
+                                fprintf(stderr,
+                                        "ipa2vec: warning: nasalising the nasal %s is redundant — did you mean %s?\n",
+                                        base->ipa, guess);
+                            else
+                                fprintf(stderr,
+                                        "ipa2vec: warning: nasalising the nasal %s is redundant\n",
+                                        base->ipa);
+                        }
                         apply_voicing_mod(out.v, l2[i].mod, base);
                         if (l2[i].mod->air >= 0)
                             out.airstream = l2[i].mod->air;
@@ -2015,7 +2035,16 @@ static IPA2VEC_MAYBE_UNUSED void nearest_base (const double v[NDIM], const SegEn
         double d = seg_dist(v, SEG_TABLE[i].v);
         if (d < bestd) { bestd = d; best = i; }
     }
-    *out = &SEG_TABLE[best];
+    /* EXTRA_BASE entries (extIPA + school-gated bases like the
+     * Sinologist curl letters ȶ ȡ ȵ ȴ) are valid reverse targets too;
+     * skip school entries whose module is not enabled */
+    for (int i = 0; i < N_EXTRA; i++) {
+        if (EXTRA_SCHOOL[i] >= 0 && !g_alias_on[EXTRA_SCHOOL[i]])
+            continue;
+        double d = seg_dist(v, EXTRA_BASE[i].v);
+        if (d < bestd) { bestd = d; best = NSEG + i; }
+    }
+    *out = (best < NSEG) ? &SEG_TABLE[best] : &EXTRA_BASE[best - NSEG];
     *outd = bestd;
 }
 
@@ -2026,8 +2055,8 @@ static IPA2VEC_MAYBE_UNUSED void nearest_base (const double v[NDIM], const SegEn
  * otherwise it is judged noise and dropped — this keeps intermediate
  * centroids (e.g. the average of two different segments) from stacking
  * four diacritics onto a single letter. */
-#define IPA2VEC_FIT_MAX_MODS   3
-#define IPA2VEC_FIT_MIN_GAIN   0.08
+#define IPA2VEC_FIT_MAX_MODS   6
+#define IPA2VEC_FIT_MIN_GAIN   0.015
 
 static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const SegEntry *base,
                          const ModRec *mods[IPA2VEC_FIT_MAX_MODS])
@@ -2035,6 +2064,13 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
     double cur[NDIM];
     memcpy(cur, base->v, sizeof(cur));
     int n = 0;
+    /* nasality spelling depends on the base: vowels AND nasal
+     * consonants use ◌̃ (mod_nasal); oral consonants use the
+     * superscript ⁿ (mod_nasal_rel, nasal release).  During fitting,
+     * allow only the matching one so the output never writes ̃ⁿ
+     * together and vowels never get a release mark. */
+    int base_nasal = (base->v[6] >= 0.5);
+    int base_is_vowel = (base->v[14] >= 0.5);
     for (int round = 0; round < IPA2VEC_FIT_MAX_MODS; round++) {
         int besti = -1;
         double bestd = seg_dist(target, cur);
@@ -2046,6 +2082,11 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
             for (int k = 0; k < n; k++)
                 if (mods[k]->apply == MODS[i].apply) { used = 1; break; }
             if (used) continue;
+            /* vowel/nasal -> ◌̃ only; oral consonant -> ⁿ only */
+            if (MODS[i].apply == mod_nasal &&
+                !(base_is_vowel || base_nasal)) continue;
+            if (MODS[i].apply == mod_nasal_rel &&
+                (base_is_vowel || base_nasal)) continue;
             double trial[NDIM];
             memcpy(trial, cur, sizeof(trial));
             apply_voicing_mod(trial, &MODS[i], base);

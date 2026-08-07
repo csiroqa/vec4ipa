@@ -99,6 +99,9 @@ check("standalone global fall", ["\u2198"], expect_tone="tone=??(0,-1,0)")
 check("standalone upstep", ["\ua71b"], expect_tone="tone=??(-1,0,0)")
 check("standalone downstep", ["\ua71c"], expect_tone="tone=??(1,0,0)")
 check("standalone tone class", ["\ua705"], expect_tone="tone=??(0,0,-3)")
+check("nasalised nasal warns", ["n\u0303"],
+      expect_warn="nasalising the nasal n is redundant")
+check("nasalised vowel silent", ["a\u0303"], expect_rc=0)
 
 # ------------------------------------------------------------------
 # 3. Implicit affricates (no tie)
