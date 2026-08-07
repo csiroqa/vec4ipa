@@ -22,11 +22,26 @@ regenerate generated headers).
 
 ```sh
 make            # builds ./ipa2vec ./vec2ipa ./vec4ipa
-                # (Windows: wmain + -municode for UTF-8 argv)
+                # (Windows: wmain + -municode for UTF-8 argv;
+                #  plus ./ipa2vec_ui, the Win32 GUI wrapper in ui/)
 make gen        # regenerate src/vectors.h and src/readme_embed.h
 ```
 
 The binaries embed the full table; they do not read any file at runtime.
+
+## GUI wrapper (Windows)
+
+`ui/ipa2vec_ui.c` is a Win32 GUI front-end (`ipa2vec_ui.exe`,
+built by `make ipa2vec_ui`). It uses the **Gentium Book Plus** font
+(normative IPA letterforms) and currently provides:
+
+- **File > Export command lines…** — a window showing the three CLI
+  invocations (`ipa2vec`, `vec2ipa`, `vec4ipa`) for the current
+  directory, with **Copy to clipboard** and **Save as .bat** buttons.
+- **File > Exit**, **Help > About**.
+
+Tool integration (input box, live IPA→vector→IPA round-trip) is
+planned for a later build.
 
 ## Usage
 
