@@ -218,9 +218,104 @@ typedef struct {
 } ModRec;
 
 /* --- apply functions (sequential, order matters) --- */
+static const SegEntry EXTRA_BASE[] = {
+    /* ᴇ U+1D07: unrounded mid central vowel (extIPA) ≈ ɘ */
+    { "\xe1\xb4\x87", { 0.0, 0.0, 0.55, 0.25, 0.0, -0.1, 0.0, 0.0,
+                         1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0 }, 0 },
+    /* ɚ U+025A: rhotacised schwa */
+    { "\xc9\x9a", { 0.0, 0.0, 0.55, 0.45, 0.0, 0.0, 0.0, 0.0,
+                    1.0, 0.2, 0.0, 0.3, 1.0, 0.0, 0.65, 1.0 }, 0 },
+    /* ɞ U+025E: open-mid central rounded vowel */
+    { "\xc9\x9e", { 0.0, 1.0, 0.55, 0.25, 0.0, 0.1, 0.0, 0.0,
+                    1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.85, 1.0 }, 0 },
+    /* ɝ U+025D: rhotacised open-mid central vowel (extIPA) */
+    { "\xc9\x9d", { 0.0, 0.0, 0.55, 0.35, 0.0, 0.1, 0.0, 0.0,
+                    1.0, 0.2, 0.0, 0.5, 1.0, 0.0, 0.85, 1.0 }, 0 },
+    /* ʬ U+02AC: bilabial percussive (extIPA) — non-pulmonic (no airflow:
+     * airflow_direction 0), airstream = percussive (index 4) */
+    { "\xca\xac", { 1.0, 0.0, 0.55, 0.25, 0.0, 0.0, 0.0, 0.0,
+                    0.0, 0.0, 0.4, 0.0, 0.1, 0.0, 0.0, 0.0 }, 4 },
+    /* ʭ U+02AD: bidental percussive (extIPA) — non-pulmonic */
+    { "\xca\xad", { 0.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0,
+                    0.0, 0.0, 0.4, 0.0, 0.1, 0.0, 0.0, 0.0 }, 4 },
+    /* ʩ U+02A9: velopharyngeal fricative (extIPA) */
+    { "\xca\xa9", { 0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 0.5, 0.0,
+                    0.0, 0.0, 0.4, 0.0, 0.6, 0.0, 0.09, 1.0 }, 0 },
+    /* ʪ U+02AA: voiceless velar lateral fricative (extIPA) */
+    { "\xca\xaa", { 0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 0.0, 1.0,
+                    0.0, 0.0, 0.4, 0.0, 0.9, 0.5, 0.08, 1.0 }, 0 },
+    /* ʫ U+02AB: voiced velar lateral fricative (extIPA) */
+    { "\xca\xab", { 0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 0.0, 1.0,
+                    1.0, 0.2, 0.0, 0.0, 0.8, 0.45, 0.08, 1.0 }, 0 },
+    /* ꞎ U+A7AE: voiceless retroflex lateral fricative (IPA 2018) */
+    { "\xea\x9e\xae", { 0.0, 0.0, 0.1, 0.8, 0.0, 0.0, 0.0, 1.0,
+                        0.0, 0.0, 0.4, 0.0, 0.9, 0.5, 0.08, 1.0 }, 0 },
+    /* ᶑ U+1D91: retroflex implosive (IPA 2018) */
+    { "\xe1\xb6\x91", { 0.0, 0.0, 0.1, 0.9, 0.0, 0.0, 0.0, 0.0,
+                        1.0, 0.55, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0 }, 2 },
+};
+#define N_EXTRA ((int)(sizeof(EXTRA_BASE) / sizeof(EXTRA_BASE[0])))
+
+/* latin feature names for EXTRA_BASE (parallel array) */
+static const char *EXTRA_NAMES[N_EXTRA] = {
+    "cent.mid.unr.vwl",   /* ᴇ ≈ ɘ */
+    "cent.mid.rnd.vwl",   /* ɚ rhotacised schwa */
+    "cent.omid.rnd.vwl",  /* ɞ */
+    "cent.omid.rhot.vwl", /* ɝ */
+    "bil.percussive",     /* ʬ */
+    "bidental.percussive",/* ʭ */
+    "velophar.frc",       /* ʩ */
+    "vel.lat.frc",        /* ʪ */
+    "vel.lat.frc.vd",     /* ʫ */
+    "rfl.lat.frc",        /* ꞎ */
+    "rfl.imp",            /* ᶑ */
+};
+
+/* longest-prefix base lookup against the 132-entry table */
 static IPA2VEC_MAYBE_UNUSED void mod_nasal (double v[NDIM], const void *m) { (void)m; v[6]  = 0.8; }
 static IPA2VEC_MAYBE_UNUSED void mod_long (double v[NDIM], const void *m) { (void)m; v[12] = 2.0; }
-static IPA2VEC_MAYBE_UNUSED void mod_half (double v[NDIM], const void *m) { (void)m; v[12] = 1.5; }
+/* contrast-aware setter: set v[dim] to full_val unless the result would
+ * exactly equal a DIFFERENTLY-spelled base segment (e.g. p + ◌̚ would
+ * become ʬ, whose only difference from p is duration) — in that case take
+ * the midpoint so the spelling stays distinct. */
+static IPA2VEC_MAYBE_UNUSED void set_avoid_collision(double v[NDIM], int dim,
+                                                     double full_val)
+{
+    double full[NDIM];
+    memcpy(full, v, sizeof(full));
+    full[dim] = full_val;
+    int collides = 0;
+    for (int i = 0; i < NSEG && !collides; i++) {
+        int same = 1;
+        for (int k = 0; k < NDIM; k++)
+            if (SEG_TABLE[i].v[k] != full[k]) { same = 0; break; }
+        if (same) collides = 1;
+    }
+    for (int i = 0; i < N_EXTRA && !collides; i++) {
+        int same = 1;
+        for (int k = 0; k < NDIM; k++)
+            if (EXTRA_BASE[i].v[k] != full[k]) { same = 0; break; }
+        if (same) collides = 1;
+    }
+    if (collides)
+        v[dim] = (v[dim] + full_val) / 2.0;
+    else
+        v[dim] = full_val;
+}
+
+/* half-long with contrast awareness (χ + ◌ˑ would become q͡χ) */
+static IPA2VEC_MAYBE_UNUSED void mod_half (double v[NDIM], const void *m)
+{
+    (void)m;
+    set_avoid_collision(v, 12, 1.5);
+}
+
+/* unreleased with contrast awareness (p + ◌̚ would become ʬ) */
+static IPA2VEC_MAYBE_UNUSED void mod_unrel (double v[NDIM], const void *m)
+{
+    (void)m;
+    set_avoid_collision(v, 12, 0.1);
+}
 static IPA2VEC_MAYBE_UNUSED void mod_asp (double v[NDIM], const void *m) { (void)m; v[10] = 0.9; v[9] = 0.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_creaky (double v[NDIM], const void *m) { (void)m; v[9] = 0.7; v[10] = 0.0; v[11] = 0.7; }
 static IPA2VEC_MAYBE_UNUSED void mod_breathy (double v[NDIM], const void *m) { (void)m; v[10] = 0.55; v[9] = 0.2; v[11] = -0.6; }
@@ -230,7 +325,6 @@ static IPA2VEC_MAYBE_UNUSED void mod_pal (double v[NDIM], const void *m) { (void
 static IPA2VEC_MAYBE_UNUSED void mod_lab (double v[NDIM], const void *m) { (void)m; if (v[1] < 0.5) v[1] = 0.5; }
 static IPA2VEC_MAYBE_UNUSED void mod_syl (double v[NDIM], const void *m) { (void)m; v[12] += 0.5; }
 static IPA2VEC_MAYBE_UNUSED void mod_nosyl (double v[NDIM], const void *m) { (void)m; v[12] -= 0.5; }
-static IPA2VEC_MAYBE_UNUSED void mod_unrel (double v[NDIM], const void *m) { (void)m; v[12] = 0.1; }
 /* Voicing / devoicing is *contrast-aware*:
  *
  *   ◌̬ / ◌̥ on a segment that HAS a voicing counterpart (t ↔ d, s ↔ z …)
@@ -844,59 +938,6 @@ static const Alias *lookup_alias(const char *s, int has_mods)
 /*  articulatory description)                                          */
 /* ------------------------------------------------------------------ */
 
-static const SegEntry EXTRA_BASE[] = {
-    /* ᴇ U+1D07: unrounded mid central vowel (extIPA) ≈ ɘ */
-    { "\xe1\xb4\x87", { 0.0, 0.0, 0.55, 0.25, 0.0, -0.1, 0.0, 0.0,
-                         1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0 }, 0 },
-    /* ɚ U+025A: rhotacised schwa */
-    { "\xc9\x9a", { 0.0, 0.0, 0.55, 0.45, 0.0, 0.0, 0.0, 0.0,
-                    1.0, 0.2, 0.0, 0.3, 1.0, 0.0, 0.65, 1.0 }, 0 },
-    /* ɞ U+025E: open-mid central rounded vowel */
-    { "\xc9\x9e", { 0.0, 1.0, 0.55, 0.25, 0.0, 0.1, 0.0, 0.0,
-                    1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.85, 1.0 }, 0 },
-    /* ɝ U+025D: rhotacised open-mid central vowel (extIPA) */
-    { "\xc9\x9d", { 0.0, 0.0, 0.55, 0.35, 0.0, 0.1, 0.0, 0.0,
-                    1.0, 0.2, 0.0, 0.5, 1.0, 0.0, 0.85, 1.0 }, 0 },
-    /* ʬ U+02AC: bilabial percussive (extIPA) */
-    { "\xca\xac", { 1.0, 0.0, 0.55, 0.25, 0.0, 0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.4, 0.0, 0.1, 0.0, 0.0, 1.0 }, 0 },
-    /* ʭ U+02AD: bidental percussive (extIPA) */
-    { "\xca\xad", { 0.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.4, 0.0, 0.1, 0.0, 0.0, 1.0 }, 0 },
-    /* ʩ U+02A9: velopharyngeal fricative (extIPA) */
-    { "\xca\xa9", { 0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 0.5, 0.0,
-                    0.0, 0.0, 0.4, 0.0, 0.6, 0.0, 0.09, 1.0 }, 0 },
-    /* ʪ U+02AA: voiceless velar lateral fricative (extIPA) */
-    { "\xca\xaa", { 0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 0.0, 1.0,
-                    0.0, 0.0, 0.4, 0.0, 0.9, 0.5, 0.08, 1.0 }, 0 },
-    /* ʫ U+02AB: voiced velar lateral fricative (extIPA) */
-    { "\xca\xab", { 0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 0.0, 1.0,
-                    1.0, 0.2, 0.0, 0.0, 0.8, 0.45, 0.08, 1.0 }, 0 },
-    /* ꞎ U+A7AE: voiceless retroflex lateral fricative (IPA 2018) */
-    { "\xea\x9e\xae", { 0.0, 0.0, 0.1, 0.8, 0.0, 0.0, 0.0, 1.0,
-                        0.0, 0.0, 0.4, 0.0, 0.9, 0.5, 0.08, 1.0 }, 0 },
-    /* ᶑ U+1D91: retroflex implosive (IPA 2018) */
-    { "\xe1\xb6\x91", { 0.0, 0.0, 0.1, 0.9, 0.0, 0.0, 0.0, 0.0,
-                        1.0, 0.55, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0 }, 2 },
-};
-#define N_EXTRA ((int)(sizeof(EXTRA_BASE) / sizeof(EXTRA_BASE[0])))
-
-/* latin feature names for EXTRA_BASE (parallel array) */
-static const char *EXTRA_NAMES[N_EXTRA] = {
-    "cent.mid.unr.vwl",   /* ᴇ ≈ ɘ */
-    "cent.mid.rnd.vwl",   /* ɚ rhotacised schwa */
-    "cent.omid.rnd.vwl",  /* ɞ */
-    "cent.omid.rhot.vwl", /* ɝ */
-    "bil.percussive",     /* ʬ */
-    "bidental.percussive",/* ʭ */
-    "velophar.frc",       /* ʩ */
-    "vel.lat.frc",        /* ʪ */
-    "vel.lat.frc.vd",     /* ʫ */
-    "rfl.lat.frc",        /* ꞎ */
-    "rfl.imp",            /* ᶑ */
-};
-
-/* longest-prefix base lookup against the 132-entry table */
 static const SegEntry *match_base(const char *s, int *consumed)
 {
     int best = -1;

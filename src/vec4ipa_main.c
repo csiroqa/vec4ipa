@@ -118,9 +118,9 @@ static void print_stats(void)
     printf("implicit affricates:         %d\n", NNOLIG);
     printf("dimensions:                  %d\n", NDIM);
     printf("lambda:                      %.2f\n", METRIC_LAMBDA);
-    printf("airstreams:                  %s | %s | %s | %s\n",
+    printf("airstreams:                  %s | %s | %s | %s | %s\n",
            AIRSTREAM_LABELS[0], AIRSTREAM_LABELS[1],
-           AIRSTREAM_LABELS[2], AIRSTREAM_LABELS[3]);
+           AIRSTREAM_LABELS[2], AIRSTREAM_LABELS[3], AIRSTREAM_LABELS[4]);
 }
 
 static void print_weights(void)
