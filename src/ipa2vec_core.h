@@ -513,7 +513,8 @@ static const ModRec MODS[] = {
     { 0x02DE, "˞",   "rhot",      TIER_MANNER,    -1, mod_rhot,        0, {0,0} , NULL, 1  },
     { 0x02E0, "ˠ",   "vel",       TIER_PLACE,     -1, mod_velar,       0, {0,0} , NULL, 1  },
     { 0x02E1, "ˡ",   "lat_release", TIER_MANNER,  -1, mod_lat_release, 0, {0,0} , NULL, 1  },
-    { 0x02E2, "ˢ",   "fric_release", TIER_MANNER, -1, mod_fric_release,0, {0,0} , NULL, 1  },
+    { 0x02E2, "ˢ",   "fric_release", TIER_MANNER,  -1, mod_fric_release,0, {0,0} , NULL, 1  },
+    { 0x02E3, "ˣ",   "fric_release", TIER_MANNER,  -1, mod_fric_release,0, {0,0} , NULL, 1  },
     { 0x02E4, "ˤ",   "phar",      TIER_PLACE,     -1, mod_phar,        0, {0,0} , NULL, 1  },
     /* superscript letters as diacritics (IPA letters used as modifiers) */
     { 0x02B3, "ʳ",   "sup_rhot_r",   TIER_MANNER, -1, mod_sup_rhot1,   0, {0,0} , NULL, 0  },
@@ -1670,7 +1671,7 @@ static IPA2VEC_MAYBE_UNUSED int mod_priority(const ModRec *m)
     case 0x0303: case 0x1D51: case 0x1D4B:                    /* nasality */
         return 6;
     case 0x02B0: case 0x02BC: case 0x02E1: case 0x207F:       /* release */
-    case 0x1D4A: case 0x02E2: case 0x031A: case 0x1D30:
+    case 0x1D4A: case 0x02E2: case 0x02E3: case 0x031A: case 0x1D30:
         return 7;
     case 0x02D0: case 0x02D1: case 0x0306: case 0x0329:       /* timing */
     case 0x032F:
