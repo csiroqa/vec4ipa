@@ -231,13 +231,75 @@ static IPA2VEC_MAYBE_UNUSED void mod_lab (double v[NDIM], const void *m) { (void
 static IPA2VEC_MAYBE_UNUSED void mod_syl (double v[NDIM], const void *m) { (void)m; v[12] += 0.5; }
 static IPA2VEC_MAYBE_UNUSED void mod_nosyl (double v[NDIM], const void *m) { (void)m; v[12] -= 0.5; }
 static IPA2VEC_MAYBE_UNUSED void mod_unrel (double v[NDIM], const void *m) { (void)m; v[12] = 0.1; }
-/* Partial voicing / devoicing: ◌̬ pushes a voiceless segment toward the
- * voiced end but does NOT turn it into the voiced counterpart (t̬ ≠ d),
- * and ◌̥ pushes a voiced segment toward the voiceless end (d̥ ≠ t).
- * The sequence t → t̬ → d̥ → d therefore advances in small steps.
- * Absolute values make the modifier idempotent (t̬̬ = t̬). */
-static IPA2VEC_MAYBE_UNUSED void mod_voiceless (double v[NDIM], const void *m) { (void)m; v[8] = 0.3; v[9] = 0.1; v[10] = 0.2; }
-static IPA2VEC_MAYBE_UNUSED void mod_voiced (double v[NDIM], const void *m) { (void)m; v[8] = 0.7; v[9] = 0.1; v[10] = 0.2; }
+/* Voicing / devoicing is *contrast-aware*:
+ *
+ *   ◌̬ / ◌̥ on a segment that HAS a voicing counterpart (t ↔ d, s ↔ z …)
+ *     push part-way so t → t̬ → d̥ → d advances in small steps (t̬ ≠ d).
+ *   ◌̥ on a segment with NO voiceless counterpart (n, m, ŋ, l, r, w … —
+ *     IPA has no voiceless nasal/approximant symbols) means "the voiceless
+ *     form" itself, so it goes all the way (n̥ = voiceless n, voiced = 0).
+ *   ◌̬ likewise: on ǃ (no voiced click symbol) it means "the voiced form"
+ *     (ǃ̬ fully voiced).
+ *
+ * Absolute values make the modifiers idempotent (t̬̬ = t̬). */
+static IPA2VEC_MAYBE_UNUSED void mod_voiceless_part (double v[NDIM], const void *m) { (void)m; v[8] = 0.3; v[9] = 0.1; v[10] = 0.2; }
+static IPA2VEC_MAYBE_UNUSED void mod_voiced_part    (double v[NDIM], const void *m) { (void)m; v[8] = 0.7; v[9] = 0.1; v[10] = 0.2; }
+static IPA2VEC_MAYBE_UNUSED void mod_voiceless_full (double v[NDIM], const void *m) { (void)m; v[8] = 0.0; v[9] = 0.0; v[10] = 0.4; }
+static IPA2VEC_MAYBE_UNUSED void mod_voiced_full    (double v[NDIM], const void *m) { (void)m; v[8] = 1.0; v[9] = 0.2; v[10] = 0.0; }
+static IPA2VEC_MAYBE_UNUSED void mod_voiceless (double v[NDIM], const void *m) { mod_voiceless_part(v, m); }
+static IPA2VEC_MAYBE_UNUSED void mod_voiced    (double v[NDIM], const void *m) { mod_voiced_part(v, m); }
+
+/* lazy table of which base segments have a voicing counterpart */
+static IPA2VEC_MAYBE_UNUSED int g_voice_counter[NSEG];
+static IPA2VEC_MAYBE_UNUSED int g_voice_counter_ready = 0;
+
+static IPA2VEC_MAYBE_UNUSED int has_voicing_counterpart(const SegEntry *base)
+{
+    if (base < SEG_TABLE || base >= SEG_TABLE + NSEG)
+        return 0;   /* EXTRA_BASE entries: assume no counterpart */
+    if (!g_voice_counter_ready) {
+        for (int i = 0; i < NSEG; i++)
+            g_voice_counter[i] = 0;
+        for (int i = 0; i < NSEG; i++) {
+            for (int j = i + 1; j < NSEG; j++) {
+                const double *a = SEG_TABLE[i].v, *b = SEG_TABLE[j].v;
+                int same = 1, vdiff = 0;
+                for (int k = 0; k < NDIM; k++) {
+                    if (k == 8 || k == 9 || k == 10) {
+                        if (a[k] != b[k]) vdiff = 1;
+                    } else if (k == 12 || k == 13) {
+                        /* voiced fricatives are systematically slightly
+                         * shorter/lower in the table (z vs s: dur 0.7/0.8,
+                         * jet 0.85/0.95) — allow that accompanying
+                         * difference, it is still the same segment pair */
+                        if (fabs(a[k] - b[k]) > 0.15) { same = 0; break; }
+                    } else if (a[k] != b[k]) { same = 0; break; }
+                }
+                if (same && vdiff) {
+                    g_voice_counter[i] = 1;
+                    g_voice_counter[j] = 1;
+                }
+            }
+        }
+        g_voice_counter_ready = 1;
+    }
+    return g_voice_counter[base - SEG_TABLE];
+}
+
+/* apply a voicing modifier, choosing full vs partial by contrast */
+static IPA2VEC_MAYBE_UNUSED void apply_voicing_mod(double v[NDIM],
+                                                   const ModRec *m,
+                                                   const SegEntry *base)
+{
+    if (m->apply == mod_voiceless)
+        has_voicing_counterpart(base) ? mod_voiceless_part(v, NULL)
+                                      : mod_voiceless_full(v, NULL);
+    else if (m->apply == mod_voiced)
+        has_voicing_counterpart(base) ? mod_voiced_part(v, NULL)
+                                      : mod_voiced_full(v, NULL);
+    else
+        m->apply(v, NULL);
+}
 static IPA2VEC_MAYBE_UNUSED void mod_nasal_click (double v[NDIM], const void *m){ (void)m; v[6] = 1.0; v[8] = 1.0; v[9] = 0.2; v[10] = 0.0; v[12] = 1.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_dental (double v[NDIM], const void *m) { (void)m; v[2] = 1.0; if (v[3] < 0.5) v[3] = 0.5; }
 static IPA2VEC_MAYBE_UNUSED void mod_raised (double v[NDIM], const void *m) { (void)m; v[3] += 0.15; }
@@ -1385,7 +1447,7 @@ static IPA2VEC_MAYBE_UNUSED void apply_layer2 (IrTok *l2, int n2, SegVec *segs, 
             while (i < n2 && (l2[i].kind == TK_MOD || l2[i].kind == TK_LIG)) {
                 if (l2[i].kind == TK_MOD) {
                     if (l2[i].mod && l2[i].mod->apply) {
-                        l2[i].mod->apply(out.v, NULL);
+                        apply_voicing_mod(out.v, l2[i].mod, base);
                         if (l2[i].mod->air >= 0)
                             out.airstream = l2[i].mod->air;
                         if (l2[i].mod->infer)
@@ -1417,7 +1479,7 @@ static IPA2VEC_MAYBE_UNUSED void apply_layer2 (IrTok *l2, int n2, SegVec *segs, 
                         j++;
                         while (j < n2 && l2[j].kind == TK_MOD) {
                             if (l2[j].mod && l2[j].mod->apply) {
-                                l2[j].mod->apply(out.v, NULL);
+                                apply_voicing_mod(out.v, l2[j].mod, rel);
                                 if (l2[j].mod->air >= 0)
                                     out.airstream = l2[j].mod->air;
                             }
@@ -1484,7 +1546,7 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
             if (used) continue;
             double trial[NDIM];
             memcpy(trial, cur, sizeof(trial));
-            MODS[i].apply(trial, NULL);
+            apply_voicing_mod(trial, &MODS[i], base);
             double d = seg_dist(target, trial);
             if (d < bestd - 1e-9) { bestd = d; besti = i; }
         }
@@ -1495,7 +1557,7 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
         if (prev > 1e-12 && (prev - bestd) / prev < IPA2VEC_FIT_MIN_GAIN)
             break;
         mods[n++] = &MODS[besti];
-        MODS[besti].apply(cur, NULL);
+        apply_voicing_mod(cur, mods[n-1], base);
     }
     return n;
 }
