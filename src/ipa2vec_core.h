@@ -242,8 +242,8 @@ static IPA2VEC_MAYBE_UNUSED void mod_unrel (double v[NDIM], const void *m) { (vo
  *     (ǃ̬ fully voiced).
  *
  * Absolute values make the modifiers idempotent (t̬̬ = t̬). */
-static IPA2VEC_MAYBE_UNUSED void mod_voiceless_part (double v[NDIM], const void *m) { (void)m; v[8] = 0.3; v[9] = 0.1; v[10] = 0.2; }
-static IPA2VEC_MAYBE_UNUSED void mod_voiced_part    (double v[NDIM], const void *m) { (void)m; v[8] = 0.7; v[9] = 0.1; v[10] = 0.2; }
+static IPA2VEC_MAYBE_UNUSED void mod_voiceless_part (double v[NDIM], const void *m) { (void)m; v[8] = 0.4; v[9] = 0.1; v[10] = 0.2; }
+static IPA2VEC_MAYBE_UNUSED void mod_voiced_part    (double v[NDIM], const void *m) { (void)m; v[8] = 0.6; v[9] = 0.1; v[10] = 0.2; }
 static IPA2VEC_MAYBE_UNUSED void mod_voiceless_full (double v[NDIM], const void *m) { (void)m; v[8] = 0.0; v[9] = 0.0; v[10] = 0.4; }
 static IPA2VEC_MAYBE_UNUSED void mod_voiced_full    (double v[NDIM], const void *m) { (void)m; v[8] = 1.0; v[9] = 0.2; v[10] = 0.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_voiceless (double v[NDIM], const void *m) { mod_voiceless_part(v, m); }
