@@ -121,7 +121,7 @@ namespace IPA2VectorUI
                 "Tip: hover a keyboard key for its name, double-click for\n" +
                 "details; symbols you use are collected on the Recent tab.\n\n" +
                 "Example to try:  t\u02b0a  (aspirated stop + open vowel)";
-            OutputBox.Text = welcome;
+            OutputSet(welcome);
             IpaInput.Text = "t\u02b0a";
             _placeholder = true;
             _history.Add(("Welcome", welcome));
@@ -433,7 +433,7 @@ namespace IPA2VectorUI
             if (file == null) return;
             try
             {
-                await Windows.Storage.FileIO.WriteTextAsync(file, OutputBox.Text);
+                await Windows.Storage.FileIO.WriteTextAsync(file, OutputText());
                 SetStatus("output saved: " + file.Path);
             }
             catch (Exception ex)
@@ -444,7 +444,7 @@ namespace IPA2VectorUI
 
         private void ClearOutput_Click(object sender, RoutedEventArgs e)
         {
-            OutputBox.Text = "";
+            OutputSet("");
             SetStatus("output cleared");
         }
 
@@ -453,7 +453,7 @@ namespace IPA2VectorUI
             try
             {
                 var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
-                dp.SetText(OutputBox.Text);
+                dp.SetText(OutputText());
                 Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
                 SetStatus("output copied to clipboard");
             }
@@ -1005,10 +1005,31 @@ namespace IPA2VectorUI
 
         private void AppendOutput(string text)
         {
-            OutputBox.Text = string.IsNullOrEmpty(OutputBox.Text)
-                ? text : OutputBox.Text + "\n" + text;
-            OutputBox.SelectionStart = OutputBox.Text.Length;
-            OutputBox.SelectionLength = 0;
+            OutputAppendRaw(text);
+        }
+
+        /* ---- RichEditBox helpers (OutputBox) ---- */
+
+        private string OutputText()
+        {
+            OutputBox.Document.GetText(
+                Microsoft.UI.Text.TextGetOptions.None, out string t);
+            return t ?? "";
+        }
+
+        private void OutputSet(string text)
+        {
+            OutputBox.Document.SetText(
+                Microsoft.UI.Text.TextSetOptions.None, text);
+        }
+
+        private void OutputAppendRaw(string text)
+        {
+            OutputBox.Document.GetText(
+                Microsoft.UI.Text.TextGetOptions.None, out string cur);
+            OutputSet(string.IsNullOrEmpty(cur) ? text : cur + "\n" + text);
+            var sel = OutputBox.Document.Selection;
+            sel.StartPosition = sel.EndPosition = int.MaxValue;
             ScrollToEnd();
         }
 
