@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="IPA2VectorUI.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="IPA2Vector Workbench">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="440"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- left column: inputs / output -->
+        <StackPanel Grid.Column="0" Padding="12" Spacing="8">
+            <TextBlock Text="IPA input (click keyboard buttons or type):" FontSize="13"/>
+            <Grid ColumnSpacing="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="IpaInput" Grid.Column="0" FontSize="16"
+                         AcceptsReturn="False"/>
+                <Button x:Name="ConvertBtn" Grid.Column="1" Content="Convert"
+                        Click="ConvertBtn_Click"/>
+            </Grid>
+
+            <TextBlock Text="16-D vector (comma separated) -&gt; reverse fit:" FontSize="13"/>
+            <Grid ColumnSpacing="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="VecInput" Grid.Column="0" FontSize="13"/>
+                <ComboBox x:Name="WidthCombo" Grid.Column="1" SelectedIndex="3"
+                          Width="90">
+                    <ComboBoxItem Content="width 0"/>
+                    <ComboBoxItem Content="width 1"/>
+                    <ComboBoxItem Content="width 2"/>
+                    <ComboBoxItem Content="width 3"/>
+                    <ComboBoxItem Content="width 4"/>
+                </ComboBox>
+                <Button x:Name="ReverseBtn" Grid.Column="2" Content="Reverse"
+                        Click="ReverseBtn_Click"/>
+            </Grid>
+
+            <TextBlock Text="Query one symbol:" FontSize="13"/>
+            <Grid ColumnSpacing="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="QueryInput" Grid.Column="0" FontSize="16"/>
+                <Button x:Name="QueryBtn" Grid.Column="1" Content="Query"
+                        Click="QueryBtn_Click"/>
+            </Grid>
+
+            <TextBlock Text="Output:" FontSize="13"/>
+            <TextBox x:Name="OutputBox" FontSize="13" IsReadOnly="True"
+                     TextWrapping="Wrap" AcceptsReturn="True"
+                     Height="260" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+        </StackPanel>
+
+        <!-- right column: IPA keyboard -->
+        <Pivot Grid.Column="1" x:Name="KeyboardPivot" Margin="0,8,8,8">
+            <PivotItem Header="Consonants">
+                <ScrollViewer ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="ConsKeys">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsWrapGrid Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </ScrollViewer>
+            </PivotItem>
+            <PivotItem Header="Vowels">
+                <ScrollViewer ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="VowKeys">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsWrapGrid Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </ScrollViewer>
+            </PivotItem>
+            <PivotItem Header="Modifiers">
+                <ScrollViewer ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="ModKeys">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsWrapGrid Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </ScrollViewer>
+            </PivotItem>
+            <PivotItem Header="Tones">
+                <ScrollViewer ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="ToneKeys">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsWrapGrid Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </ScrollViewer>
+            </PivotItem>
+        </Pivot>
+    </Grid>
+</Window>

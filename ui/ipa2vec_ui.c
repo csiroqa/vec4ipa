@@ -77,20 +77,157 @@
 #define IDC_PANE_VOW  5011
 #define IDC_PANE_MOD  5012
 #define IDC_PANE_TONE 5013
+#define IDC_LBL_IPA   5014
+#define IDC_LBL_VEC   5015
+#define IDC_LBL_Q     5016
+#define IDC_LBL_OUT   5017
 
-/* keyboard button id ranges */
+/* keyboard button id ranges (unique per pane!) */
 #define IDB_BASE   6000
 #define IDB_EXTRA  7000
 #define IDB_MOD    8000
 #define IDB_TONE   9000
+#define IDB_VOW    9500
 #define IDB_MAX    10000
 
 static HFONT g_font = NULL;        /* Gentium (UI text + IPA) */
 static HFONT g_font_btn = NULL;    /* smaller for keyboard buttons */
 static HWND g_hStatus = NULL;
 
+/* keyboard buttons are direct children of the main window (no pane
+ * nesting): WM_COMMAND arrives straight at WndProc, and MoveWindow
+ * in layout() forces their repaint. Each group is a tab page. */
+#define KB_GROUPS 4
+#define KB_MAX_BTNS 160
+static HWND g_kb_btn[KB_GROUPS][KB_MAX_BTNS];
+static int   g_kb_n[KB_GROUPS];
+static int   g_kb_x[KB_GROUPS][KB_MAX_BTNS];
+static int   g_kb_y[KB_GROUPS][KB_MAX_BTNS];
+static int   g_kb_w[KB_GROUPS][KB_MAX_BTNS];
+static int   g_kb_h[KB_GROUPS][KB_MAX_BTNS];
+static int   g_kb_sel = 0;
+
 static const wchar_t *g_btn_sym[IDB_MAX - IDB_BASE]; /* symbol per button id */
 static wchar_t g_ipa_buf[4096];
+
+/* ------------------------------------------------------------------ */
+/* keyboard construction (buttons are children of the main window)     */
+/* ------------------------------------------------------------------ */
+
+static int kb_add(HWND parent, int group, int id, const wchar_t *sym,
+                  int x, int y, int w, int h)
+{
+    if (group < 0 || group >= KB_GROUPS || g_kb_n[group] >= KB_MAX_BTNS)
+        return -1;
+    HWND btn = CreateWindowW(L"BUTTON", sym,
+        WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | WS_TABSTOP,
+        x, y, w, h, parent, (HMENU)(INT_PTR)id,
+        GetModuleHandleW(NULL), NULL);
+    if (!btn) return -1;
+    SendMessageW(btn, WM_SETFONT, (WPARAM)g_font_btn, TRUE);
+    g_kb_btn[group][g_kb_n[group]] = btn;
+    g_kb_x[group][g_kb_n[group]] = x;
+    g_kb_y[group][g_kb_n[group]] = y;
+    g_kb_w[group][g_kb_n[group]] = w;
+    g_kb_h[group][g_kb_n[group]] = h;
+    g_kb_n[group]++;
+    if (id >= IDB_BASE && id < IDB_MAX)
+        g_btn_sym[id - IDB_BASE] = sym;
+    return id;
+}
+
+static void kb_build_all(HWND parent)
+{
+    int i;
+    for (i = 0; i < KB_GROUPS; i++)
+        g_kb_n[i] = 0;
+
+    /* group 0: consonants from SEG_TABLE (skip vowels), then EXTRA */
+    static const int per_row = 10;
+    int x0 = 0, y0 = 0, bw = 30, bh = 24, gap = 2;
+    int x = x0, y = y0, n = 0;
+    for (i = 0; i < NSEG; i++) {
+        if (is_vowel(&SEG_TABLE[i])) continue;
+        wchar_t sym[8];
+        utf8_to_wide(SEG_TABLE[i].ipa, sym, 8);
+        kb_add(0, IDB_BASE + i, sym, x, y, bw, bh);
+        n++;
+        if (n % per_row == 0) { x = x0; y += bh + gap; } else x += bw + gap;
+    }
+    x = x0; y += bh + 4;
+    for (i = 0; i < N_EXTRA; i++) {
+        wchar_t sym[8];
+        utf8_to_wide(EXTRA_BASE[i].ipa, sym, 8);
+        kb_add(0, IDB_EXTRA + i, sym, x, y, bw, bh);
+        n++;
+        if (n % per_row == 0) { x = x0; y += bh + gap; } else x += bw + gap;
+    }
+
+    /* group 1: vowels on the trapezium */
+    static const double pos_steps[8] = {0.0, 0.14, 0.28, 0.42,
+                                        0.56, 0.70, 0.84, 1.0};
+    int vx0 = 8, vy0 = 6, vbw = 36, vbh = 30, vgap = 4;
+    for (i = 0; i < NSEG; i++) {
+        if (!is_vowel(&SEG_TABLE[i])) continue;
+        double tt = SEG_TABLE[i].v[2];
+        double th = SEG_TABLE[i].v[3];
+        int col = 0;
+        for (int c = 0; c < 8; c++)
+            if (tt >= pos_steps[c]) col = c;
+        int row = (int)((1.0 - th) * 4.0 + 0.5);
+        if (row < 0) row = 0;
+        if (row > 4) row = 4;
+        wchar_t sym[8];
+        utf8_to_wide(SEG_TABLE[i].ipa, sym, 8);
+        kb_add(1, IDB_VOW + i, sym, vx0 + col * (vbw + vgap),
+               vy0 + row * (vbh + vgap), vbw, vbh);
+    }
+
+    /* group 2: modifiers */
+    x = x0; y = y0; n = 0;
+    for (i = 0; i < NMODS; i++) {
+        wchar_t sym[8];
+        utf8_to_wide(MODS[i].ipa, sym, 8);
+        kb_add(2, IDB_MOD + i, sym, x, y, bw, bh);
+        n++;
+        if (n % per_row == 0) { x = x0; y += bh + gap; } else x += bw + gap;
+    }
+
+    /* group 3: tones */
+    static const wchar_t *tone_syms[] = {
+        L"\u02E5", L"\u02E6", L"\u02E7", L"\u02E8", L"\u02E9",
+        L"\uA712", L"\uA713", L"\uA714", L"\uA715", L"\uA716",
+        L"\u2197", L"\u2198", L"\uA71B", L"\uA71C",
+        L"\u2070", L"\u00B9", L"\u00B2", L"\u00B3", L"\u2074",
+        L"\u2075", L"\u2076", L"\u2077", L"\u2078", L"\u2079",
+        L"\u203F", L" ",
+    };
+    static const int trow = 6;
+    x = x0; y = y0; n = 0;
+    for (i = 0; i < (int)(sizeof(tone_syms) / sizeof(tone_syms[0])); i++) {
+        kb_add(3, IDB_TONE + i, tone_syms[i], x, y, 36, 30);
+        n++;
+        if (n % trow == 0) { x = x0; y += 33; } else x += 39;
+    }
+
+    for (i = 1; i < KB_GROUPS; i++) {
+        for (int j = 0; j < g_kb_n[i]; j++)
+            ShowWindow(g_kb_btn[i][j], SW_HIDE);
+    }
+    (void)parent;
+}
+
+/* move the keyboard buttons into the tab display area (base = client
+ * coords of the display area top-left) */
+static void kb_layout(HWND hwnd, int bx, int by)
+{
+    for (int g = 0; g < KB_GROUPS; g++) {
+        for (int i = 0; i < g_kb_n[g]; i++) {
+            MoveWindow(g_kb_btn[g][i], bx + g_kb_x[g][i], by + g_kb_y[g][i],
+                       g_kb_w[g][i], g_kb_h[g][i], TRUE);
+        }
+    }
+}
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                            */
@@ -112,8 +249,11 @@ static void out_append(HWND out, const char *utf8)
     if (len && buf[len - 1] != L'\n')
         wcscat(buf, L"\r\n");
     int n = GetWindowTextLengthW(out);
+    /* ES_READONLY blocks EM_REPLACESEL; lift it temporarily */
+    SendMessageW(out, EM_SETREADONLY, FALSE, 0);
     SendMessageW(out, EM_SETSEL, n, n);
     SendMessageW(out, EM_REPLACESEL, FALSE, (LPARAM)buf);
+    SendMessageW(out, EM_SETREADONLY, TRUE, 0);
 }
 
 static void out_header(HWND out, const wchar_t *title)
@@ -262,111 +402,6 @@ static void set_width(int level)
     g_fit_min_gain = mingain[level];
 }
 
-/* ------------------------------------------------------------------ */
-/* keyboard construction                                              */
-/* ------------------------------------------------------------------ */
-
-/* add a keyboard button on pane; returns the button id */
-static int kb_add(HWND pane, int id, const wchar_t *sym, int x, int y, int w, int h)
-{
-    CreateWindowW(L"BUTTON", sym,
-        WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | WS_TABSTOP,
-        x, y, w, h, pane, (HMENU)(INT_PTR)id,
-        GetModuleHandleW(NULL), NULL);
-    SendMessageW(GetDlgItem(pane, id), WM_SETFONT, (WPARAM)g_font_btn, TRUE);
-    if (id >= IDB_BASE && id < IDB_MAX)
-        g_btn_sym[id - IDB_BASE] = sym;
-    return id;
-}
-
-static int is_vowel(const SegEntry *e)
-{
-    return e->airstream == 1; /* AIRSTREAM_VWL */
-}
-
-static void build_consonant_pane(HWND pane)
-{
-    /* pulmonic + other consonants from SEG_TABLE (skip vowels), then EXTRA */
-    static const int per_row = 8;
-    int x0 = 4, y0 = 4, bw = 34, bh = 28, gap = 3;
-    int x = x0, y = y0, n = 0;
-    for (int i = 0; i < NSEG; i++) {
-        if (is_vowel(&SEG_TABLE[i])) continue;
-        wchar_t sym[8];
-        utf8_to_wide(SEG_TABLE[i].ipa, sym, 8);
-        kb_add(pane, IDB_BASE + i, sym, x, y, bw, bh);
-        n++;
-        if (n % per_row == 0) { x = x0; y += bh + gap; } else x += bw + gap;
-    }
-    x = x0; y += bh + 6;
-    for (int i = 0; i < N_EXTRA; i++) {
-        wchar_t sym[8];
-        utf8_to_wide(EXTRA_BASE[i].ipa, sym, 8);
-        kb_add(pane, IDB_EXTRA + i, sym, x, y, bw, bh);
-        n++;
-        if (n % per_row == 0) { x = x0; y += bh + gap; } else x += bw + gap;
-    }
-}
-
-static void build_vowel_pane(HWND pane)
-{
-    /* vowel trapezium: rows = height (close..open), cols = position (front..back) */
-    static const double pos_steps[8] = {0.0, 0.14, 0.28, 0.42, 0.56, 0.70, 0.84, 1.0};
-    int x0 = 8, y0 = 6, bw = 36, bh = 30, gap = 4;
-    int placed = 0;
-    for (int i = 0; i < NSEG; i++) {
-        if (!is_vowel(&SEG_TABLE[i])) continue;
-        double tt = SEG_TABLE[i].v[2];   /* tt_pos: front..back */
-        double th = SEG_TABLE[i].v[3];   /* tt_height: high..low */
-        int col = 0;
-        for (int c = 0; c < 8; c++)
-            if (tt >= pos_steps[c]) col = c;
-        int row = (int)((1.0 - th) * 4.0 + 0.5);
-        if (row < 0) row = 0;
-        if (row > 4) row = 4;
-        int px = x0 + col * (bw + gap);
-        int py = y0 + row * (bh + gap);
-        wchar_t sym[8];
-        utf8_to_wide(SEG_TABLE[i].ipa, sym, 8);
-        kb_add(pane, IDB_BASE + i, sym, px, py, bw, bh);
-        placed++;
-    }
-    (void)placed;
-}
-
-static void build_modifier_pane(HWND pane)
-{
-    static const int per_row = 7;
-    int x0 = 4, y0 = 4, bw = 34, bh = 28, gap = 3;
-    int x = x0, y = y0, n = 0;
-    for (int i = 0; i < NMODS; i++) {
-        wchar_t sym[8];
-        utf8_to_wide(MODS[i].ipa, sym, 8);
-        kb_add(pane, IDB_MOD + i, sym, x, y, bw, bh);
-        n++;
-        if (n % per_row == 0) { x = x0; y += bh + gap; } else x += bw + gap;
-    }
-}
-
-static void build_tone_pane(HWND pane)
-{
-    /* tone letters, sandhi diacritics, arrows, digit superscripts, separators */
-    static const wchar_t *tone_syms[] = {
-        L"\u02E5", L"\u02E6", L"\u02E7", L"\u02E8", L"\u02E9",   /* ˥˦˧˨˩ */
-        L"\uA712", L"\uA713", L"\uA714", L"\uA715", L"\uA716",   /* ꜒꜓꜔꜕꜖ */
-        L"\u2197", L"\u2198", L"\uA71B", L"\uA71C",              /* ↗↘ꜛꜜ */
-        L"\u2070", L"\u00B9", L"\u00B2", L"\u00B3", L"\u2074",   /* ⁰¹²³⁴ */
-        L"\u2075", L"\u2076", L"\u2077", L"\u2078", L"\u2079",   /* ⁵⁶⁷⁸⁹ */
-        L"\u203F", L" ",                                        /* ‿ space */
-    };
-    static const int per_row = 6;
-    int x0 = 4, y0 = 4, bw = 36, bh = 30, gap = 3;
-    int x = x0, y = y0;
-    for (int i = 0; i < (int)(sizeof(tone_syms) / sizeof(tone_syms[0])); i++) {
-        kb_add(pane, IDB_TONE + i, tone_syms[i], x, y, bw, bh);
-        if ((i + 1) % per_row == 0) { x = x0; y += bh + gap; } else x += bw + gap;
-    }
-}
 
 /* ------------------------------------------------------------------ */
 /* command-line export (unchanged from previous build)                 */
@@ -578,6 +613,12 @@ static void show_export_dialog(HWND owner)
 /* main window                                                        */
 /* ------------------------------------------------------------------ */
 
+static BOOL CALLBACK invalidate_btn(HWND h, LPARAM l)
+{
+    InvalidateRect(h, NULL, TRUE);
+    return TRUE;
+}
+
 static void layout(HWND hwnd)
 {
     RECT cr;
@@ -596,20 +637,18 @@ static void layout(HWND hwnd)
     const int lw = left_w - 16;
 
     /* IPA input row */
-    CreateWindowW(L"STATIC", L"IPA input (click keyboard buttons or type):",
-        WS_CHILD | WS_VISIBLE, x, y, lw, 18, hwnd, NULL,
-        GetModuleHandleW(NULL), NULL);
+    SetWindowPos(GetDlgItem(hwnd, IDC_LBL_IPA), NULL, x, y, lw, 18,
+                 SWP_NOZORDER);
     y += 20;
-    HWND ipa = GetDlgItem(hwnd, IDC_IPA_IN);
-    SetWindowPos(ipa, NULL, x, y, lw - 84, 24, SWP_NOZORDER);
+    SetWindowPos(GetDlgItem(hwnd, IDC_IPA_IN), NULL, x, y, lw - 84, 24,
+                 SWP_NOZORDER);
     SetWindowPos(GetDlgItem(hwnd, IDC_BTN_FWD), NULL, x + lw - 76, y, 76, 24,
                  SWP_NOZORDER);
     y += 34;
 
     /* vector input row */
-    CreateWindowW(L"STATIC", L"16-D vector (comma separated) -> reverse fit:",
-        WS_CHILD | WS_VISIBLE, x, y, lw, 18, hwnd, NULL,
-        GetModuleHandleW(NULL), NULL);
+    SetWindowPos(GetDlgItem(hwnd, IDC_LBL_VEC), NULL, x, y, lw, 18,
+                 SWP_NOZORDER);
     y += 20;
     SetWindowPos(GetDlgItem(hwnd, IDC_VEC_IN), NULL, x, y, lw - 152, 24,
                  SWP_NOZORDER);
@@ -620,9 +659,8 @@ static void layout(HWND hwnd)
     y += 34;
 
     /* query row */
-    CreateWindowW(L"STATIC", L"Query one symbol:",
-        WS_CHILD | WS_VISIBLE, x, y, lw, 18, hwnd, NULL,
-        GetModuleHandleW(NULL), NULL);
+    SetWindowPos(GetDlgItem(hwnd, IDC_LBL_Q), NULL, x, y, lw, 18,
+                 SWP_NOZORDER);
     y += 20;
     SetWindowPos(GetDlgItem(hwnd, IDC_Q_IN), NULL, x, y, lw - 84, 24,
                  SWP_NOZORDER);
@@ -631,8 +669,8 @@ static void layout(HWND hwnd)
     y += 36;
 
     /* output */
-    CreateWindowW(L"STATIC", L"Output:", WS_CHILD | WS_VISIBLE, x, y, lw, 18,
-                  hwnd, NULL, GetModuleHandleW(NULL), NULL);
+    SetWindowPos(GetDlgItem(hwnd, IDC_LBL_OUT), NULL, x, y, lw, 18,
+                 SWP_NOZORDER);
     y += 20;
     SetWindowPos(GetDlgItem(hwnd, IDC_OUT), NULL, x, y, lw, usable - y - 8,
                  SWP_NOZORDER);
@@ -642,20 +680,11 @@ static void layout(HWND hwnd)
     int kw = w - kx - 8;
     SetWindowPos(GetDlgItem(hwnd, IDC_TABS), NULL, kx, 8, kw, usable - 16,
                  SWP_NOZORDER);
-    RECT tr;
-    GetWindowRect(GetDlgItem(hwnd, IDC_TABS), &tr);
-    /* tab control display area (approx: adjust by tab header height) */
     RECT tcr;
     TabCtrl_GetItemRect(GetDlgItem(hwnd, IDC_TABS), 0, &tcr);
     int header = tcr.bottom - tcr.top + 4;
     int px = kx + 4, py = 8 + header + 4;
-    int pw = kw - 16, ph = usable - 16 - header - 12;
-    HWND panes[4] = {
-        GetDlgItem(hwnd, IDC_PANE_CONS), GetDlgItem(hwnd, IDC_PANE_VOW),
-        GetDlgItem(hwnd, IDC_PANE_MOD), GetDlgItem(hwnd, IDC_PANE_TONE),
-    };
-    for (int i = 0; i < 4; i++)
-        SetWindowPos(panes[i], NULL, px, py, pw, ph, SWP_NOZORDER);
+    kb_layout(hwnd, px, py);
 }
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
@@ -663,6 +692,17 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     switch (msg) {
     case WM_CREATE: {
         HWND ed;
+        const wchar_t *labels[4] = {
+            L"IPA input (click keyboard buttons or type):",
+            L"16-D vector (comma separated) -> reverse fit:",
+            L"Query one symbol:", L"Output:",
+        };
+        int label_ids[4] = { IDC_LBL_IPA, IDC_LBL_VEC, IDC_LBL_Q, IDC_LBL_OUT };
+        for (int i = 0; i < 4; i++) {
+            CreateWindowW(L"STATIC", labels[i],
+                WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, hwnd,
+                (HMENU)(INT_PTR)label_ids[i], GetModuleHandleW(NULL), NULL);
+        }
 
         ed = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"",
             WS_CHILD | WS_VISIBLE | WS_TABSTOP,
@@ -735,18 +775,16 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         HWND pv[4];
         for (int i = 0; i < 4; i++) {
             pv[i] = CreateWindowW(L"STATIC", L"",
-                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
+                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
                 0, 0, 0, 0, hwnd, (HMENU)(INT_PTR)ids[i],
                 GetModuleHandleW(NULL), NULL);
             (void)panes;
         }
-        build_consonant_pane(pv[0]);
-        build_vowel_pane(pv[1]);
-        build_modifier_pane(pv[2]);
-        build_tone_pane(pv[3]);
         ShowWindow(pv[1], SW_HIDE);
         ShowWindow(pv[2], SW_HIDE);
         ShowWindow(pv[3], SW_HIDE);
+
+        kb_build_all(hwnd);
 
         /* status bar */
         g_hStatus = CreateWindowExW(0, STATUSCLASSNAMEW, L"",
@@ -764,11 +802,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             NMHDR *nm = (NMHDR *)lp;
             if (nm->code == TCN_SELCHANGE) {
                 int sel = TabCtrl_GetCurSel(GetDlgItem(hwnd, IDC_TABS));
-                int ids[4] = { IDC_PANE_CONS, IDC_PANE_VOW,
-                               IDC_PANE_MOD, IDC_PANE_TONE };
-                for (int i = 0; i < 4; i++)
-                    ShowWindow(GetDlgItem(hwnd, ids[i]),
-                               i == sel ? SW_SHOW : SW_HIDE);
+                if (sel != g_kb_sel) {
+                    for (int i = 0; i < g_kb_n[g_kb_sel]; i++)
+                        ShowWindow(g_kb_btn[g_kb_sel][i], SW_HIDE);
+                    g_kb_sel = sel;
+                    for (int i = 0; i < g_kb_n[g_kb_sel]; i++)
+                        ShowWindow(g_kb_btn[g_kb_sel][i], SW_SHOW);
+                }
             }
         }
         break;
