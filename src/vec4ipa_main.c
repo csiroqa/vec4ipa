@@ -253,6 +253,7 @@ int main(int argc, char **argv)
         const char *val = NULL;
         if (!no_more_opts && strcmp(argv[i], "--") == 0) { no_more_opts = 1; continue; }
         if (opt_match(argv[i], "-h", "--help")) { usage(); return 0; }
+        if (opt_school(argv[i])) continue;
         if (opt_match(argv[i], "-i", "--information")) { printf("%s", EMBEDDED_README); return 0; }
         if (opt_match(argv[i], "-v", "--version")) {
             printf("vec4ipa %s (%d base segments + %d extIPA bases, %d modifiers)\n",

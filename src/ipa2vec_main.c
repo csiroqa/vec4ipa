@@ -56,6 +56,7 @@ int main(int argc, char **argv)
         const char *val = NULL;
         if (!no_more_opts && strcmp(argv[i], "--") == 0) { no_more_opts = 1; continue; }
         if (opt_match(argv[i], "-h", "--help")) { usage(); return 0; }
+        if (opt_school(argv[i])) continue;
         if (opt_match(argv[i], "-v", "--version")) {
             printf("ipa2vec %s (16-D vectors, %d base segments, lambda=%.2f)\n",
                    IPA2VEC_VERSION, NSEG, METRIC_LAMBDA);

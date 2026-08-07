@@ -207,7 +207,21 @@ the preceding segment.
 ## Regional / tradition modules
 
 Deprecated and regional symbols are organised into **modules** in
-`src/ipa2vec_core.h` (all active; the registry `ALIAS_MODULES` lists them):
+`src/ipa2vec_core.h` (the registry `ALIAS_MODULES` lists them).
+School-of-linguistics modules (`americanist`, `sinologist`, `indologist`,
+`polish`, `teuthonista`, `koreanologist`, `japanologist`, `africanist`,
+`oed`) resolve their symbols by default but print a warning listing
+**every** school that contains the symbol:
+
+```
+ipa2vec: warning: using symbol 'ł' from americanist, polish — enable with --americanist --polish
+```
+
+Pass `--<name>` (e.g. `--polish`) to use that school's readings without
+a warning. When a symbol exists in several enabled schools, the
+**command-line order** decides: `--polish --americanist ł` gives Polish
+[w], `--americanist --polish ł` gives Americanist [ɬ]. `generic`,
+`withdrawn`, `equiv` and `uppercase` are always on and never warn.
 
 | module | symbols |
 | ------ | ------- |
@@ -216,7 +230,7 @@ Deprecated and regional symbols are organised into **modules** in
 | `americanist` | š č ž ǰ ǧ ǯ ẋ ƛ ł λ |
 | `sinologist` | ɿ ʅ ʮ ʯ ᴀ ȡ ȶ ȵ ȴ |
 | `indologist` | ḍ ṭ ṇ ṛ ḷ ṣ ś ṃ ṅ ñ ḥ ḫ ẓ ẖ ḏ ṯ ġ ḡ ḻ ṟ ṁ |
-| `polish` | ź ć ż |
+| `polish` | ź ć ż, plus Polish values for č š ž ł (conflict with Americanist) |
 | `teuthonista` | ƀ đ ǥ ǩ ȟ ǵ |
 | `koreanologist` | Ǝ→ɤ, `K P T` fortis |
 | `japanologist` | `Q` sokuon, `N` syllabic nasal |

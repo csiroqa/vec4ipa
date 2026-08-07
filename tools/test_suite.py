@@ -136,7 +136,23 @@ for s, name in [("\u0161", "americanist \u0161"), ("\u010d", "americanist \u010d
     check(f"regional {name}", [s], expect_rc=want_rc)
 
 # ------------------------------------------------------------------
-# 5. No extrapolated uppercase
+# 5. School-of-linguistics modules: --<name> enables without warning;
+#    priority follows command-line order; warning lists all schools
+# ------------------------------------------------------------------
+check("school default warns", ["\u0161"],
+      expect_warn="warning: using symbol '\u0161' from americanist")
+check("school --americanist silent", ["--americanist", "\u0161"], expect_rc=0)
+check("school warn lists all schools", ["\u0142"],
+      expect_warn="from americanist, polish")
+check("school flag order polish first", ["--polish", "--americanist", "\u0142"],
+      expect_note="'ł' -> w")
+check("school flag order americanist first", ["--americanist", "--polish", "\u0142"],
+      expect_note="'ł' -> ɬ")
+check("school polish č", ["--polish", "\u010d"],
+      expect_note="'č' -> t͡ʂ")
+
+# ------------------------------------------------------------------
+# 6. No extrapolated uppercase
 # ------------------------------------------------------------------
 for s in ["B", "I", "L", "A", "E", "U", "W", "V"]:
     check(f"no-extrapolate uppercase {s}", [s], expect_rc=1)

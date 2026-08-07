@@ -1027,6 +1027,12 @@ static const Alias ALIAS_POLISH[] = {
     { "\xC5\xBA", "\xCA\x91", "alveolo-palatal fricative (z-acute)", 0, 0   },         /* ź -> ʑ */
     { "\xC4\x87", "t\xCD\xA1\xC9\x95", "alveolo-palatal affricate (c-acute)", 0, 0   }, /* ć -> t͡ɕ */
     { "\xC5\xBC", "\xCA\x90", "retroflex fricative (z-dot-above)", 0, 0   },           /* ż -> ʐ */
+    /* Polish orthography (conflicts with Americanist values; enable
+     * --polish to prefer the Polish readings) */
+    { "\xC4\x8D", "t\xCD\xA1\xCA\x82", "voiceless retroflex affricate (c-caron, Polish)", 0, 0   }, /* č -> ʈ͡ʂ */
+    { "\xC5\xA1", "\xCA\x82", "voiceless retroflex fricative (s-caron, Polish)", 0, 0   },         /* š -> ʂ */
+    { "\xC5\xBE", "\xCA\x90", "voiced retroflex fricative (z-caron, Polish)", 0, 0   },            /* ž -> ʐ */
+    { "\xC5\x82", "w", "labial-velar approximant (l-stroke, Polish)", 0, 0   },                   /* ł -> w */
 };
 
 /* --- module: Teuthonista / UPA (German dialectology, Uralic) --- */
@@ -1075,24 +1081,110 @@ static const Alias ALIAS_OED[] = {
 };
 
 /* module registry */
-typedef struct { const Alias *tab; int n; const char *name; } AliasModule;
+typedef struct { const Alias *tab; int n; const char *name; int school; } AliasModule;
+/* school: 1 = school-of-linguistics symbols (Americanist, Sinologist, …):
+ * resolved by default with a warning; pass --<name> to enable without
+ * warning. 0 = generic/withdrawn/equiv/uppercase (always on). */
 
 static const AliasModule ALIAS_MODULES[] = {
-    { ALIAS_GENERIC,     (int)(sizeof(ALIAS_GENERIC)     / sizeof(Alias)), "generic" },
-    { ALIAS_EQUIV,       (int)(sizeof(ALIAS_EQUIV)       / sizeof(Alias)), "equiv" },
-    { ALIAS_WITHDRAWN,   (int)(sizeof(ALIAS_WITHDRAWN)   / sizeof(Alias)), "withdrawn" },
-    { ALIAS_AMERICANIST, (int)(sizeof(ALIAS_AMERICANIST) / sizeof(Alias)), "americanist" },
-    { ALIAS_SINOLOGIST,  (int)(sizeof(ALIAS_SINOLOGIST)  / sizeof(Alias)), "sinologist" },
-    { ALIAS_INDOLOGIST,  (int)(sizeof(ALIAS_INDOLOGIST)  / sizeof(Alias)), "indologist" },
-    { ALIAS_POLISH,      (int)(sizeof(ALIAS_POLISH)      / sizeof(Alias)), "polish" },
-    { ALIAS_TEUTHONISTA, (int)(sizeof(ALIAS_TEUTHONISTA) / sizeof(Alias)), "teuthonista" },
-    { ALIAS_KOREANOLOGIST,(int)(sizeof(ALIAS_KOREANOLOGIST)/sizeof(Alias)), "koreanologist" },
-    { ALIAS_JAPANOLOGIST,(int)(sizeof(ALIAS_JAPANOLOGIST)/sizeof(Alias)), "japanologist" },
-    { ALIAS_AFRICANIST,  (int)(sizeof(ALIAS_AFRICANIST)  / sizeof(Alias)), "africanist" },
-    { ALIAS_OED,         (int)(sizeof(ALIAS_OED)         / sizeof(Alias)), "oed" },
-    { ALIAS_UPPERCASE,   (int)(sizeof(ALIAS_UPPERCASE)   / sizeof(Alias)), "uppercase" },
+    { ALIAS_GENERIC,     (int)(sizeof(ALIAS_GENERIC)     / sizeof(Alias)), "generic",     0 },
+    { ALIAS_EQUIV,       (int)(sizeof(ALIAS_EQUIV)       / sizeof(Alias)), "equiv",       0 },
+    { ALIAS_WITHDRAWN,   (int)(sizeof(ALIAS_WITHDRAWN)   / sizeof(Alias)), "withdrawn",   0 },
+    { ALIAS_AMERICANIST, (int)(sizeof(ALIAS_AMERICANIST) / sizeof(Alias)), "americanist", 1 },
+    { ALIAS_SINOLOGIST,  (int)(sizeof(ALIAS_SINOLOGIST)  / sizeof(Alias)), "sinologist",  1 },
+    { ALIAS_INDOLOGIST,  (int)(sizeof(ALIAS_INDOLOGIST)  / sizeof(Alias)), "indologist",  1 },
+    { ALIAS_POLISH,      (int)(sizeof(ALIAS_POLISH)      / sizeof(Alias)), "polish",      1 },
+    { ALIAS_TEUTHONISTA, (int)(sizeof(ALIAS_TEUTHONISTA) / sizeof(Alias)), "teuthonista", 1 },
+    { ALIAS_KOREANOLOGIST,(int)(sizeof(ALIAS_KOREANOLOGIST)/sizeof(Alias)), "koreanologist", 1 },
+    { ALIAS_JAPANOLOGIST,(int)(sizeof(ALIAS_JAPANOLOGIST)/sizeof(Alias)), "japanologist", 1 },
+    { ALIAS_AFRICANIST,  (int)(sizeof(ALIAS_AFRICANIST)  / sizeof(Alias)), "africanist",  1 },
+    { ALIAS_OED,         (int)(sizeof(ALIAS_OED)         / sizeof(Alias)), "oed",         1 },
+    { ALIAS_UPPERCASE,   (int)(sizeof(ALIAS_UPPERCASE)   / sizeof(Alias)), "uppercase",   0 },
 };
 #define N_ALIAS_MODULES ((int)(sizeof(ALIAS_MODULES) / sizeof(ALIAS_MODULES[0])))
+
+/* per-module enable flags: 0 = off (school symbols warn), >0 = enable
+ * order (earlier --<name> wins when a symbol appears in several) */
+static int g_alias_on[N_ALIAS_MODULES];
+static int g_alias_pri_max = 0;
+/* warned-once bookkeeping: warn per symbol, not per occurrence */
+static const char *g_alias_warned[256];
+static int g_alias_n_warned = 0;
+
+static IPA2VEC_MAYBE_UNUSED void enable_alias_module(const char *name)
+{
+    for (int m = 0; m < N_ALIAS_MODULES; m++)
+        if (strcmp(ALIAS_MODULES[m].name, name) == 0 && g_alias_on[m] == 0)
+            g_alias_on[m] = ++g_alias_pri_max;
+}
+
+/* match one module's entries; returns the alias or NULL */
+static IPA2VEC_MAYBE_UNUSED const Alias *match_module_alias(int m,
+                                                            const char *s,
+                                                            int has_mods)
+{
+    for (int i = 0; i < ALIAS_MODULES[m].n; i++) {
+        const Alias *a = &ALIAS_MODULES[m].tab[i];
+        if (a->repl == NULL) continue;
+        size_t L = strlen(a->sym);
+        if (strncmp(s, a->sym, L) == 0) {
+            if (a->need_mods == 1 && !has_mods) continue;
+            if (a->need_mods == -1 && has_mods) continue;
+            return a;
+        }
+    }
+    return NULL;
+}
+
+/* one-line warning listing every disabled school that contains the
+ * symbol, e.g. "using symbol 'ł' from americanist, polish — enable
+ * with --americanist --polish". Warned once per symbol. */
+static IPA2VEC_MAYBE_UNUSED void warn_school_symbol(const char *sym)
+{
+    for (int w = 0; w < g_alias_n_warned; w++)
+        if (g_alias_warned[w] == sym) return;
+    if (g_alias_n_warned >= 256) return;
+    char mods[256] = "";
+    char flags[256] = "";
+    int first = 1, n = 0;
+    for (int m = 0; m < N_ALIAS_MODULES; m++) {
+        if (!ALIAS_MODULES[m].school || g_alias_on[m] != 0) continue;
+        const Alias *a = match_module_alias(m, sym, 0);
+        if (!a || strcmp(a->sym, sym) != 0) continue;
+        if (!first) { strncat(mods, ", ", sizeof(mods) - strlen(mods) - 1); }
+        strncat(mods, ALIAS_MODULES[m].name, sizeof(mods) - strlen(mods) - 1);
+        strncat(flags, " --", sizeof(flags) - strlen(flags) - 1);
+        strncat(flags, ALIAS_MODULES[m].name, sizeof(flags) - strlen(flags) - 1);
+        first = 0; n++;
+    }
+    if (n == 0) return;
+    g_alias_warned[g_alias_n_warned++] = sym;
+    fprintf(stderr,
+            "ipa2vec: warning: using symbol '%s' from %s — enable with%s\n",
+            sym, mods, flags);
+}
+
+static const Alias *lookup_alias(const char *s, int has_mods)
+{
+    /* pass 1: enabled modules, in enable order */
+    for (int pri = 1; pri <= g_alias_pri_max; pri++)
+        for (int m = 0; m < N_ALIAS_MODULES; m++)
+            if (g_alias_on[m] == pri) {
+                const Alias *a = match_module_alias(m, s, has_mods);
+                if (a) return a;
+            }
+    /* pass 2: disabled modules, table order (school ones warn) */
+    for (int m = 0; m < N_ALIAS_MODULES; m++) {
+        if (g_alias_on[m] != 0) continue;
+        const Alias *a = match_module_alias(m, s, has_mods);
+        if (a) {
+            if (ALIAS_MODULES[m].school)
+                warn_school_symbol(a->sym);
+            return a;
+        }
+    }
+    return NULL;
+}
 
 /* ------------------------------------------------------------------ */
 /* Implicit (no-tie) affricates: two adjacent letters that form an     */
@@ -1119,23 +1211,6 @@ static const Nolig NOLIG[] = {
     { "\u025F", "\u029D", NULL },     /* ɟʝ (synthesize) */
 };
 #define NNOLIG ((int)(sizeof(NOLIG) / sizeof(NOLIG[0])))
-
-static const Alias *lookup_alias(const char *s, int has_mods)
-{
-    for (int m = 0; m < N_ALIAS_MODULES; m++) {
-        for (int i = 0; i < ALIAS_MODULES[m].n; i++) {
-            const Alias *a = &ALIAS_MODULES[m].tab[i];
-            if (a->repl == NULL) continue;
-            size_t L = strlen(a->sym);
-            if (strncmp(s, a->sym, L) == 0) {
-                if (a->need_mods == 1 && !has_mods) continue;
-                if (a->need_mods == -1 && has_mods) continue;
-                return a;
-            }
-        }
-    }
-    return NULL;
-}
 
 /* ------------------------------------------------------------------ */
 /* ExtIPA base segments not covered by IPA_VECTORS.md                  */
@@ -2105,6 +2180,20 @@ static IPA2VEC_MAYBE_UNUSED int opt_match(const char *arg,
 {
     if (short_opt && strcmp(arg, short_opt) == 0) return 1;
     if (long_opt && strcmp(arg, long_opt) == 0) return 1;
+    return 0;
+}
+
+/* school-of-linguistics enable flags: --americanist, --sinologist, … */
+static IPA2VEC_MAYBE_UNUSED int opt_school(const char *arg)
+{
+    if (arg[0] != '-' || arg[1] != '-') return 0;
+    for (int m = 0; m < N_ALIAS_MODULES; m++) {
+        if (!ALIAS_MODULES[m].school) continue;
+        if (strcmp(arg + 2, ALIAS_MODULES[m].name) == 0) {
+            enable_alias_module(ALIAS_MODULES[m].name);
+            return 1;
+        }
+    }
     return 0;
 }
 
