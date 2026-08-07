@@ -1,1 +1,9 @@
+#define IDI_APP           101
+#define IDR_TOOL_IPA2VEC  201
+#define IDR_TOOL_VEC2IPA  202
+#define IDR_TOOL_VEC4IPA  203
+
 IDI_APP ICON "vec_ipa.ico"
+IDR_TOOL_IPA2VEC RCDATA "..\\ipa2vec.exe"
+IDR_TOOL_VEC2IPA RCDATA "..\\vec2ipa.exe"
+IDR_TOOL_VEC4IPA RCDATA "..\\vec4ipa.exe"

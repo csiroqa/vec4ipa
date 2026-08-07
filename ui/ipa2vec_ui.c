@@ -22,6 +22,7 @@
 #include <commctrl.h>
 #include <commdlg.h>
 #include <shlwapi.h>
+#include <shlobj.h>
 #include <stdio.h>
 
 #define APP_NAME      L"IPA2Vector Workbench"
@@ -36,7 +37,12 @@
 #define ID_FILE_EXPORT 4001
 #define ID_FILE_EXIT   4002
 #define ID_HELP_ABOUT  4003
+#define ID_FILE_EXPORT_TOOLS 4004
 #define IDI_APP        101
+
+#define IDR_TOOL_IPA2VEC 201
+#define IDR_TOOL_VEC2IPA 202
+#define IDR_TOOL_VEC4IPA 203
 
 static HWND g_hwnd = NULL;
 static HWND g_hStatus = NULL;
@@ -57,14 +63,14 @@ static void build_export_text(wchar_t *buf, size_t cap)
         L"# working directory: %s\r\n"
         L"\r\n"
         L":: ipa2vec  - IPA -> 16-D vectors (with IR + rebuilt demo)\r\n"
-        L"ipa2vec.exe --width 3 -i \"\\\"\\u02c8t\\u02b0a\\\"\"\r\n"
+        L"\"D:\\2-OGP\\IPA2Vector\\ipa2vec.exe\" --width 3 -i \"\\\"\\u02c8t\\u02b0a\\\"\"\r\n"
         L"\r\n"
         L":: vec2ipa  - 16-D vector -> IPA (reverse fit)\r\n"
-        L"vec2ipa.exe --width 3 \"0.0,0.0,0.55,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,0.0,0.0,0.0,0.0,1.0\"\r\n"
+        L"\"D:\\2-OGP\\IPA2Vector\\vec2ipa.exe\" --width 3 \"0.0,0.0,0.55,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,0.0,0.0,0.0,0.0,1.0\"\r\n"
         L"\r\n"
         L":: vec4ipa - inventory / query / reverse\r\n"
-        L"vec4ipa.exe -q \u02b0\r\n"
-        L"vec4ipa.exe --width 3 -r \"0.0,0.0,0.55,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,0.0,0.0,0.0,0.0,1.0\"\r\n",
+        L"\"D:\\2-OGP\\IPA2Vector\\vec4ipa.exe\" -q \u02b0\r\n"
+        L"\"D:\\2-OGP\\IPA2Vector\\vec4ipa.exe\" --width 3 -r \"0.0,0.0,0.55,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,0.0,0.0,0.0,0.0,1.0\"\r\n",
         APP_VERSION, dir);
 }
 
@@ -106,6 +112,66 @@ static void save_bat_dialog(HWND owner, const wchar_t *text)
     fwprintf(f, L"%s\r\n", text);
     fclose(f);
     MessageBoxW(owner, path, L"Saved", MB_ICONINFORMATION);
+}
+
+/* Write one embedded tool resource (RT_RCDATA) into dir as fname.
+ * Returns 1 ok, 0 write error, -1 resource missing. */
+static int export_embedded_tool(HINSTANCE hInst, const wchar_t *dir,
+                                int resid, const wchar_t *fname)
+{
+    HRSRC hr = FindResourceW(hInst, MAKEINTRESOURCEW(resid), RT_RCDATA);
+    if (!hr) return -1;
+    HGLOBAL hg = LoadResource(hInst, hr);
+    if (!hg) return -1;
+    void *p = LockResource(hg);
+    DWORD sz = SizeofResource(hInst, hr);
+    if (!p || sz == 0) return -1;
+
+    wchar_t path[MAX_PATH];
+    swprintf(path, MAX_PATH, L"%s\\%s", dir, fname);
+    HANDLE f = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
+                           FILE_ATTRIBUTE_NORMAL, NULL);
+    if (f == INVALID_HANDLE_VALUE) return 0;
+    DWORD written = 0;
+    BOOL ok = WriteFile(f, p, sz, &written, NULL);
+    CloseHandle(f);
+    return (ok && written == sz) ? 1 : 0;
+}
+
+static void export_tools_dialog(HWND owner)
+{
+    HINSTANCE hInst = GetModuleHandleW(NULL);
+    wchar_t dir[MAX_PATH];
+    BROWSEINFOW bi;
+    ZeroMemory(&bi, sizeof(bi));
+    bi.hwndOwner = owner;
+    bi.lpszTitle = L"Choose a folder to export the CLI tools into";
+    bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+    PIDLIST_ABSOLUTE pidl = SHBrowseForFolderW(&bi);
+    if (!pidl) return;
+    if (!SHGetPathFromIDListW(pidl, dir)) { CoTaskMemFree(pidl); return; }
+    CoTaskMemFree(pidl);
+
+    struct { int id; const wchar_t *name; } tools[] = {
+        { IDR_TOOL_IPA2VEC, L"ipa2vec.exe" },
+        { IDR_TOOL_VEC2IPA, L"vec2ipa.exe" },
+        { IDR_TOOL_VEC4IPA, L"vec4ipa.exe" },
+    };
+    int ok = 0, fail = 0, missing = 0;
+    for (int i = 0; i < 3; i++) {
+        int r = export_embedded_tool(hInst, dir, tools[i].id, tools[i].name);
+        if (r == 1) ok++;
+        else if (r == 0) fail++;
+        else missing++;
+    }
+    wchar_t msg[640];
+    swprintf(msg, 640,
+        L"Exported %d of 3 tools to:\r\n%s\r\n\r\n%s",
+        ok, dir,
+        fail ? L"Some files could not be written."
+             : missing ? L"Some tools are not embedded in this build."
+                       : L"All three CLI tools are ready to use.");
+    MessageBoxW(owner, msg, L"Export tools", MB_ICONINFORMATION);
 }
 
 /* export dialog — a simple popup window with an edit + buttons */
@@ -218,6 +284,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             L"\r\n"
             L"File > Export command lines...  shows / saves the three\r\n"
             L"CLI invocations for the current configuration.\r\n"
+            L"File > Export tools...  writes the three CLI executables\r\n"
+            L"(embedded in this build) into a folder of your choice.\r\n"
             L"\r\n"
             L"(Tool integration follows in a later build.)\r\n");
         /* status bar */
@@ -242,6 +310,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         switch (LOWORD(wp)) {
         case ID_FILE_EXPORT:
             show_export_dialog(hwnd);
+            break;
+        case ID_FILE_EXPORT_TOOLS:
+            export_tools_dialog(hwnd);
             break;
         case ID_FILE_EXIT:
             DestroyWindow(hwnd);
@@ -269,6 +340,8 @@ static void init_menu(HWND hwnd)
     HMENU bar = CreateMenu();
     HMENU file = CreatePopupMenu();
     AppendMenuW(file, MF_STRING, ID_FILE_EXPORT, L"&Export command lines...");
+    AppendMenuW(file, MF_STRING, ID_FILE_EXPORT_TOOLS,
+                L"Export &tools (ipa2vec/vec2ipa/vec4ipa)...");
     AppendMenuW(file, MF_SEPARATOR, 0, NULL);
     AppendMenuW(file, MF_STRING, ID_FILE_EXIT, L"E&xit");
     AppendMenuW(bar, MF_POPUP, (UINT_PTR)file, L"&File");
