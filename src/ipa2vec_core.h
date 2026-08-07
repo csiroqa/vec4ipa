@@ -1225,6 +1225,8 @@ static const Nolig NOLIG[] = {
     { "d", "\u0292", "\x64\xCD\xA1\xCA\x92" }, /* dʒ -> d͡ʒ */
     { "t", "\u0255", "\x74\xCD\xA1\xC9\x95" }, /* tɕ -> t͡ɕ */
     { "d", "\u0291", "\x64\xCD\xA1\xCA\x91" }, /* dʑ -> d͡ʑ */
+    { "\u0236", "\u0255", "\x74\xCD\xA1\xC9\x95" }, /* ȶɕ -> t͡ɕ (curl notation) */
+    { "\u0221", "\u0291", "\x64\xCD\xA1\xCA\x91" }, /* ȡʑ -> d͡ʑ */
     { "\u0288", "\u0282", "\xCA\x88\xCD\xA1\xCA\x82" }, /* ʈʂ -> ʈ͡ʂ */
     { "\u0256", "\u0290", "\xC9\x96\xCD\xA1\xCA\x90" }, /* ɖʐ -> ɖ͡ʐ */
     { "t", "\u0282", "\xCA\x88\xCD\xA1\xCA\x82" },      /* tʂ -> ʈ͡ʂ (t-notation for retroflex affricate) */
