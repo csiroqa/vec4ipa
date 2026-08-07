@@ -219,9 +219,9 @@ typedef struct {
 
 /* --- apply functions (sequential, order matters) --- */
 static const SegEntry EXTRA_BASE[] = {
-    /* ᴇ U+1D07: unrounded mid central vowel (extIPA) ≈ ɘ */
-    { "\xe1\xb4\x87", { 0.0, 0.0, 0.55, 0.25, 0.0, -0.1, 0.0, 0.0,
-                         1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0 }, 0 },
+    /* ᴇ U+1D07: small-cap E = lowered e [e̞] (front mid unrounded) */
+    { "\xe1\xb4\x87", { 0.0, 0.0, 0.55, 0.1, 1.0, -0.2, 0.0, 0.0,
+                        1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0 }, 0 },
     /* ɚ U+025A: rhotacised schwa */
     { "\xc9\x9a", { 0.0, 0.0, 0.55, 0.45, 0.0, 0.0, 0.0, 0.0,
                     1.0, 0.2, 0.0, 0.3, 1.0, 0.0, 0.65, 1.0 }, 0 },
@@ -241,14 +241,8 @@ static const SegEntry EXTRA_BASE[] = {
     /* ʩ U+02A9: velopharyngeal fricative (extIPA) */
     { "\xca\xa9", { 0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 0.5, 0.0,
                     0.0, 0.0, 0.4, 0.0, 0.6, 0.0, 0.09, 1.0 }, 0 },
-    /* ʪ U+02AA: voiceless velar lateral fricative (extIPA) */
-    { "\xca\xaa", { 0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 0.0, 1.0,
-                    0.0, 0.0, 0.4, 0.0, 0.9, 0.5, 0.08, 1.0 }, 0 },
-    /* ʫ U+02AB: voiced velar lateral fricative (extIPA) */
-    { "\xca\xab", { 0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 0.0, 1.0,
-                    1.0, 0.2, 0.0, 0.0, 0.8, 0.45, 0.08, 1.0 }, 0 },
-    /* ꞎ U+A7AE: voiceless retroflex lateral fricative (IPA 2018) */
-    { "\xea\x9e\xae", { 0.0, 0.0, 0.1, 0.8, 0.0, 0.0, 0.0, 1.0,
+    /* ꞎ U+A78E: voiceless retroflex lateral fricative (IPA 2018) */
+    { "\xea\x9e\x8e", { 0.0, 0.0, 0.1, 0.8, 0.0, 0.0, 0.0, 1.0,
                         0.0, 0.0, 0.4, 0.0, 0.9, 0.5, 0.08, 1.0 }, 0 },
     /* ᶑ U+1D91: retroflex implosive (IPA 2018) */
     { "\xe1\xb6\x91", { 0.0, 0.0, 0.1, 0.9, 0.0, 0.0, 0.0, 0.0,
@@ -258,15 +252,13 @@ static const SegEntry EXTRA_BASE[] = {
 
 /* latin feature names for EXTRA_BASE (parallel array) */
 static const char *EXTRA_NAMES[N_EXTRA] = {
-    "cent.mid.unr.vwl",   /* ᴇ ≈ ɘ */
+    "fr.mid.unr.vwl",     /* ᴇ = e̞ */
     "cent.mid.rnd.vwl",   /* ɚ rhotacised schwa */
     "cent.omid.rnd.vwl",  /* ɞ */
     "cent.omid.rhot.vwl", /* ɝ */
     "bil.percussive",     /* ʬ */
     "bidental.percussive",/* ʭ */
     "velophar.frc",       /* ʩ */
-    "vel.lat.frc",        /* ʪ */
-    "vel.lat.frc.vd",     /* ʫ */
     "rfl.lat.frc",        /* ꞎ */
     "rfl.imp",            /* ᶑ */
 };
@@ -395,7 +387,16 @@ static IPA2VEC_MAYBE_UNUSED void apply_voicing_mod(double v[NDIM],
         m->apply(v, NULL);
 }
 static IPA2VEC_MAYBE_UNUSED void mod_nasal_click (double v[NDIM], const void *m){ (void)m; v[6] = 1.0; v[8] = 1.0; v[9] = 0.2; v[10] = 0.0; v[12] = 1.0; }
-static IPA2VEC_MAYBE_UNUSED void mod_dental (double v[NDIM], const void *m) { (void)m; v[2] = 1.0; if (v[3] < 0.5) v[3] = 0.5; }
+/* dental (U+032A): on labials this is the labiodental plosive/nasal
+ * (b̪ = vd labiodental plosive, p̪ = vl, m̪ = labiodental nasal — IPA
+ * writes labiodental stops as p̪ b̪); on lingual segments it dentalises
+ * the tip (t̪ d̪ n̪ …). */
+static IPA2VEC_MAYBE_UNUSED void mod_dental (double v[NDIM], const void *m) {
+    (void)m;
+    if (v[0] > 0.5)          /* bilabial -> labiodental */
+        v[0] = 0.9;
+    else { v[2] = 1.0; if (v[3] < 0.5) v[3] = 0.5; }
+}
 static IPA2VEC_MAYBE_UNUSED void mod_raised (double v[NDIM], const void *m) { (void)m; v[3] += 0.15; }
 static IPA2VEC_MAYBE_UNUSED void mod_lowered (double v[NDIM], const void *m) { (void)m; v[3] -= 0.15; }
 static IPA2VEC_MAYBE_UNUSED void mod_advanced (double v[NDIM], const void *m) { (void)m; v[2] += 0.15; }
@@ -526,7 +527,7 @@ static const ModRec MODS[] = {
     { 0x1D64, "ᵤ",   "sup_u",        TIER_PLACE,  -1, mod_sup_back,    0, {0,0} , NULL, 0  },
     { 0x1D62, "ᵢ",   "sub_i",        TIER_PLACE,  -1, mod_sup_front,   0, {0,0} , NULL, 0  },
     { 0x1D63, "ᵣ",   "sub_r",        TIER_MANNER, -1, mod_sup_rhot1,   0, {0,0} , NULL, 0  },
-    { 0x1D30, "ᴰ",   "sup_h",        TIER_LARYNGEAL, -1, mod_asp,       0, {0,0} , NULL, 0  },
+    { 0x1D30, "ᴰ",   "sup_d",        TIER_MANNER, -1, mod_sup_stop,    0, {0,0} , NULL, 0  },
     { 0x1D3B, "ᴻ",   "sup_N",        TIER_NASAL,  -1, mod_nasal_rel,   0, {0,0} , NULL, 0  },
     { 0x1D2C, "ᴬ",   "sup_A",        TIER_NASAL,  -1, mod_sup_open,    0, {0,0} , NULL, 0  },
     { 0x1D2E, "ᴮ",   "sup_B",        TIER_MANNER, -1, mod_sup_stop,    0, {0,0} , NULL, 0  },
@@ -709,7 +710,7 @@ static const Alias ALIAS_GENERIC[] = {
     { "\xE2\x88\x85", "", "null initial (no sound)", 0, 0   },                     /* ∅ */
     { "\xC3\x98", "", "null initial (no sound)", 0, 0   },                         /* Ø */
     { "\xC8\xB7", "j", "dotless j", 0, 0  },                                       /* ȷ */
-    { "\xC9\xAB", "l\xCB\xA0", "velarised l (dark l)", 0, 0   },                   /* ɫ -> lˠ */
+    { "\xC9\xAB", "l\xCB\xA4", "pharyngealised l (dark l)", 0, 0   },                /* ɫ -> lˤ */
     { "\xC4\xB1", "i",  "dotless i (dot-free form of i)", 1, 0  },
     { "\xC4\xB1", "\xC9\xAA", "dotless i (obsolete: near-close)", -1, 1  },
     /* small-capital letter bases (historical/alternative glyphs, U+1D00 block) */
@@ -730,6 +731,165 @@ static const Alias ALIAS_GENERIC[] = {
     { "\xE1\xB4\xA6", "\xC9\xA3", "small cap gamma -> ɣ", 0, 0   },
 };
 
+/* --- module: equivalent symbols (Wikipedia IPA equivalent-symbols
+ * table: superscript/subscript forms, hook letters, velarised/palatalised
+ * forms of the base letters). --- */
+static const Alias ALIAS_EQUIV[] = {
+    { "\xE1\xB5\x83", "a", "superscript a", 0, 0   },
+    { "\xE2\x82\x90", "a", "subscript a", 0, 0   },
+    { "\xE1\xB5\x85", "\xC9\x91", "superscript alpha (open a)", 0, 0   },
+    { "\xE1\xB5\x86", "\xC3\xA6", "superscript small turned ae (open-mid ae)", 0, 0   },
+    { "\xE1\xB5\x84", "\xC9\x90", "superscript turned a (near-open central)", 0, 0   },
+    { "\xE1\xB4\xB1", "e", "superscript capital E", 0, 0   },
+    { "\xE1\xB6\x9F", "\xC9\x9C", "superscript reversed open e", 0, 0   },
+    { "\xE2\x82\x91", "e", "subscript e", 0, 0   },
+    { "\xE1\xB6\xA6", "\xC9\xAA", "superscript small capital I", 0, 0   },
+    { "\xE2\x81\xB1", "i", "superscript i", 0, 0   },
+    { "\xE1\xB6\xA4", "\xC9\xA8", "superscript barred i", 0, 0   },
+    { "\xE1\xB5\x92", "o", "superscript o", 0, 0   },
+    { "\xE2\x82\x92", "o", "subscript o", 0, 0   },
+    { "\xE1\xB5\x93", "\xC9\x94", "superscript open o", 0, 0   },
+    { "\xE1\xB6\x9B", "\xC9\x92", "superscript turned alpha (open back rounded)", 0, 0   },
+    { "\xE1\xB6\xB1", "\xC9\xB5", "superscript barred o", 0, 0   },
+    { "\xEA\x9F\xB9", "\xC5\x93", "superscript ligature oe", 0, 0   },
+    { "\xE1\xB6\xB8", "\xCA\x8A", "superscript small capital U", 0, 0   },
+    { "\xE1\xB5\x98", "u", "superscript u", 0, 0   },
+    { "\xE1\xB6\xB6", "\xCA\x89", "superscript u bar", 0, 0   },
+    { "\xE1\xB5\x9A", "\xC9\xAF", "superscript turned m", 0, 0   },
+    { "\xE1\xB6\xBA", "\xCA\x8C", "superscript turned v", 0, 0   },
+    { "\xE1\xB6\xA7", "\xC9\xAA\xCC\x88", "superscript small capital barred I", 0, 0   },
+    { "\xE1\xB5\xBB", "\xC9\xA8\xCC\x9E", "small capital barred i (near-close central)", 0, 0   },
+    { "\xE1\xB5\xBF", "\xCA\x89\xCC\x9E", "small capital barred u (near-close central rounded)", 0, 0   },
+    { "\xE1\xB4\xAE", "b", "superscript capital B", 0, 0   },
+    { "\xE1\xB5\x87", "b", "superscript b", 0, 0   },
+    { "\xE1\xB5\x9D", "\xCE\xB2", "superscript beta", 0, 0   },
+    { "\xE1\xB5\xA6", "\xCE\xB2", "subscript beta", 0, 0   },
+    { "\xE1\xB6\x9C", "c", "superscript c", 0, 0   },
+    { "\xE1\xB6\x9D", "\xC9\x95", "superscript c with curl", 0, 0   },
+    { "\xE1\xB5\x88", "d", "superscript d", 0, 0   },
+    { "\xE1\xB6\x9E", "\xC3\xB0", "superscript eth", 0, 0   },
+    { "\xE1\xB6\xBF", "\xCE\xB8", "superscript theta", 0, 0   },
+    { "\xE1\xB6\xA0", "f", "superscript f", 0, 0   },
+    { "\xE1\xB6\xA1", "\xC9\x9F", "superscript dotless j with stroke (palatal stop)", 0, 0   },
+    { "\xE1\xB4\xB3", "\xC9\xA1", "superscript capital G", 0, 0   },
+    { "\xE1\xB5\x8D", "\xC9\xA1", "superscript g", 0, 0   },
+    { "\xE1\xB6\xA2", "\xC9\xA1", "superscript g", 0, 0   },
+    { "\xE1\xB5\xB8", "\xC9\xA4", "superscript Cyrillic en (velar nasal release)", 0, 0   },
+    { "\xE2\x82\x95", "h", "subscript h", 0, 0   },
+    { "\xE1\xB4\xB6", "j", "superscript capital J", 0, 0   },
+    { "\xE2\xB1\xBC", "j", "subscript j", 0, 0   },
+    { "\xE1\xB6\xA8", "\xCA\x91", "superscript j with crossed tail", 0, 0   },
+    { "\xE1\xB4\xB7", "k", "superscript capital K", 0, 0   },
+    { "\xE1\xB5\x8F", "k", "superscript k", 0, 0   },
+    { "\xE2\x82\x96", "k", "subscript k", 0, 0   },
+    { "\xE1\xB4\xB8", "l", "superscript capital L", 0, 0   },
+    { "\xE2\x82\x97", "l", "subscript l", 0, 0   },
+    { "\xE1\xB6\xA9", "\xC9\xAD", "superscript l with retroflex hook", 0, 0   },
+    { "\xE1\xB6\xAA", "\xC9\xAE", "superscript l with palatal hook", 0, 0   },
+    { "\xE1\xB4\xB9", "m", "superscript capital M", 0, 0   },
+    { "\xE1\xB5\x90", "m", "superscript m", 0, 0   },
+    { "\xE2\x82\x98", "m", "subscript m", 0, 0   },
+    { "\xE1\xB6\xAC", "\xC9\xB1", "superscript m with hook", 0, 0   },
+    { "\xE1\xB4\xBA", "n", "superscript capital N", 0, 0   },
+    { "\xE1\xB6\xAE", "\xC9\xB2", "superscript n with left hook", 0, 0   },
+    { "\xE1\xB6\xAF", "\xC9\xB3", "superscript n with retroflex hook", 0, 0   },
+    { "\xE1\xB6\xB0", "\xC9\xB4", "superscript small capital N", 0, 0   },
+    { "\xE1\xB4\xBB", "\xC9\xB4", "superscript capital reversed N", 0, 0   },
+    { "\xE2\x82\x99", "n", "subscript n", 0, 0   },
+    { "\xE1\xB5\x96", "p", "superscript p", 0, 0   },
+    { "\xE2\x82\x9A", "p", "subscript p", 0, 0   },
+    { "\xE1\xB4\xBF", "r", "superscript capital R", 0, 0   },
+    { "\xE1\xB5\xA3", "r", "subscript r", 0, 0   },
+    { "\xE1\xB5\x9B", "v", "superscript v", 0, 0   },
+    { "\xE1\xB5\xA5", "v", "subscript v", 0, 0   },
+    { "\xE1\xB6\xB9", "\xCA\x8B", "superscript v with hook", 0, 0   },
+    { "\xE2\x82\x9B", "s", "subscript s", 0, 0   },
+    { "\xE1\xB6\xB3", "\xCA\x82", "superscript s with hook", 0, 0   },
+    { "\xE1\xB5\x80", "t", "superscript capital T", 0, 0   },
+    { "\xE1\xB5\x97", "t", "superscript t", 0, 0   },
+    { "\xE2\x82\x9C", "t", "subscript t", 0, 0   },
+    { "\xE1\xB6\xB5", "t\xCA\xB2", "superscript t with palatal hook", 0, 0   },
+    { "\xE2\xB1\xBD", "v", "superscript capital V", 0, 0   },
+    { "\xCB\x85", "v", "subscript v (down tack)", 0, 0   },
+    { "\xE2\x82\x93", "x", "subscript x", 0, 0   },
+    { "\xE1\xB5\xA1", "\xCF\x87", "superscript chi", 0, 0   },
+    { "\xE1\xB5\xAA", "\xCF\x87", "subscript chi", 0, 0   },
+    { "\xE1\xB6\xAD", "\xC9\xB0", "superscript turned m with long leg", 0, 0   },
+    { "\xE1\xB6\xBB", "z", "superscript z", 0, 0   },
+    { "\xE1\xB6\xBC", "\xCA\x90", "superscript z with retroflex hook", 0, 0   },
+    { "\xE1\xB6\xBD", "\xCA\x91", "superscript z with curl", 0, 0   },
+    { "\xE1\xB6\xBE", "\xCA\x92", "superscript ezh", 0, 0   },
+    { "\xE1\xB6\xB2", "\xC9\xB8", "superscript phi", 0, 0   },
+    { "\xE1\xB6\xA3", "\xC9\xA5", "superscript turned h (palatal approximant)", 0, 0   },
+    { "\xE1\xB6\x8F", "a\xCB\x9E", "rhotacised a", 0, 0   },
+    { "\xE1\xB6\x90", "\xC9\x91\xCB\x9E", "rhotacised alpha", 0, 0   },
+    { "\xE1\xB6\x92", "e\xCB\x9E", "rhotacised e", 0, 0   },
+    { "\xE1\xB6\x93", "\xC9\x9B\xCB\x9E", "rhotacised open e", 0, 0   },
+    { "\xE1\xB6\x94", "\xC9\x9C\xCB\x9E", "rhotacised reversed open e", 0, 0   },
+    { "\xE1\xB6\x95", "\xC9\x99\xCB\x9E", "rhotacised schwa", 0, 0   },
+    { "\xE1\xB6\x96", "\xC9\xAA\xCB\x9E", "rhotacised small capital I", 0, 0   },
+    { "\xE1\xB6\x97", "\xC9\x94\xCB\x9E", "rhotacised open o", 0, 0   },
+    { "\xE1\xB6\x99", "u\xCB\x9E", "rhotacised u", 0, 0   },
+    { "\xE1\xB6\x98", "\xCA\x82", "esh with retroflex hook", 0, 0   },
+    { "\xE1\xB6\x9A", "\xCA\x90", "ezh with retroflex hook", 0, 0   },
+    { "\xE1\xB6\x80", "b\xCA\xB2", "b with palatal hook", 0, 0   },
+    { "\xE1\xB6\x81", "d\xCA\xB2", "d with palatal hook", 0, 0   },
+    { "\xE1\xB6\x82", "f\xCA\xB2", "f with palatal hook", 0, 0   },
+    { "\xE1\xB6\x83", "\xC9\xA1\xCA\xB2", "g with palatal hook", 0, 0   },
+    { "\xE1\xB6\x84", "k\xCA\xB2", "k with palatal hook", 0, 0   },
+    { "\xE1\xB6\x85", "l\xCA\xB2", "l with palatal hook", 0, 0   },
+    { "\xE1\xB6\x86", "m\xCA\xB2", "m with palatal hook", 0, 0   },
+    { "\xE1\xB6\x87", "n\xCA\xB2", "n with palatal hook", 0, 0   },
+    { "\xE1\xB6\x88", "p\xCA\xB2", "p with palatal hook", 0, 0   },
+    { "\xE1\xB6\x89", "r\xCA\xB2", "r with palatal hook", 0, 0   },
+    { "\xE1\xB6\x8A", "s\xCA\xB2", "s with palatal hook", 0, 0   },
+    { "\xE1\xB6\x8B", "\xCA\x83\xCA\xB2", "esh with palatal hook", 0, 0   },
+    { "\xE1\xB6\x8C", "v\xCA\xB2", "v with palatal hook", 0, 0   },
+    { "\xE1\xB6\x8D", "x\xCA\xB2", "x with palatal hook", 0, 0   },
+    { "\xE1\xB6\x8E", "z\xCA\xB2", "z with palatal hook", 0, 0   },
+    { "\xE1\xB5\xAC", "b\xCB\xA0", "b with middle tilde", 0, 0   },
+    { "\xE1\xB5\xAD", "d\xCB\xA0", "d with middle tilde", 0, 0   },
+    { "\xE1\xB5\xAE", "f\xCB\xA0", "f with middle tilde", 0, 0   },
+    { "\xE1\xB5\xAF", "m\xCB\xA0", "m with middle tilde", 0, 0   },
+    { "\xE1\xB5\xB0", "n\xCB\xA0", "n with middle tilde", 0, 0   },
+    { "\xE1\xB5\xB1", "p\xCB\xA0", "p with middle tilde", 0, 0   },
+    { "\xE1\xB5\xB2", "r\xCB\xA0", "r with middle tilde", 0, 0   },
+    { "\xE1\xB5\xB3", "\xC9\xBB\xCB\xA0", "r with fishhook and middle tilde", 0, 0   },
+    { "\xE1\xB5\xB4", "s\xCB\xA0", "s with middle tilde", 0, 0   },
+    { "\xE1\xB5\xB5", "t\xCB\xA0", "t with middle tilde", 0, 0   },
+    { "\xE1\xB5\xB6", "z\xCB\xA0", "z with middle tilde", 0, 0   },
+    { "\xE2\xB1\xBB", "\xC9\x9C", "small capital turned E (open-mid central unrounded)", 0, 0   },
+    { "\xE1\xB4\xB2", "\xC9\x9C", "capital reversed E (open-mid central unrounded)", 0, 0   },
+    { "\xE1\xB4\x81", "\xC3\xA6", "small capital AE", 0, 0   },
+    { "\xE1\xB4\xAD", "\xC3\xA6", "capital AE modifier", 0, 0   },
+    { "\xE1\xB4\x8C", "\xC9\xAC", "small capital L with stroke (voiceless lateral fricative)", 0, 0   },
+    { "\xC9\x89", "\xC9\x9F", "j with stroke (palatal stop)", 0, 0   },
+    { "\xE1\xB4\x9D", "\xC9\xAF", "sideways u (close back unrounded)", 0, 0   },
+    { "\xE1\xB5\x99", "\xC9\xAF", "modifier sideways u", 0, 0   },
+    { "\xE1\xB5\x8E", "j", "modifier small turned i (palatal approximant)", 0, 0   },
+    { "\xE1\xB4\x83", "\xC9\x93", "small capital barred B (bilabial implosive)", 0, 0   },
+    { "\xE1\xB4\xAF", "\xC9\x93", "capital barred B (bilabial implosive)", 0, 0   },
+    { "\xC2\xA1", "\xC7\x83", "inverted exclamation (alveolar click)", 0, 0   },
+    { "\xE1\x94\xBF", "\xCA\x8D", "Canadian syllabics Y (labial-velar approximant)", 0, 0   },
+    { "\xEA\xAD\xA5", "\xC9\x94\xCC\x9D", "small capital omega (raised open o)", 0, 0   },
+    { "\xE1\xB5\xB7", "a\xCC\xAA", "modifier small turned ae", 0, 0   },
+    { "\xE1\xB4\x82", "\xC3\xA6", "small capital AE (open-mid front unrounded)", 0, 0   },
+    { "\xE1\xB4\x84", "c", "small capital C (voiceless palatal stop)", 0, 0   },
+    { "\xE1\xB4\x85", "d", "small capital D (voiced alveolar stop)", 0, 0   },
+    { "\xE1\xB4\x8E", "\xC9\xB4", "small capital reversed N (uvular nasal)", 0, 0   },
+    { "\xE1\xB4\xB5", "i", "modifier capital I", 0, 0   },
+    { "\xE1\xB6\xB4", "\xCA\x83", "modifier esh (voiceless postalveolar fricative)", 0, 0   },
+    { "\xCB\x81", "\xCA\x95", "reversed glottal stop (voiced pharyngeal fricative)", 0, 0   },
+    { "\xEA\x9C\x9D", "\xC7\x83", "modifier exclamation (alveolar click)", 0, 0   },
+    { "\xEA\xAD\x9C", "\xC9\xA7", "modifier heng (voiceless palatal-velar fricative)", 0, 0   },
+    { "\xEA\xAD\x9E", "l\xCB\xA4", "modifier l with middle tilde (pharyngealised l)", 0, 0   },
+    { "\xE2\x81\xBD", "", "superscript left parenthesis (optional)", 0, 0   },
+    { "\xE2\x81\xBE", "", "superscript right parenthesis (optional)", 0, 0   },
+    { "\xE2\x82\x8D", "", "subscript left parenthesis (optional)", 0, 0   },
+    { "\xE2\x82\x8E", "", "subscript right parenthesis (optional)", 0, 0   },
+    { "\xE2\x97\x8C", "", "dotted circle (placeholder)", 0, 0   },
+};
+
 /* --- module: withdrawn / obsolete IPA symbols --- */
 static const Alias ALIAS_WITHDRAWN[] = {
     { "\xC6\x8D", "z\xCA\xB7", "labialized vd alveolo-dental fricative", 0, 0   },  /* ƍ -> zʷ */
@@ -744,15 +904,17 @@ static const Alias ALIAS_WITHDRAWN[] = {
     { "\xCA\xA4", "d\xCD\xA1ʒ", "vd postalveolar affricate (ligature)", 0, 0   },   /* ʤ */
     { "\xCA\xA8", "t\xCD\xA1ɕ", "vl alveolo-palatal affricate (ligature)", 0, 0   },/* ʨ */
     { "\xCA\xA5", "d\xCD\xA1ʑ", "vd alveolo-palatal affricate (ligature)", 0, 0   },/* ʥ */
+    { "\xCA\xAA", "\xC9\xAC\xCD\xA1s", "vl alveolar lateral affricate (LS digraph)", 0, 0   }, /* ʪ -> ɬ͡s */
+    { "\xCA\xAB", "\xC9\xAE\xCD\xA1z", "vd alveolar lateral affricate (LZ digraph)", 0, 0   }, /* ʫ -> ɮ͡z */
     { "\xCA\x87", "\xC7\x80", "dental click (superseded 1989)", 0, 0   },           /* ʇ -> ǀ */
     { "\xCA\x97", "\xC7\x83", "alveolar click (superseded 1989)", 0, 0   },         /* ʗ -> ǃ */
     { "\xCA\x96", "\xC7\x81", "alveolar lateral click (superseded 1989)", 0, 0   }, /* ʖ -> ǁ */
     { "\xCA\x9E", "\xC7\x83", "velar click (withdrawn)", 0, 1   },                  /* ʞ -> ǃ */
     { "\xC6\xA5", "\xC9\x93\xCC\xA5", "vl bilabial implosive (withdrawn 1993)", 0, 0   },  /* ƥ -> ɓ̥ */
     { "\xC6\xAD", "\xC9\x97\xCC\xA5", "vl dental/alveolar implosive (withdrawn 1993)", 0, 0 }, /* ƭ -> ɗ̥ */
-    { "\xC6\x88", "\xC9\x84\xCC\x8A", "vl palatal implosive (withdrawn 1993)", 0, 0   },    /* ƈ -> ʄ̊ */
+    { "\xC6\x88", "\xCA\x84\xCC\x8A", "vl palatal implosive (withdrawn 1993)", 0, 0   },    /* ƈ -> ʄ̊ */
     { "\xC6\x99", "\xC9\xA0\xCC\xA5", "vl velar implosive (withdrawn 1993)", 0, 0   },      /* ƙ -> ɠ̥ */
-    { "\xCA\xA0", "\xC9\x9B\xCC\xA5", "vl uvular implosive (withdrawn 1993)", 0, 0   },     /* ʠ -> ʛ̥ */
+    { "\xCA\xA0", "\xCA\x9B\xCC\xA5", "vl uvular implosive (withdrawn 1993)", 0, 0   },     /* ʠ -> ʛ̥ */
     { "\xC6\x9E", "n\xCC\xA9", "syllabic n (withdrawn 1976)", 0, 0   },              /* ƞ -> n̩ */
     { "\xC6\xAB", "t\xCA\xB2", "palatalized t (withdrawn 1989)", 0, 0   },           /* ƫ -> tʲ */
     { "\xCA\x93", "\xCA\x91", "vd alveolo-palatal fricative (withdrawn 1989)", 0, 0   }, /* ʓ -> ʑ */
@@ -761,7 +923,7 @@ static const Alias ALIAS_WITHDRAWN[] = {
     { "\xC9\xA9", "\xC9\xAA", "near-close near-front unrounded vowel (rejected)", 0, 0   }, /* ɩ -> ɪ */
     { "\xCA\x9A", "\xC9\x9E", "open-mid central rounded vowel (misprint)", 0, 0   }, /* ʚ -> ɞ */
     { "\xC9\xB7", "\xCA\x8A", "near-close near-back rounded vowel (rejected)", 0, 0   },   /* ɷ -> ʊ */
-    { "\xCF\x89", "\xCA\x8A\xCC\x9C", "near-close near-back unrounded vowel", 0, 0   },    /* ω -> ʊ̜ */
+    { "\xCF\x89", "\xC9\xAF\xCC\xBD", "mid-centralised close back unrounded vowel", 0, 0   }, /* ω -> ɯ̽ */
     { "\xC8\xA3", "\xC9\xA4", "close-mid back unrounded vowel (mistake)", 0, 0   },  /* ȣ -> ɤ */
 };
 
@@ -781,15 +943,15 @@ static const Alias ALIAS_AMERICANIST[] = {
 
 /* --- module: Sinologist (Chinese linguistics) --- */
 static const Alias ALIAS_SINOLOGIST[] = {
-    { "\xC9\xBF", "z\xCC\xA9", "apical dental unrounded vowel", 0, 0   },            /* ɿ -> z̩ */
-    { "\xCA\x85", "\xCA\x90\xCC\xA9", "apical retroflex unrounded vowel", 0, 0   },  /* ʅ -> ʐ̩ */
-    { "\xCA\xAE", "z\xCC\xA9\xCA\xB7", "apical dental rounded vowel", 0, 0   },      /* ʮ -> z̩ʷ */
-    { "\xCA\xAF", "\xCA\x90\xCC\xA9\xCA\xB7", "apical retroflex rounded vowel", 0, 0   }, /* ʯ -> ʐ̩ʷ */
+    { "\xC9\xBF", "\xC9\xB9\xCC\xAA", "apical dental unrounded vowel", 0, 0   },     /* ɿ -> ɹ̪ */
+    { "\xCA\x85", "\xC9\xBB", "apical retroflex unrounded vowel", 0, 0   },           /* ʅ -> ɻ */
+    { "\xCA\xAE", "\xC9\xB9\xCC\xAA\xCA\xB7", "apical dental rounded vowel", 0, 0   }, /* ʮ -> ɹ̪ʷ */
+    { "\xCA\xAF", "\xC9\xBB\xCA\xB7", "apical retroflex rounded vowel", 0, 0   },     /* ʯ -> ɻʷ */
     { "\xE1\xB4\x80", "a\xCC\x88", "open central vowel", 0, 0   },                   /* ᴀ -> ä */
-    { "\xC8\xA1", "\xC9\x9F", "vd alveolo-palatal stop", 0, 0   },                   /* ȡ -> ɟ */
-    { "\xC8\xB6", "c", "vl alveolo-palatal stop", 0, 0   },                          /* ȶ -> c */
-    { "\xC8\xB5", "\xC9\xB2", "vd alveolo-palatal nasal", 0, 0   },                  /* ȵ -> ɲ */
-    { "\xC8\xB4", "\xCA\x8E", "vd alveolo-palatal lateral", 0, 0   },                /* ȴ -> ʎ */
+    { "\xC8\xA1", "\xC9\x9F\xCC\x9F", "vd alveolo-palatal stop", 0, 0   },            /* ȡ -> ɟ̟ */
+    { "\xC8\xB6", "c\xCC\x9F", "vl alveolo-palatal stop", 0, 0   },                   /* ȶ -> c̟ */
+    { "\xC8\xB5", "\xC9\xB2\xCC\x9F", "vd alveolo-palatal nasal", 0, 0   },           /* ȵ -> ɲ̟ */
+    { "\xC8\xB4", "\xCA\x8E\xCC\x9F", "vd alveolo-palatal lateral", 0, 0   },         /* ȴ -> ʎ̟ */
 };
 
 /* --- module: Indologist / Semiticist (dotted letters) --- */
@@ -862,7 +1024,7 @@ static const Alias ALIAS_UPPERCASE[] = {
 /* --- module: Africanist --- */
 static const Alias ALIAS_AFRICANIST[] = {
     { "\xC8\xB9", "p\xCC\xAA", "vl labiodental plosive", 0, 0   },                   /* ȹ -> p̪ */
-    { "\xC8\xB8", "p\xCC\xAA\xCC\xAC", "vd labiodental plosive", 0, 0   },           /* ȸ -> p̪+◌̬ */
+    { "\xC8\xB8", "b\xCC\xAA", "vd labiodental plosive", 0, 0   },                   /* ȸ -> b̪ */
 };
 
 /* --- module: OED / dictionary conventions --- */
@@ -876,6 +1038,7 @@ typedef struct { const Alias *tab; int n; const char *name; } AliasModule;
 
 static const AliasModule ALIAS_MODULES[] = {
     { ALIAS_GENERIC,     (int)(sizeof(ALIAS_GENERIC)     / sizeof(Alias)), "generic" },
+    { ALIAS_EQUIV,       (int)(sizeof(ALIAS_EQUIV)       / sizeof(Alias)), "equiv" },
     { ALIAS_WITHDRAWN,   (int)(sizeof(ALIAS_WITHDRAWN)   / sizeof(Alias)), "withdrawn" },
     { ALIAS_AMERICANIST, (int)(sizeof(ALIAS_AMERICANIST) / sizeof(Alias)), "americanist" },
     { ALIAS_SINOLOGIST,  (int)(sizeof(ALIAS_SINOLOGIST)  / sizeof(Alias)), "sinologist" },
