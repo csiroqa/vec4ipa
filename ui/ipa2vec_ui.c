@@ -36,6 +36,7 @@
 #define ID_FILE_EXPORT 4001
 #define ID_FILE_EXIT   4002
 #define ID_HELP_ABOUT  4003
+#define IDI_APP        101
 
 static HWND g_hwnd = NULL;
 static HWND g_hStatus = NULL;
@@ -292,17 +293,21 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int nCmdShow)
     /* IPA-appropriate font: full coverage of IPA/extIPA glyphs with
      * canonical (normative) letterforms (open-tail g, tie bars, …). */
 
-    WNDCLASSW wc = {0};
+    WNDCLASSEXW wc = {0};
+    wc.cbSize = sizeof(wc);
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInst;
+    wc.hIcon = LoadIconW(hInst, MAKEINTRESOURCEW(IDI_APP));
+    wc.hIconSm = LoadIconW(hInst, MAKEINTRESOURCEW(IDI_APP));
     wc.hCursor = LoadCursorW(NULL, (LPCWSTR)IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wc.lpszClassName = L"IPA2VectorWorkbench";
-    RegisterClassW(&wc);
+    RegisterClassExW(&wc);
 
     WNDCLASSW we = {0};
     we.lpfnWndProc = export_wndproc;
     we.hInstance = hInst;
+    we.hIcon = LoadIconW(hInst, MAKEINTRESOURCEW(IDI_APP));
     we.hCursor = LoadCursorW(NULL, (LPCWSTR)IDC_ARROW);
     we.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     we.lpszClassName = L"IPA2VecExportDlg";

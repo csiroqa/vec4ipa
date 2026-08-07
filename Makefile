@@ -26,9 +26,12 @@ vec4ipa: $(SRC)/vec4ipa_main.c $(SRC)/readme_embed.h $(VECTORS_H)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SRC)/vec4ipa_main.c
 
 # Win32 GUI wrapper (Windows only) — lives in ui/
-ipa2vec_ui: ui/ipa2vec_ui.c
-	$(CC) $(CFLAGS) -mwindows -municode -o $@ ui/ipa2vec_ui.c \
+ipa2vec_ui: ui/ipa2vec_ui.c ui/app.res
+	$(CC) $(CFLAGS) -mwindows -municode -o $@ ui/ipa2vec_ui.c ui/app.res \
 	    -lcomctl32 -lcomdlg32 -lshlwapi
+
+ui/app.res: ui/app.rc ui/vec_ipa.ico
+	windres ui/app.rc -O coff -o ui/app.res
 
 $(SRC)/readme_embed.h: tools/gen_readme_embed.py README.md
 	python3 tools/gen_readme_embed.py

@@ -12,3 +12,6 @@ src/readme_embed.h
 # python
 __pycache__/
 *.pyc
+
+# UI build artifacts
+ui/app.res
