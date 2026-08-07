@@ -649,36 +649,45 @@ namespace IPA2VectorUI
                     default: theme = ElementTheme.Default; break;
                 }
                 root.RequestedTheme = theme;
-                /* WinUI 3: some controls (Pivot, TextBox) do not follow
-                 * a root theme change; set them explicitly */
-                KeyboardPivot.RequestedTheme = theme;
-                OutputBox.RequestedTheme = theme;
+                /* The screen compositor does not repaint theme resources
+                 * after a runtime theme change on this system (background
+                 * stays dark while text goes dark -> looks all black).
+                 * Setting the backgrounds explicitly bypasses that. */
+                SetExplicitBackground(root, theme);
+                root.InvalidateMeasure();
+                root.InvalidateArrange();
+                root.UpdateLayout();
                 SetStatus("theme: " + name.ToLowerInvariant());
-                ForceRepaint();
             }
             catch { }
         }
 
-        /* WinUI 3 does not always refresh the swap chain when the
-         * theme changes on the element tree; force a repaint. */
-        private void ForceRepaint()
+        private void SetExplicitBackground(FrameworkElement root,
+                                           ElementTheme theme)
         {
-            try
+            var bg = new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                theme == ElementTheme.Light
+                    ? Windows.UI.Color.FromArgb(255, 243, 243, 243)
+                    : theme == ElementTheme.Dark
+                        ? Windows.UI.Color.FromArgb(255, 32, 32, 32)
+                        : Windows.UI.Color.FromArgb(255, 0, 0, 0));
+            if (theme == ElementTheme.Default)
             {
-                var root = Content.XamlRoot?.Content as FrameworkElement;
-                if (root == null) return;
-                root.InvalidateMeasure();
-                root.InvalidateArrange();
-                root.UpdateLayout();
-                if (_appWindow != null)
-                {
-                    var pos = _appWindow.Position;
-                    _appWindow.Move(new Windows.Graphics.PointInt32(
-                        pos.X + 1, pos.Y));
-                    _appWindow.Move(pos);
-                }
+                /* restore theme-driven background */
+                if (root is Microsoft.UI.Xaml.Controls.Grid g) g.Background = null;
+                if (KeyboardPivot is Microsoft.UI.Xaml.Controls.Pivot p)
+                    p.Background = null;
+                if (StatusText.Parent is Microsoft.UI.Xaml.Controls.Grid sg)
+                    sg.Background = null;
+                return;
             }
-            catch { }
+            /* apply to every container we own */
+            if (root is Microsoft.UI.Xaml.Controls.Grid rg)
+                rg.Background = bg;
+            if (KeyboardPivot is Microsoft.UI.Xaml.Controls.Pivot p2)
+                p2.Background = bg;
+            if (StatusText.Parent is Microsoft.UI.Xaml.Controls.Grid sg2)
+                sg2.Background = bg;
         }
 
         private void Loop_Click(object sender, RoutedEventArgs e)
