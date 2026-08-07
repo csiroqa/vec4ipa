@@ -87,6 +87,21 @@ namespace IPA2VectorUI
             InitStatus();
             ShowWelcome();
             UpdateButtons();
+            /* this machine's compositor can leave stale highlights;
+             * nudge a repaint when the selection changes */
+            OutputBox.SelectionChanged += (s, e) =>
+            {
+                try
+                {
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        OutputBox.InvalidateMeasure();
+                        OutputBox.InvalidateArrange();
+                        OutputBox.UpdateLayout();
+                    });
+                }
+                catch { }
+            };
             HandleArgs(args);
         }
 
