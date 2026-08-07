@@ -902,6 +902,24 @@ static const Alias ALIAS_EQUIV[] = {
     { "\xE1\xB5\x93", "\xC9\x94", "superscript open o", 0, 0   },
     { "\xE1\xB5\x8B", "\xC9\x9B", "superscript open e (nasal release)", 0, 0   },
     { "\xE1\xB5\x91", "\xC5\x8B", "superscript eng (nasal release)", 0, 0   },
+    /* standard IPA superscript letters, standalone forms */
+    { "\xCA\xB0", "h", "superscript h", 0, 0   },
+    { "\xCA\xB1", "\xC9\xA6", "superscript h with hook (breathy)", 0, 0   },
+    { "\xCA\xB2", "j", "superscript j (palatalised)", 0, 0   },
+    { "\xCA\xB3", "r", "superscript r", 0, 0   },
+    { "\xCA\xB4", "\xC9\xB9", "superscript turned r (alveolar approximant)", 0, 0   },
+    { "\xCA\xB5", "\xC9\xBB", "superscript turned r with hook (retroflex)", 0, 0   },
+    { "\xCA\xB6", "\xCA\x80", "superscript small capital inverted R (uvular)", 0, 0   },
+    { "\xCA\xB7", "w", "superscript w (labialised)", 0, 0   },
+    { "\xCA\xB8", "j", "superscript y (palatal)", 0, 0   },
+    { "\xCB\xA0", "\xC9\xA3", "superscript gamma (velarised)", 0, 0   },
+    { "\xCB\xA1", "l", "superscript l (lateral release)", 0, 0   },
+    { "\xCB\xA2", "s", "superscript s (fricative release)", 0, 0   },
+    { "\xCB\xA3", "x", "superscript x (fricative release)", 0, 0   },
+    { "\xCB\xA4", "\xCA\x95", "superscript reversed glottal stop (pharyngealised)", 0, 0   },
+    { "\xE2\x81\xBF", "n", "superscript n (nasal release)", 0, 0   },
+    { "\xE1\xB5\x8C", "\xC9\x9C", "superscript reversed open e", 0, 0   },
+    { "\xE1\xB6\xB7", "\xCA\x8A", "superscript upsilon (near-close back)", 0, 0   },
 };
 
 /* --- module: withdrawn / obsolete IPA symbols --- */
