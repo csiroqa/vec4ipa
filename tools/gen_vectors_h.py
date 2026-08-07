@@ -27,17 +27,12 @@ for line in open(SRC_MD, encoding="utf-8"):
         if m:
             cur_air = m.group(1)
         continue
-    if t.startswith("`/") and "`: `(" in t:
-        head, vec = t.split("`: `(")
-        # head: `...` e.g. "`/k͡p/`" or "`/lˠ/ (dark)`"
-        ipa = head[1:]                    # strip leading backtick
-        ipa = ipa.rsplit("`", 1)[0]       # strip trailing backtick
-        ipa = ipa.strip()
-        if ipa.startswith("/") and ipa.endswith("/"):
-            ipa = ipa[1:-1]               # strip IPA slashes
-        elif ipa.startswith("/"):
-            ipa = ipa[1:].split(" ")[0]   # strip leading slash + annotation
-        vals = [x.strip() for x in vec.rstrip(")`").split(",")]
+    # `...`: `(...)` — an optional parenthesised annotation may sit
+    # between the closing backtick and the colon (e.g. `/lˠ/` (dark))
+    mm = re.match(r'^`/([^/`]*)/`(?: \([^)]*\))?: `\((.*)\)`$', t)
+    if mm:
+        ipa = mm.group(1).strip()
+        vals = [x.strip() for x in mm.group(2).split(",")]
         if len(vals) != 16:
             print(f"WARN skip {ipa}: {len(vals)} values", file=sys.stderr)
             continue
