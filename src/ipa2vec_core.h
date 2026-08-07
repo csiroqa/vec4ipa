@@ -740,7 +740,7 @@ static const Alias ALIAS_EQUIV[] = {
     { "\xE1\xB5\x85", "\xC9\x91", "superscript alpha (open a)", 0, 0   },
     { "\xE1\xB5\x86", "\xC3\xA6", "superscript small turned ae (open-mid ae)", 0, 0   },
     { "\xE1\xB5\x84", "\xC9\x90", "superscript turned a (near-open central)", 0, 0   },
-    { "\xE1\xB4\xB1", "e", "superscript capital E", 0, 0   },
+    { "\xE1\xB4\xB1", "e\xCC\x9E", "superscript capital E (lowered e)", 0, 0   },
     { "\xE1\xB6\x9F", "\xC9\x9C", "superscript reversed open e", 0, 0   },
     { "\xE2\x82\x91", "e", "subscript e", 0, 0   },
     { "\xE1\xB6\xA6", "\xC9\xAA", "superscript small capital I", 0, 0   },
@@ -774,18 +774,18 @@ static const Alias ALIAS_EQUIV[] = {
     { "\xE1\xB4\xB3", "\xC9\xA1", "superscript capital G", 0, 0   },
     { "\xE1\xB5\x8D", "\xC9\xA1", "superscript g", 0, 0   },
     { "\xE1\xB6\xA2", "\xC9\xA1", "superscript g", 0, 0   },
-    { "\xE1\xB5\xB8", "\xC9\xA4", "superscript Cyrillic en (velar nasal release)", 0, 0   },
+    { "\xE1\xB5\xB8", "\xCA\x9C", "superscript Cyrillic en (epiglottal trill)", 0, 0   },
     { "\xE2\x82\x95", "h", "subscript h", 0, 0   },
     { "\xE1\xB4\xB6", "j", "superscript capital J", 0, 0   },
     { "\xE2\xB1\xBC", "j", "subscript j", 0, 0   },
-    { "\xE1\xB6\xA8", "\xCA\x91", "superscript j with crossed tail", 0, 0   },
+    { "\xE1\xB6\xA8", "\xCA\x9D", "superscript j with crossed tail (palatal fricative)", 0, 0   },
     { "\xE1\xB4\xB7", "k", "superscript capital K", 0, 0   },
     { "\xE1\xB5\x8F", "k", "superscript k", 0, 0   },
     { "\xE2\x82\x96", "k", "subscript k", 0, 0   },
     { "\xE1\xB4\xB8", "l", "superscript capital L", 0, 0   },
     { "\xE2\x82\x97", "l", "subscript l", 0, 0   },
     { "\xE1\xB6\xA9", "\xC9\xAD", "superscript l with retroflex hook", 0, 0   },
-    { "\xE1\xB6\xAA", "\xC9\xAE", "superscript l with palatal hook", 0, 0   },
+    { "\xE1\xB6\xAA", "l\xCA\xB2", "superscript l with palatal hook", 0, 0   },
     { "\xE1\xB4\xB9", "m", "superscript capital M", 0, 0   },
     { "\xE1\xB5\x90", "m", "superscript m", 0, 0   },
     { "\xE2\x82\x98", "m", "subscript m", 0, 0   },
@@ -872,7 +872,7 @@ static const Alias ALIAS_EQUIV[] = {
     { "\xC2\xA1", "\xC7\x83", "inverted exclamation (alveolar click)", 0, 0   },
     { "\xE1\x94\xBF", "\xCA\x8D", "Canadian syllabics Y (labial-velar approximant)", 0, 0   },
     { "\xEA\xAD\xA5", "\xC9\x94\xCC\x9D", "small capital omega (raised open o)", 0, 0   },
-    { "\xE1\xB5\xB7", "a\xCC\xAA", "modifier small turned ae", 0, 0   },
+    { "\xE1\xB5\xB7", "\xC9\xA1", "turned g (voiced velar plosive)", 0, 0   },
     { "\xE1\xB4\x82", "\xC3\xA6", "small capital AE (open-mid front unrounded)", 0, 0   },
     { "\xE1\xB4\x84", "c", "small capital C (voiceless palatal stop)", 0, 0   },
     { "\xE1\xB4\x85", "d", "small capital D (voiced alveolar stop)", 0, 0   },
@@ -888,6 +888,20 @@ static const Alias ALIAS_EQUIV[] = {
     { "\xE2\x82\x8D", "", "subscript left parenthesis (optional)", 0, 0   },
     { "\xE2\x82\x8E", "", "subscript right parenthesis (optional)", 0, 0   },
     { "\xE2\x97\x8C", "", "dotted circle (placeholder)", 0, 0   },
+    /* MODS modifiers that also stand alone as superscript letters */
+    { "\xE1\xB5\x89", "e", "superscript e", 0, 0   },
+    { "\xE1\xB5\x8A", "\xC9\x99", "superscript schwa", 0, 0   },
+    { "\xE1\xB5\xA4", "u", "subscript u", 0, 0   },
+    { "\xE1\xB5\xA2", "i", "subscript i", 0, 0   },
+    { "\xE1\xB4\xB0", "d", "superscript capital D", 0, 0   },
+    { "\xE1\xB4\xAC", "a", "superscript capital A", 0, 0   },
+    { "\xE1\xB4\xBC", "o", "superscript capital O", 0, 0   },
+    { "\xE1\xB4\xBE", "p", "superscript capital P", 0, 0   },
+    { "\xE1\xB5\x81", "u", "superscript capital U", 0, 0   },
+    { "\xE1\xB5\x82", "w", "superscript capital W", 0, 0   },
+    { "\xE1\xB5\x93", "\xC9\x94", "superscript open o", 0, 0   },
+    { "\xE1\xB5\x8B", "\xC9\x9B", "superscript open e (nasal release)", 0, 0   },
+    { "\xE1\xB5\x91", "\xC5\x8B", "superscript eng (nasal release)", 0, 0   },
 };
 
 /* --- module: withdrawn / obsolete IPA symbols --- */
@@ -1293,7 +1307,42 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
             unsigned long cp = 0;
             utf8_decode(p, &cp);
             if (pre_consumed > 0) {
-                /* consumed only modifiers/tone marks with no base following */
+                /* consumed only modifiers/tone marks with no base following:
+                 * some of them double as standalone letters (superscript
+                 * forms like ᵋ = ɛ, ᵑ = ŋ); try the alias path first */
+                const unsigned char *pre_p = p - pre_consumed;
+                size_t probe_len = 0;
+                {
+                    const Alias *probe = NULL;
+                    for (int m = 0; m < N_ALIAS_MODULES && !probe; m++) {
+                        for (int i = 0; i < ALIAS_MODULES[m].n; i++) {
+                            const Alias *a = &ALIAS_MODULES[m].tab[i];
+                            size_t L = strlen(a->sym);
+                            if (a->repl && strncmp((const char*)pre_p, a->sym, L) == 0) {
+                                probe = a; probe_len = L; break;
+                            }
+                        }
+                    }
+                    (void)probe;
+                }
+                const Alias *fal = lookup_alias((const char *)pre_p, 0);
+                if (fal) {
+                    char buf[256];
+                    snprintf(buf, sizeof(buf), "%s", fal->repl);
+                    IrTok tmp[MAX_TOKS];
+                    int tn = 0;
+                    char terr[256];
+                    if (lex(buf, tmp, &tn, terr, sizeof(terr)) == 0) {
+                        fprintf(stderr, "ipa2vec: %s: '%s' -> %s (%s)\n",
+                                fal->warn ? "warning" : "note",
+                                fal->sym, fal->repl, fal->note);
+                        if (n + tn >= MAX_TOKS) goto full;
+                        for (int j = 0; j < tn; j++)
+                            out[n++] = tmp[j];
+                        p = pre_p + (probe_len ? probe_len : strlen(fal->sym));
+                        continue;
+                    }
+                }
                 p -= pre_consumed;
                 utf8_decode(p, &cp);
                 snprintf(err, errsz,
