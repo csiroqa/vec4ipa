@@ -87,8 +87,6 @@ namespace IPA2VectorUI
             InitStatus();
             ShowWelcome();
             UpdateButtons();
-            /* clicking away clears the selection highlight */
-            OutputBox.LostFocus += (s, e) => OutputBox.SelectionLength = 0;
             HandleArgs(args);
         }
 
