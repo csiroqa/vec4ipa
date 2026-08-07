@@ -1201,14 +1201,20 @@ static const Nolig NOLIG[] = {
     { "d", "z", "\x64\xCD\xA1z" },    /* dz -> d͡z */
     { "t", "\u0283", "\x74\xCD\xA1\xCA\x83" }, /* tʃ -> t͡ʃ */
     { "d", "\u0292", "\x64\xCD\xA1\xCA\x92" }, /* dʒ -> d͡ʒ */
-    { "t", "\u0255", "\x74\xCD\xA1\xCA\x95" }, /* tɕ -> t͡ɕ */
+    { "t", "\u0255", "\x74\xCD\xA1\xC9\x95" }, /* tɕ -> t͡ɕ */
     { "d", "\u0291", "\x64\xCD\xA1\xCA\x91" }, /* dʑ -> d͡ʑ */
     { "\u0288", "\u0282", "\xCA\x88\xCD\xA1\xCA\x82" }, /* ʈʂ -> ʈ͡ʂ */
     { "\u0256", "\u0290", "\xC9\x96\xCD\xA1\xCA\x90" }, /* ɖʐ -> ɖ͡ʐ */
+    { "t", "\u0282", "\xCA\x88\xCD\xA1\xCA\x82" },      /* tʂ -> ʈ͡ʂ (t-notation for retroflex affricate) */
+    { "d", "\u0290", "\xC9\x96\xCD\xA1\xCA\x90" },      /* dʐ -> ɖ͡ʐ */
     { "t", "\u026C", NULL },          /* tɬ (synthesize) */
     { "d", "\u026E", NULL },          /* dɮ (synthesize) */
     { "c", "\u00E7", NULL },          /* cç (synthesize) */
     { "\u025F", "\u029D", NULL },     /* ɟʝ (synthesize) */
+    { "k", "x", "\x6B\xCD\xA1x" },    /* kx -> k͡x */
+    { "q", "\u03C7", "\x71\xCD\xA1\xCF\x87" }, /* qχ -> q͡χ */
+    { "t", "\u03B8", NULL },          /* tθ (synthesize) */
+    { "t", "f", NULL },               /* tf (synthesize) */
 };
 #define NNOLIG ((int)(sizeof(NOLIG) / sizeof(NOLIG[0])))
 
@@ -1658,7 +1664,10 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                 continue;
             }
             if (is_ligature_cp(cp)) {
-                /* tie: next must be a base */
+                /* tie: next must be a base.  If the pair is a NOLIG
+                 * affricate (e.g. t+ʂ -> ʈ͡ʂ, d+ʐ -> ɖ͡ʐ), use the tied
+                 * form's segments so the closure carries the right place
+                 * (retroflex ʈ/ɖ, not alveolar t/d). */
                 p += k;
                 int c2 = 0;
                 const SegEntry *b2 = match_base_ex((const char *)p, &c2);
@@ -1666,6 +1675,36 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                     snprintf(err, errsz, "ligature tie without second segment at offset %d",
                              (int)(p - (const unsigned char*)input));
                     return -1;
+                }
+                const SegEntry *closure = out[n-1].seg;
+                const SegEntry *release = b2;
+                int rel_len = c2;
+                for (int nl = 0; nl < NNOLIG; nl++) {
+                    const Nolig *g = &NOLIG[nl];
+                    if (g->tied &&
+                        closure && strcmp(closure->ipa, g->a) == 0 &&
+                        strcmp(release->ipa, g->b) == 0) {
+                        /* re-parse the tied spelling (e.g. ʈ͡ʂ) */
+                        const SegEntry *t2 = NULL;
+                        int tc = 0;
+                        const unsigned char *tp = (const unsigned char*)g->tied;
+                        t2 = match_base_ex((const char*)tp, &tc);
+                        /* only rewrite when the tied form is a single base
+                         * that differs from the closure (t+ʂ -> ʈ͡ʂ is a
+                         * place fix; t+s -> t͡s already exists as t͡s) */
+                        if (t2 && strcmp(t2->ipa, closure->ipa) != 0) {
+                            /* tied form is a single base: swap the closure
+                             * token in place, preserving its tone state */
+                            out[n-1].seg = t2;
+                            out[n-1].ipa = t2->ipa;
+                            out[n-1].latin = (t2 >= SEG_TABLE && t2 < SEG_TABLE + NSEG)
+                                      ? NAME_TABLE[t2 - SEG_TABLE]
+                                      : EXTRA_NAMES[t2 - EXTRA_BASE];
+                            p += rel_len;
+                            goto tie_done;
+                        }
+                        break;
+                    }
                 }
                 IrTok l;
                 l.kind = TK_LIG;
@@ -1679,16 +1718,18 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                 IrTok r;
                 r.kind = TK_BASE;
                 r.preposed = 0;
-                r.ipa = b2->ipa;
-                r.latin = (b2 >= SEG_TABLE && b2 < SEG_TABLE + NSEG)
-                          ? NAME_TABLE[b2 - SEG_TABLE]
-                          : EXTRA_NAMES[b2 - EXTRA_BASE];
+                r.ipa = release->ipa;
+                r.latin = (release >= SEG_TABLE && release < SEG_TABLE + NSEG)
+                          ? NAME_TABLE[release - SEG_TABLE]
+                          : EXTRA_NAMES[release - EXTRA_BASE];
                 r.tier = TIER_COUNT;
                 r.mod = NULL;
-                r.seg = b2;
-                r.consumed = c2;
+                r.seg = release;
+                r.consumed = rel_len;
                 out[n++] = r;
-                p += c2;
+                p += rel_len;
+                continue;
+            tie_done:
                 continue;
             }
             if (n >= MAX_TOKS) goto full;

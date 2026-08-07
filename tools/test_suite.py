@@ -100,7 +100,8 @@ check("mixed digit+letter tone warns", ["ma\u00b9\u02e9"], expect_rc=0,
 # ------------------------------------------------------------------
 for pair in ["ts", "dz", "t\u0283", "d\u0292", "t\u0255", "d\u0291",
              "\u0288\u0282", "\u0256\u0290", "t\u026c", "d\u026e",
-             "c\u00e7", "\u025f\u029d", "p\u032af"]:
+             "c\u00e7", "\u025f\u029d", "p\u032af",
+             "t\u0282", "d\u0290", "kx", "q\u03c7", "t\u03b8", "tf"]:
     check(f"implicit affricate {pair!r}", [pair], expect_segs=1)
 check("non-affricate pair stays 2 segs", ["gp"], expect_segs=2)
 
