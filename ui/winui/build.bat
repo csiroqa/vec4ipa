@@ -4,6 +4,7 @@ rem Requires: MinGW gcc (core DLL), VS Build Tools 2022 MSBuild,
 rem            .NET SDK 9.
 rem
 rem   build.bat            build Release x64
+rem   build.bat publish    publish a single-file exe
 rem   build.bat clean      remove build output
 
 cd /d "%~dp0"
@@ -21,6 +22,14 @@ if errorlevel 1 exit /b 1
 
 echo [2/2] building WinUI 3 app ...
 set MSBUILD="C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
+
+if /i "%~1"=="publish" (
+    %MSBUILD% ipa2vec_ui.csproj /restore /p:Configuration=Release /p:Platform=x64 /p:PublishSingleFile=true /t:Publish /v:m
+    if errorlevel 1 exit /b 1
+    echo Done: bin\x64\Release\net9.0-windows10.0.19041.0\win-x64\publish\ipa2vec_ui.exe
+    exit /b 0
+)
+
 %MSBUILD% ipa2vec_ui.csproj /restore /p:Configuration=Release /p:Platform=x64 /v:m
 if errorlevel 1 exit /b 1
 

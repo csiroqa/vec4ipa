@@ -1,6 +1,9 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Windowing;
+using Microsoft.UI;
 using System;
+using System.IO;
 
 namespace IPA2VectorUI
 {
@@ -10,7 +13,24 @@ namespace IPA2VectorUI
         {
             InitializeComponent();
             Title = "IPA2Vector Workbench";
+            SetIcon();
             BuildKeyboard();
+        }
+
+        private void SetIcon()
+        {
+            try
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
+                var appWindow = AppWindow.GetFromWindowId(windowId);
+                string dir = Path.GetDirectoryName(
+                    Environment.ProcessPath ?? "") ?? "";
+                string icon = Path.Combine(dir, "vec_ipa.ico");
+                if (File.Exists(icon))
+                    appWindow.SetIcon(icon);
+            }
+            catch { /* icon is cosmetic; keep the window going */ }
         }
 
         private void BuildKeyboard()
