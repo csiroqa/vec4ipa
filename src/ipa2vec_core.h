@@ -167,12 +167,55 @@ typedef struct {
     int tkind[3];          /* 0 none, 1 contour, 2 = 3-D vector */
 } SegVec;
 
+/* ------------------------------------------------------------------ */
+/* Runtime metric — compiled-in defaults (METRIC_W / METRIC_LAMBDA     */
+/* from vectors.h) unless overridden per-invocation by --metric FILE.  */
+/* The defaults are used automatically, so the binaries never need an  */
+/* external JSON at runtime.                                           */
+/* ------------------------------------------------------------------ */
+
+static double g_metric_w[NDIM];
+static double g_metric_M[NDIM][NDIM];
+static double g_metric_lambda;
+static int    g_metric_full = 0;   /* 1: use the full 16x16 matrix form */
+static int    g_metric_ready = 0;  /* 0: seg_dist must sync defaults */
+
+static IPA2VEC_MAYBE_UNUSED void metric_sync_defaults (void)
+{
+    for (int i = 0; i < NDIM; i++) {
+        g_metric_w[i] = METRIC_W[i];
+        for (int j = 0; j < NDIM; j++)
+            g_metric_M[i][j] = (i == j) ? METRIC_W[i] : 0.0;
+    }
+    g_metric_lambda = METRIC_LAMBDA;
+    g_metric_full = 0;
+    g_metric_ready = 1;
+}
+
+static IPA2VEC_MAYBE_UNUSED void metric_ensure (void)
+{
+    if (!g_metric_ready) metric_sync_defaults();
+}
+
 static IPA2VEC_MAYBE_UNUSED double seg_dist (const double a[NDIM], const double b[NDIM])
 {
+    metric_ensure();
     double s = 0.0;
-    for (int i = 0; i < NDIM; i++) {
-        double d = a[i] - b[i];
-        s += METRIC_W[i] * d * d;
+    if (g_metric_full) {
+        for (int i = 0; i < NDIM; i++) {
+            double di = a[i] - b[i];
+            if (di == 0.0) continue;
+            for (int j = 0; j < NDIM; j++) {
+                double dj = a[j] - b[j];
+                if (dj == 0.0) continue;
+                s += g_metric_M[i][j] * di * dj;
+            }
+        }
+    } else {
+        for (int i = 0; i < NDIM; i++) {
+            double d = a[i] - b[i];
+            s += g_metric_w[i] * d * d;
+        }
     }
     return sqrt(s);
 }
@@ -2433,6 +2476,227 @@ static IPA2VEC_MAYBE_UNUSED int opt_match_val(const char *arg,
         }
     }
     return 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* --metric FILE — load a metric.json (weights / lambda / full 16x16  */
+/* matrix) at runtime, overriding the compiled-in defaults for this    */
+/* invocation only.  Without --metric the compiled-in METRIC_W /       */
+/* METRIC_LAMBDA are used, so no external JSON is ever required.       */
+/*                                                                     */
+/* The JSON schema follows metric.json (METRIC.md §5):                 */
+/*   { "weights": [16 numbers], "lambda": number,                      */
+/*     "metric": null | [256 numbers], ... }                           */
+/* A non-null "metric" matrix overrides "weights".                     */
+/* ------------------------------------------------------------------ */
+
+typedef struct { const char *p, *end; int line; } JsonCtx;
+
+static IPA2VEC_MAYBE_UNUSED void json_ws (JsonCtx *c)
+{
+    while (c->p < c->end) {
+        char ch = *c->p;
+        if (ch == ' ' || ch == '\t' || ch == '\r') { c->p++; }
+        else if (ch == '\n') { c->p++; c->line++; }
+        else break;
+    }
+}
+
+static IPA2VEC_MAYBE_UNUSED int json_skip_value (JsonCtx *c)
+{
+    json_ws(c);
+    if (c->p >= c->end) return -1;
+    char ch = *c->p;
+    if (ch == '"') {
+        c->p++;
+        while (c->p < c->end) {
+            char s = *c->p++;
+            if (s == '\\') { if (c->p < c->end) c->p++; }
+            else if (s == '"') return 0;
+            else if (s == '\n') c->line++;
+        }
+        return -1;
+    }
+    if (ch == '{' || ch == '[') {
+        char open = ch, close = (ch == '{') ? '}' : ']';
+        c->p++;
+        for (;;) {
+            if (json_ws(c), c->p >= c->end) return -1;
+            char s = *c->p++;
+            if (s == close) return 0;
+            if (s == '"') {
+                while (c->p < c->end) {
+                    char t = *c->p++;
+                    if (t == '\\') { if (c->p < c->end) c->p++; }
+                    else if (t == '"') break;
+                    else if (t == '\n') c->line++;
+                }
+            }
+            if (c->p >= c->end) return -1;
+        }
+    }
+    /* bare literal / number: consume to the next structural char */
+    while (c->p < c->end) {
+        char s = *c->p;
+        if (s == ',' || s == '}' || s == ']' || s == ' ' || s == '\t' ||
+            s == '\n' || s == '\r')
+            break;
+        c->p++;
+    }
+    return 0;
+}
+
+/* parse one JSON number; on success *out is set and 0 returned */
+static IPA2VEC_MAYBE_UNUSED int json_number (JsonCtx *c, double *out)
+{
+    json_ws(c);
+    if (c->p >= c->end) return -1;
+    char *endp = NULL;
+    double v = strtod(c->p, &endp);
+    if (endp == c->p) return -1;
+    c->p = endp;
+    *out = v;
+    return 0;
+}
+
+/* parse a JSON array of numbers into out[0..n-1]; must have exactly n */
+static IPA2VEC_MAYBE_UNUSED int json_num_array (JsonCtx *c, double *out, int n)
+{
+    json_ws(c);
+    if (c->p >= c->end || *c->p != '[') return -1;
+    c->p++;
+    for (int k = 0; k < n; k++) {
+        double v;
+        if (json_number(c, &v) != 0) return -1;
+        out[k] = v;
+        json_ws(c);
+        if (c->p >= c->end) return -1;
+        if (*c->p == ',') { c->p++; continue; }
+        if (*c->p == ']') {
+            if (k != n - 1) return -1;   /* too few elements */
+            c->p++;
+            return 0;
+        }
+        return -1;
+    }
+    /* exactly n elements read: the array must close now */
+    json_ws(c);
+    if (c->p < c->end && *c->p == ']') { c->p++; return 0; }
+    return -1;
+}
+
+/* returns 1 if "key": is at the cursor (and consumes it), else 0 */
+static IPA2VEC_MAYBE_UNUSED int json_key (JsonCtx *c, const char *key)
+{
+    json_ws(c);
+    if (c->p >= c->end || *c->p != '"') return 0;
+    const char *q = c->p + 1;
+    size_t L = strlen(key);
+    if ((size_t)(c->end - q) < L || memcmp(q, key, L) != 0) return 0;
+    q += L;
+    if (q >= c->end || *q != '"') return 0;
+    c->p = q + 1;
+    json_ws(c);
+    if (c->p >= c->end || *c->p != ':') return 0;
+    c->p++;
+    return 1;
+}
+
+/* load metric.json into the runtime metric globals.
+ * Returns 0 on success; -1 on any parse/IO error (message printed). */
+static IPA2VEC_MAYBE_UNUSED int load_metric_json (const char *path)
+{
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        fprintf(stderr, "--metric: cannot open '%s'\n", path);
+        return -1;
+    }
+    long sz;
+    if (fseek(f, 0, SEEK_END) != 0 || (sz = ftell(f)) < 0 ||
+        fseek(f, 0, SEEK_SET) != 0 || sz > (1 << 20)) {
+        fclose(f);
+        fprintf(stderr, "--metric: '%s': unreadable or too large\n", path);
+        return -1;
+    }
+    char *buf = (char *)malloc((size_t)sz + 1);
+    if (!buf) { fclose(f); fprintf(stderr, "--metric: out of memory\n"); return -1; }
+    size_t got = fread(buf, 1, (size_t)sz, f);
+    fclose(f);
+    buf[got] = 0;
+
+    JsonCtx c = { buf, buf + got, 1 };
+    int have_w = 0, have_m = 0;
+    json_ws(&c);
+    if (c.p >= c.end || *c.p != '{') {
+        fprintf(stderr, "--metric: '%s': not a JSON object\n", path);
+        free(buf);
+        return -1;
+    }
+    c.p++;
+    for (;;) {
+        json_ws(&c);
+        if (c.p >= c.end) goto bad;
+        if (*c.p == '}') { c.p++; break; }
+        if (json_key(&c, "weights")) {
+            if (json_num_array(&c, g_metric_w, NDIM) != 0) goto bad;
+            have_w = 1;
+        } else if (json_key(&c, "lambda")) {
+            if (json_number(&c, &g_metric_lambda) != 0) goto bad;
+        } else if (json_key(&c, "metric")) {
+            json_ws(&c);
+            if (c.p < c.end && *c.p == 'n') {   /* null */
+                while (c.p < c.end && (isalpha((unsigned char)*c.p))) c.p++;
+                g_metric_full = 0;
+            } else {
+                if (json_num_array(&c, &g_metric_M[0][0], NDIM * NDIM) != 0)
+                    goto bad;
+                g_metric_full = 1;
+                have_m = 1;
+            }
+        } else {
+            /* unknown key: skip the "key": value pair (nested ok) */
+            if (json_skip_value(&c) != 0) goto bad;   /* the key string */
+            json_ws(&c);
+            if (c.p >= c.end || *c.p != ':') goto bad;
+            c.p++;
+            if (json_skip_value(&c) != 0) goto bad;   /* the value */
+        }
+        json_ws(&c);
+        if (c.p >= c.end) goto bad;
+        if (*c.p == ',') { c.p++; continue; }
+        if (*c.p == '}') { c.p++; break; }
+        goto bad;
+    }
+    if (!have_w && !have_m) {
+        fprintf(stderr, "--metric: '%s': no 'weights' or 'metric' array\n", path);
+        free(buf);
+        return -1;
+    }
+    free(buf);
+    g_metric_ready = 1;
+    return 0;
+bad:
+    fprintf(stderr, "--metric: '%s': parse error near line %d\n", path, c.line);
+    free(buf);
+    return -1;
+}
+
+/* --metric FILE / --metric=FILE.
+ * Returns 1 if matched (metric loaded), -1 if value missing,
+ * -2 if the file failed to load (message already printed), 0 if not ours. */
+static IPA2VEC_MAYBE_UNUSED int opt_metric(const char *arg, int argc, char **argv, int *i)
+{
+    const char *path = NULL;
+    if (strcmp(arg, "--metric") == 0) {
+        if (*i + 1 >= argc) return -1;
+        path = argv[++*i];
+    } else if (strncmp(arg, "--metric=", 9) == 0) {
+        path = arg + 9;
+    } else {
+        return 0;
+    }
+    if (load_metric_json(path) != 0) return -2;
+    return 1;
 }
 
 /* ------------------------------------------------------------------ */

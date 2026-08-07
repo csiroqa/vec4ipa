@@ -117,7 +117,8 @@ static void print_stats(void)
     printf("alias modules:               %d (%d symbols)\n", N_ALIAS_MODULES, nmod);
     printf("implicit affricates:         %d\n", NNOLIG);
     printf("dimensions:                  %d\n", NDIM);
-    printf("lambda:                      %.2f\n", METRIC_LAMBDA);
+    metric_ensure();
+    printf("lambda:                      %.2f\n", g_metric_lambda);
     printf("airstreams:                  %s | %s | %s | %s | %s\n",
            AIRSTREAM_LABELS[0], AIRSTREAM_LABELS[1],
            AIRSTREAM_LABELS[2], AIRSTREAM_LABELS[3], AIRSTREAM_LABELS[4]);
@@ -125,10 +126,15 @@ static void print_stats(void)
 
 static void print_weights(void)
 {
-    printf("# dimension weights (metric.json v3, fitted to Phatak 2008 + MN55)\n");
+    metric_ensure();
+    printf("# dimension weights (metric.json v4, refit to Phatak 2008 + MN55)\n");
+    printf("# --metric FILE overrides these at runtime\n");
     for (int i = 0; i < NDIM; i++)
-        printf("%2d  %-22s %8.4f\n", i, DIM_NAMES[i], METRIC_W[i]);
-    printf("lambda (airstream penalty):  %.2f\n", METRIC_LAMBDA);
+        printf("%2d  %-22s %8.4f\n", i, DIM_NAMES[i],
+               g_metric_full ? g_metric_M[i][i] : g_metric_w[i]);
+    if (g_metric_full)
+        printf("# full 16x16 metric matrix in effect (off-diagonal terms active)\n");
+    printf("lambda (airstream penalty):  %.2f\n", g_metric_lambda);
 }
 
 static void usage(void)
@@ -140,6 +146,7 @@ static void usage(void)
     printf("  -i, --information      full documentation (embedded README)\n");
     printf("  -h, --help             this help\n");
     printf("  --width <0-4>          transcription narrowness (default 3)\n");
+    printf("  --metric FILE          load metric.json weights/lambda at runtime\n");
     printf("  -t, --table            full base table\n");
     printf("  -m, --modules          regional modules\n");
     printf("  -q, --query SYM        query a symbol\n");
@@ -258,6 +265,10 @@ int main(int argc, char **argv)
         int w = opt_width(argv[i], argc, argv, &i);
         if (w == 1) continue;
         if (w == -1) { fprintf(stderr, "vec4ipa: --width needs 0-4\n"); return 1; }
+        int m = opt_metric(argv[i], argc, argv, &i);
+        if (m == 1) continue;
+        if (m == -1) { fprintf(stderr, "vec4ipa: --metric needs a file\n"); return 1; }
+        if (m == -2) return 1;
         if (opt_match(argv[i], "-i", "--information")) { printf("%s", EMBEDDED_README); return 0; }
         if (opt_match(argv[i], "-v", "--version")) {
             printf("vec4ipa %s (%d base segments + %d extIPA bases, %d modifiers)\n",

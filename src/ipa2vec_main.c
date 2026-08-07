@@ -29,6 +29,7 @@ static void usage(void)
     printf("  -x, --ir-out BASE     export IR to BASE.layer1/.layer2\n");
     printf("  -h, --help            this help\n");
     printf("  --width <0-4>          transcription narrowness (default 3)\n");
+    printf("  --metric FILE         load metric.json weights/lambda at runtime\n");
     printf("  -v, --version         version\n");
     printf("\nwith no STRING, input is read from stdin\n");
     printf("layer 1 = character order; layer 2 = feature-tier order:\n");
@@ -61,6 +62,10 @@ int main(int argc, char **argv)
         int w = opt_width(argv[i], argc, argv, &i);
         if (w == 1) continue;
         if (w == -1) { fprintf(stderr, "ipa2vec: --width needs 0-4\n"); return 1; }
+        int m = opt_metric(argv[i], argc, argv, &i);
+        if (m == 1) continue;
+        if (m == -1) { fprintf(stderr, "ipa2vec: --metric needs a file\n"); return 1; }
+        if (m == -2) return 1;
         if (opt_match(argv[i], "-v", "--version")) {
             printf("ipa2vec %s (16-D vectors, %d base segments, lambda=%.2f)\n",
                    IPA2VEC_VERSION, NSEG, METRIC_LAMBDA);

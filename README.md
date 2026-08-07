@@ -63,12 +63,14 @@ faces when the folder is absent; no font installation is required.
 ipa2vec <STRING>            parse each segment -> vectors
 ipa2vec -i <STRING>         show the two-layer IR, then rebuild IPA (inverse demo)
 ipa2vec -j <STRING>         JSON output
+ipa2vec --metric FILE       load metric.json weights/lambda at runtime
 ipa2vec -v                  version
 
 vec2ipa <V0,...,V15>        nearest segment + modifier fit -> IPA
 vec2ipa -n <V0,...,V15>     nearest base segment only
 vec2ipa -d <A> <B>          weighted distance (Mahalanobis + airstream penalty λ)
 vec2ipa --width <0-4>       transcription narrowness (default 3)
+vec2ipa --metric FILE       load metric.json weights/lambda at runtime
 
 vec4ipa -i | -t             full information table (main + extIPA bases)
 vec4ipa -m                  regional modules and their symbols
@@ -79,6 +81,7 @@ vec4ipa <STRING>            forward: IPA -> vectors
 vec4ipa -r <V0,...,V15>     reverse: vectors -> IPA
 vec4ipa -n <V0,...,V15>     nearest base segment
 vec4ipa -d <A> <B>          weighted distance
+vec4ipa --metric FILE       load metric.json weights/lambda at runtime
 vec4ipa -h                  help (this README, embedded)
 vec4ipa -v                  version
 ```
@@ -93,6 +96,12 @@ vec4ipa -v                  version
   representation to `BASE.layer1` (character-composition order) and
   `BASE.layer2` (feature-tier order), one token per line:
   `BASE<TAB>ipa<TAB>latin` · `MOD<TAB>ipa<TAB>latin<TAB>tier` · `TIE`
+- **`--metric FILE`**: load a metric JSON (the `metric.json` schema:
+  `weights` = 16 numbers, `lambda`, and optionally a full 16×16
+  `metric` matrix that overrides `weights`) and use it for every
+  distance / nearest-neighbour computation in this invocation.
+  Without `--metric` the compiled-in defaults are used — the binaries
+  never depend on an external file at runtime.
 - **`--`**: treat every following argument as positional (for strings that
   start with `-`)
 

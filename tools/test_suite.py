@@ -13,6 +13,7 @@ deprecated-symbol warnings, and round-trip fidelity of the base table.
 import subprocess
 import sys
 import re
+import os
 
 EXE = sys.argv[1] if len(sys.argv) > 1 else r"D:\2-OGP\IPA2Vector\ipa2vec.exe"
 VEC2IPA = sys.argv[2] if len(sys.argv) > 2 else r"D:\2-OGP\IPA2Vector\vec2ipa.exe"
@@ -300,6 +301,69 @@ for _s in ["t\u02b3", "t\u1d49", "a\u1d42"]:
 check("empty input", [""], expect_rc=0, expect_segs=0)
 check("unknown symbol error", ["\u00e9\u2603"], expect_rc=1)
 check("modifier-only error", ["\u02e5"], expect_rc=1)
+
+# ------------------------------------------------------------------
+# 10. --metric FILE: runtime metric override (default = compiled-in)
+# ------------------------------------------------------------------
+import tempfile, json as _json
+metric_default = _json.load(open(r"D:\2-OGP\IPA2Vector\metric.json", encoding="utf-8"))
+
+alt = dict(metric_default)
+alt["weights"] = [1.0] * 16
+alt["lambda"] = 0.0
+full = dict(metric_default)
+full["metric"] = [0.0] * 256
+for i in range(16):
+    full["metric"][i * 16 + i] = 2.0
+
+_tmpdir = tempfile.mkdtemp(prefix="ipa2vec_test_")
+_alt = os.path.join(_tmpdir, "alt.json")
+_full = os.path.join(_tmpdir, "full.json")
+_bad = os.path.join(_tmpdir, "bad.json")
+with open(_alt, "w", encoding="utf-8") as f: _json.dump(alt, f)
+with open(_full, "w", encoding="utf-8") as f: _json.dump(full, f)
+with open(_bad, "w", encoding="utf-8") as f: f.write('{"weights": [1.0, 2.0}')
+
+def run_any(exe, args):
+    return subprocess.run([exe] + args, capture_output=True, text=True,
+                          encoding="utf-8", errors="replace")
+
+d_default = run_any(VEC2IPA, ["-d", "p", "t"]).stdout.strip()
+d_alt = run_any(VEC2IPA, ["--metric", _alt, "-d", "p", "t"]).stdout.strip()
+d_full = run_any(VEC2IPA, ["--metric", _full, "-d", "p", "t"]).stdout.strip()
+
+check("--metric equal file matches default", ["--metric", r"D:\2-OGP\IPA2Vector\metric.json", "ma"], expect_rc=0)
+total += 1
+if d_default == d_alt:
+    fails += 1
+    print("FAIL: --metric uniform weights must change p-t distance")
+elif abs(float(d_alt) - 1.25) > 1e-3:   # plain Euclidean p-t distance
+    fails += 1
+    print(f"FAIL: --metric uniform weights gave {d_alt}, want 1.2500")
+total += 1
+if d_default == d_full:
+    fails += 1
+    print("FAIL: --metric full matrix must change p-t distance")
+elif abs(float(d_full) - float(d_alt) * (2 ** 0.5)) > 1e-3:
+    # matrix = 2I over the same uniform weights -> distance * sqrt(2)
+    fails += 1
+    print(f"FAIL: --metric 2x matrix gave {d_full}, want {float(d_alt) * 2 ** 0.5:.4f}")
+total += 1
+r = run_any(EXE, ["--metric", _bad, "ma"])
+if r.returncode != 1:
+    fails += 1
+    print(f"FAIL: malformed --metric json must exit 1 (rc={r.returncode})")
+total += 1
+r = run_any(EXE, ["--metric", os.path.join(_tmpdir, "nope.json"), "ma"])
+if r.returncode != 1:
+    fails += 1
+    print(f"FAIL: missing --metric file must exit 1 (rc={r.returncode})")
+total += 1
+r = run_any(VEC2IPA, ["--metric"])
+if r.returncode != 1:
+    fails += 1
+    print(f"FAIL: --metric without value must exit 1 (rc={r.returncode})")
+total += 1
 
 # ------------------------------------------------------------------
 print(f"\n{total - fails}/{total} checks passed")
