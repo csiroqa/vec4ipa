@@ -2,7 +2,7 @@
 
 Machine‑readable weights and metric live in **`metric.json`**; this document explains the derivation, the schema, and how to learn/tune the metric.
 
-> **v6 (vowel-consonant anchors):** the v5 refit collapsed `effective_oral_area` (0.57) — the confusion data (16 consonants) gives no signal for the vowel space, so a nasalised long vowel mapped to a nasal consonant (ãː → /ɲ/). The refit now adds vowel-consonant separation anchors (`tools/fit_metric.py`, `--anchor`): for every vowel-like base and its nasalised/long extensions, the nearest vowel must stay closer than the nearest consonant, so the vowel-consonant contrast is carried by the dimensions that genuinely differ (oral area, duration, nasality). `effective_oral_area` = 7.45; LOCO held-out NLL: **fitted 21,954 < v5 22,048 < MN55 tiers 28,190**. The four no-signal dimensions (tongue_root, lateral_ratio, laryngeal_tension, airflow_direction) are pinned at tier defaults during the fit.
+> **v7 (nasalised-value fix):** nasalised vowels were encoded at `vel_open` 0.8 — only 0.2 below full nasals — so nasalised high/back vowels anchored to nasal consonants (ɯ̃ → /ŋ/). The nasalised-vowel anchor is now **0.6** (clearly weaker than 1.0; SPEC §2/§10, `mod_nasal`), and the extIPA velopharyngeal fricative ʩ moved from a half-nasal 0.5 to full-nasal 1.0 (friction at the port requires full nasal airflow; 0.5 made it the accidental nearest neighbour of every nasalised voiceless fricative). LOCO held-out NLL: **fitted 21,992 < v6 21,954-vs… (≈ +0.2%) < MN55 tiers 28,190**. All 36 vowel-like bases × {̃, ː, ̃ː} now anchor to vowels (regression-tested in `tools/test_metric_space.py`).
 
 ## 1. Distance
 
@@ -38,25 +38,25 @@ via $w_i = 2^{(t_{\text{place}} - t_i)/6}$ with $t_{\text{place}} = +6\ \text{dB
 - `lips_rounded` fitted at ≈ 21 (only /ʃ/ differs on it within the 16 consonants); capped at 8.0 to avoid overfitting noise (costs only 0.3% NLL).
 - `tongue_root`, `lateral_ratio`, `laryngeal_tension` carry no signal in this 16-consonant set (constant 0.0) and were kept at their MN55-tier values (1.0 / 2.0 / 8.0); `duration` is well identified (8 distinct values across the set) and was fitted (1.405).
 
-Final fitted weights (dimension order as in `metric.json`, v6 — the v5 weights are shown for reference):
+Final fitted weights (dimension order as in `metric.json`, v7 — the v6 weights are shown for reference):
 
-| Dimension | Feature (MN55) | Weight (v6) | v5 | Fit basis |
+| Dimension | Feature (MN55) | Weight (v7) | v6 | Fit basis |
 | --------- | -------------- | ----------- | --- | --------- |
-| `lips_closed`      | place (labial closure) | 1.279 | 1.558 | fitted (f/v/p̪/ɱ/ⱱ are 1.0) |
-| `lips_rounded`     | place (rounding) | 8.0 (capped; raw ≈ 31) | 8.0 | fitted, capped |
-| `tt_pos`           | place (tip position) | 0.968 | 1.148 | fitted |
-| `tt_height`        | place (tip closure) | 1.432 | 1.738 | fitted |
-| `tb_pos`           | place (body position) | 2.310 | 2.798 | fitted |
+| `lips_closed`      | place (labial closure) | 1.397 | 1.279 | fitted (f/v/p̪/ɱ/ⱱ are 1.0) |
+| `lips_rounded`     | place (rounding) | 8.0 (capped; raw ≈ 34) | 8.0 | fitted, capped |
+| `tt_pos`           | place (tip position) | 1.069 | 0.968 | fitted |
+| `tt_height`        | place (tip closure) | 1.559 | 1.433 | fitted |
+| `tb_pos`           | place (body position) | 2.533 | 2.310 | fitted |
 | `tongue_root`      | place (ATR; not in MN55/Phatak sets) | 1.0 | 1.0 | tier default (pinned) |
-| `vel_open`         | nasality | 3.128 | 3.819 | fitted |
+| `vel_open`         | nasality | 3.442 | 3.128 | fitted |
 | `lateral_ratio`    | manner (laterality) | 2.0 | 2.0 | tier default (pinned) |
-| `voiced`           | voicing | 0.485 | 0.927 | fitted, then rescaled (aggregation fix) |
-| `cg`               | voicing (glottal constriction) | 6.916 | 5.806 | fitted, then rescaled (collinear with `voiced`/`sg`) |
-| `sg`               | voicing (glottal spread) | 3.554 | 2.858 | fitted, then rescaled (collinear with `voiced`/`cg`) |
+| `voiced`           | voicing | 0.477 | 0.485 | fitted, then rescaled (aggregation fix) |
+| `cg`               | voicing (glottal constriction) | 7.537 | 6.916 | fitted, then rescaled (collinear with `voiced`/`sg`) |
+| `sg`               | voicing (glottal spread) | 4.188 | 3.554 | fitted, then rescaled (collinear with `voiced`/`cg`) |
 | `laryngeal_tension`| voicing (laryngeal) | 8.0 | 8.0 | tier default (pinned) |
-| `duration`         | duration | 2.353 | 3.129 | fitted |
-| `jet_focus`        | frication | 2.342 | 2.801 | fitted |
-| `effective_oral_area` | affrication (manner) / vowel height | 7.450 | 0.565 | fitted + vowel-consonant anchors |
+| `duration`         | duration | 2.671 | 2.353 | fitted |
+| `jet_focus`        | frication | 2.531 | 2.342 | fitted |
+| `effective_oral_area` | affrication (manner) / vowel height | 4.421 | 7.450 | fitted + vowel-consonant anchors |
 | `airflow_direction` | airstream direction | 4.0 | 4.0 | qualitative (pinned) |
 
 > **Placement note — `tt_height`:** `tt_height` stays in the *place* tier: the tip‑closure contrast it codes is a place contrast. Phatak & Allen (2007) and MN55 show /pa,ta/ is the *hardest* stop‑place pair (81% correct at 10 dB SNR vs ≥92% for all other CV pairs), so tip‑activation must not be priced higher than body position. Manner contrasts (e.g., /t/ vs /s/) are carried by `duration`, `jet_focus`, `effective_oral_area`.

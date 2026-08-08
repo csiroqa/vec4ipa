@@ -90,6 +90,9 @@ def nll_weights(counts, D, loga):
         tot -= np.sum(counts[c] * np.log(P))
     return tot
 
+NASALISED_VEL = 0.6   # nasalised vowels are clearly weaker than
+                            # full nasals (SPEC §2: 0.6 vs 1.0)
+
 def vowel_consonant_penalty(X_all, weights, margin=0.2):
     """Vowel-consonant separation anchors.
 
@@ -120,7 +123,7 @@ def vowel_consonant_penalty(X_all, weights, margin=0.2):
         for nas, long in ((1, 0), (0, 1), (1, 1)):
             ext = v.copy()
             if nas:
-                ext[6] = 0.8
+                ext[6] = NASALISED_VEL
             if long:
                 ext[12] = 2.0
             def d(j):
