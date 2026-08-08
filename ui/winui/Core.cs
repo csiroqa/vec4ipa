@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -18,6 +19,12 @@ namespace Vec4ipaUI
             [MarshalAs(UnmanagedType.LPUTF8Str)] string str,
             [MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder err, int errsz,
             [Out] double[] vecs, [Out] int[] airstream, IntPtr names);
+
+        [DllImport("ipa2vec_core.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int ipa2v_forward_tone(
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string str,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder err, int errsz,
+            [Out] double[] vecs, [Out] double[] tone, [Out] int[] tkind);
 
         [DllImport("ipa2vec_core.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern int ipa2v_reverse(
@@ -311,8 +318,9 @@ namespace Vec4ipaUI
             error = null;
             var err = new StringBuilder(256);
             var vecs = new double[NDIM * MAX_TOKS];
-            var air = new int[MAX_TOKS];
-            int n = ipa2v_forward(ipa, err, 256, vecs, air, IntPtr.Zero);
+            var tone = new double[9 * MAX_TOKS];
+            var tkind = new int[3 * MAX_TOKS];
+            int n = ipa2v_forward_tone(ipa, err, 256, vecs, tone, tkind);
             if (n < 0) { error = err.ToString(); return null; }
             var sb = new StringBuilder();
             for (int s = 0; s < n; s++)
@@ -321,36 +329,207 @@ namespace Vec4ipaUI
                 for (int i = 0; i < NDIM; i++)
                     sb.Append(i == 0 ? $"{vecs[s * NDIM + i]:F4}"
                                      : $", {vecs[s * NDIM + i]:F4}");
-                sb.AppendLine(")");
+                sb.Append(')');
+                string t = ToneText(tone, tkind, s);
+                if (t.Length > 0)
+                    sb.Append("  tone: ").Append(t);
+                sb.AppendLine();
+            }
+            return sb.ToString();
+        }
+
+        /* same rendering as the CLI print_tone: (v) / (v,v) / (v,v,v) for
+         * tone[0]/[1], (u,g,c) for the 3-D tone[2] */
+        private static string ToneText(double[] tone, int[] tkind, int s)
+        {
+            var sb = new StringBuilder();
+            for (int g = 0; g < 3; g++)
+            {
+                if (tkind[s * 3 + g] == 0) continue;
+                double t0 = tone[s * 9 + g * 3 + 0];
+                double t1 = tone[s * 9 + g * 3 + 1];
+                double t2 = tone[s * 9 + g * 3 + 2];
+                if (double.IsNaN(t0)) continue;
+                if (g == 2)
+                {
+                    sb.Append('(');
+                    sb.Append(double.IsNaN(t0) ? "0" : t0.ToString("0.#"));
+                    sb.Append(',');
+                    sb.Append(double.IsNaN(t1) ? "0" : t1.ToString("0.#"));
+                    sb.Append(',');
+                    sb.Append(double.IsNaN(t2) ? "0" : t2.ToString("0.#"));
+                    sb.Append(')');
+                    continue;
+                }
+                bool b2 = double.IsNaN(t2);
+                int nvals = b2 ? (Math.Abs(t0 - t1) < 1e-9 ? 1 : 2) : 3;
+                sb.Append('(');
+                for (int k = 0; k < nvals; k++)
+                {
+                    double v = tone[s * 9 + g * 3 + k];
+                    sb.Append(k == 0 ? v.ToString("0.#")
+                                     : $", {v.ToString("0.#")}");
+                }
+                sb.Append(')');
             }
             return sb.ToString();
         }
 
         public static string? Reverse(string vectorText, int width)
         {
-            var parts = vectorText
-                .Trim()
-                .TrimStart('(', '[')
-                .TrimEnd(')', ']')
-                .Split(new[] { ',', ' ', '\t', ';' },
-                    StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length != NDIM)
-                return "I need 16 comma-separated numbers (I found " +
-                       parts.Length + ").\n"
-                       + "Example: 0,0,0.55,1,0,0,0,0,0,0,0.9,0,0,0,0,1";
-            var v = new double[NDIM];
-            for (int i = 0; i < NDIM; i++)
+            /* 1) "?" stands for an empty vector - normalise to () */
+            string input = vectorText.Trim();
+            string norm = System.Text.RegularExpressions.Regex.Replace(
+                input, @"\?", "()");
+
+            /* 2) extract every parenthesised group in order */
+            var groups = new List<string>();
+            string bare = System.Text.RegularExpressions.Regex.Replace(
+                norm, @"\(([^()]*)\)", m =>
+                {
+                    groups.Add(m.Groups[1].Value.Trim());
+                    return " ";
+                });
+
+            /* 3) if the leading 16 numbers are not wrapped in (),
+             * wrap them implicitly as the first group */
+            var bareNums = bare.Split(new[] { ',', ' ', '\t', ';' },
+                StringSplitOptions.RemoveEmptyEntries);
+            if (bareNums.Length > 0)
             {
-                if (!double.TryParse(parts[i], System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out v[i]))
-                    return $"Value #{i + 1} ('{parts[i]}') is not a number.";
-                if (!double.IsFinite(v[i]))
-                    return $"Value #{i + 1} ('{parts[i]}') must be finite " +
-                           "(no NaN or Infinity).";
+                if (bareNums.Length != NDIM)
+                    return $"I need 16 comma-separated numbers (I found " +
+                           $"{bareNums.Length} outside the groups).\n" +
+                           "Example: 0,0,0.55,1,0,0,0,0,0,0,0.9,0,0,0,0,1 (4,5)";
+                groups.Insert(0, string.Join(",", bareNums));
             }
+
+            /* 4) parse in order: first group = main vector (16 numbers);
+             * following groups fill tone slots 0/1/2 by position - empty
+             * groups (() or ?) keep their slot but produce no symbols */
+            double[]? v = null;
+            double[][] toneSlots = new double[3][];
+            int tonePos = 0;
+            foreach (var g in groups)
+            {
+                var nums = new List<double>();
+                foreach (var tok in g.Split(',',
+                             StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (double.TryParse(tok,
+                            System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            out var d))
+                        nums.Add(d);
+                }
+                if (v == null && nums.Count == NDIM)
+                {
+                    v = nums.ToArray();
+                    continue;
+                }
+                if (v == null) continue;
+                if (tonePos >= 3) break;
+                if (nums.Count > 0 && nums.Count <= 3)
+                    toneSlots[tonePos] = nums.ToArray();
+                tonePos++;
+            }
+            var (toneStr, toneWarn) = ToneSymbols(toneSlots);
+            if (v == null)
+            {
+                if (groups.All(string.IsNullOrEmpty))
+                    return "No vector given - type 16 comma-separated numbers, " +
+                           "e.g. 0,0,0.55,1,0,0,0,0,0,0,0.9,0,0,0,0,1 (4,5)";
+                /* no main vector, but tone groups exist: echo the tones */
+                if (toneStr.Length > 0)
+                    return toneStr + (toneWarn.Length > 0
+                        ? "  （警告：" + toneWarn + "）" : "");
+                return "I need 16 comma-separated numbers.\n" +
+                       "Example: 0,0,0.55,1,0,0,0,0,0,0,0.9,0,0,0,0,1 (4,5)";
+            }
+            for (int i = 0; i < NDIM; i++)
+                if (!double.IsFinite(v[i]))
+                    return $"Value #{i + 1} must be finite (no NaN or Infinity).";
+
             var sb = new StringBuilder(512);
             ipa2v_reverse(v, width, sb, 512);
-            return sb.ToString();
+            string result = sb.ToString();
+            if (toneStr.Length > 0)
+            {
+                /* append the tone symbols inside the rebuilt IPA */
+                int idx = result.LastIndexOf('/');
+                if (idx > 0 && result.EndsWith("/"))
+                    result = result[..idx] + toneStr + "/";
+                else
+                    result += "  tone: " + toneStr;
+            }
+            if (toneWarn.Length > 0)
+                result += "  （警告：" + toneWarn + "）";
+            return result;
+        }
+
+        /* tone slots (by position) -> (IPA tone symbols, warning) */
+        private static (string, string) ToneSymbols(double[][] slots)
+        {
+            const string L5 = "\u02E9\u02E8\u02E7\u02E6\u02E5"; // 1..5 -> ˩˨˧˦˥
+            const string S5 = "\uA716\uA715\uA714\uA713\uA712"; // 1..5 -> ꜖꜕꜔꜓꜒
+            const string D0 = "\u2070\u00B9\u00B2\u00B3\u2074\u2075" +
+                              "\u2076\u2077\u2078\u2079";          // 0..9
+            var sb = new StringBuilder();
+            string warn = "";
+
+            /* slot 0/1: values in 1..5 -> letters; any value outside
+             * 1..5 (0 or >5) -> round and use superscript digits for the
+             * whole group; values below -0.5 warn and skip the group */
+            for (int g = 0; g < 2; g++)
+            {
+                if (slots.Length <= g || slots[g] == null) continue;
+                bool negative = slots[g].Any(d => d < -0.5);
+                if (negative)
+                {
+                    warn = "存在负数，忽略处理";
+                    continue;
+                }
+                var rounded = slots[g].Select(d => (int)Math.Round(d)).ToList();
+                bool allLetters = rounded.All(v => v >= 1 && v <= 5);
+                foreach (var v in rounded)
+                {
+                    if (g == 0)
+                    {
+                        if (allLetters) sb.Append(L5[v - 1]);
+                        else if (v >= 0 && v <= 9) sb.Append(D0[v]);
+                    }
+                    else
+                    {
+                        if (allLetters) sb.Append(S5[v - 1]);
+                        else if (v >= 0 && v <= 9) sb.Append(D0[v]);
+                    }
+                }
+            }
+
+            /* slot 2: 3-D vector - negative values are legal (upstep,
+             * downstep, falling, negative tone classes) */
+            if (slots.Length > 2 && slots[2] != null && slots[2].Length >= 1)
+            {
+                double u = slots[2][0];
+                if (u < 0) sb.Append('\uA71B'); else if (u > 0) sb.Append('\uA71C');
+                if (slots[2].Length >= 2)
+                {
+                    double g = slots[2][1];
+                    if (g > 0) sb.Append('\u2197'); else if (g < 0) sb.Append('\u2198');
+                }
+                if (slots[2].Length >= 3)
+                {
+                    int c = (int)Math.Round(slots[2][2]);
+                    char cls = c switch
+                    {
+                        1 => '\uA700', -1 => '\uA701', 2 => '\uA702',
+                        -2 => '\uA703', 3 => '\uA704', -3 => '\uA705',
+                        4 => '\uA706', -4 => '\uA707', _ => '\0',
+                    };
+                    if (cls != '\0') sb.Append(cls);
+                }
+            }
+            return (sb.ToString(), warn);
         }
 
         public static string Query(string sym)

@@ -1,16 +1,16 @@
 # IPA Segment Vector Table
 
-Complete 16‑dimensional vector table for the IPA inventory. Format per segment: `(lips_closed, lips_rounded, tt_pos, tt_height, tb_pos, tongue_root, vel_open, lateral_ratio, voiced, cg, sg, laryngeal_tension, duration, jet_focus, effective_oral_area, airflow_direction)` followed by the airstream label. Dimensions and semantics are defined in [README.md](README.md); the empirical basis of all anchor values is documented in README §9.
+Complete 16‑dimensional vector table for the IPA inventory. Format per segment: `(lips_closed, lips_rounded, tongue_tip_pos, tongue_tip_height, tongue_body_pos, tongue_root, vel_open, lateral_ratio, voiced, constricted_glottis, spread_glottis, laryngeal_tension, duration, jet_focus, effective_oral_area, airflow_direction)` followed by the airstream label. Dimensions and semantics are defined in [README.md](README.md); the empirical basis of all anchor values is documented in README §9.
 
 **Default conventions** (used throughout unless overridden):
 
-- Voiced obstruents/sonorants: `voiced=1.0`, `cg=0.2`, `sg=0.0`; voiceless obstruents: `voiced=0.0`, `cg=0.0`, `sg=0.4`.
+- Voiced obstruents/sonorants: `voiced=1.0`, `constricted_glottis=0.2`, `spread_glottis=0.0`; voiceless obstruents: `voiced=0.0`, `constricted_glottis=0.0`, `spread_glottis=0.4`.
 - Plosives: `duration=0.0` (release transient); taps/flaps: `0.3`; trills: `0.5`; nasals/approximants: `1.0`; short vowels: `1.0`; long vowels: `2.0`.
 - **Fricatives: `duration` 0.4–1.0, graded by place (anterior → posterior) and voicing** — voiceless 0.5–1.0, voiced ≈ voiceless − 0.1, sibilants 0.7–0.95 (voiceless fricatives longer than voiced; nonsibilants shorter than sibilants; within sibilants the more posterior /ʃ/ > /s/; Crystal & House 1988).
 - **Affricates: `duration` = 0.5 (closure phase) + homorganic fricative phase** (1.2–1.5), voiced − 0.1.
 - **`jet_focus`:** non‑sibilants 0.0 (flat spectrum); sibilants /s/ 0.95 > /ɕ/ 0.90 > /ʃ/ 0.85 > /ʂ/ 0.80 (spectral peak falls with posterior place; Jongman et al. 2000); voiced ≈ −0.05 (lower spectral peak); lateral fricatives ≈ 0.5.
-- **Tip gestures** (active): dental fricatives θ/ð `tt_pos=+1.0, tt_height=0.5`; laminal sibilants `tt_height=0.6`; apical/postalveolar 0.65; retroflex `tt_height=0.8`; tip closures (t, d, n, affricate stop phase, taps, dental/alveolar clicks) `tt_height=1.0`; lateral approximants 0.7.
-- Resting tongue values for segments without a tip or body gesture: `tt_pos=+0.55`, `tt_height=0.25`, `tb_pos=0.0`.
+- **Tip gestures** (active): dental fricatives θ/ð `tongue_tip_pos=+1.0, tongue_tip_height=0.5`; laminal sibilants `tongue_tip_height=0.6`; apical/postalveolar 0.65; retroflex `tongue_tip_height=0.8`; tip closures (t, d, n, affricate stop phase, taps, dental/alveolar clicks) `tongue_tip_height=1.0`; lateral approximants 0.7.
+- Resting tongue values for segments without a tip or body gesture: `tongue_tip_pos=+0.55`, `tongue_tip_height=0.25`, `tongue_body_pos=0.0`.
 - Airstream labels: `pulmonic`, `glottalic egressive`, `glottalic ingressive`, `lingual`.
 
 ---
@@ -180,7 +180,7 @@ Complete 16‑dimensional vector table for the IPA inventory. Format per segment
 
 ## 9. Non‑pulmonic Consonants
 
-### Ejectives (glottalic egressive; `cg=1.0`, `sg=0.0`, `laryngeal_tension=0.6`, `voiced=0.0`)
+### Ejectives (glottalic egressive; `constricted_glottis=1.0`, `spread_glottis=0.0`, `laryngeal_tension=0.6`, `voiced=0.0`)
 `/pʼ/`: `(1.0, 0.0, 0.55, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.6, 0.0, 0.0, 0.0, +1.0)`
 `/tʼ/`: `(0.0, 0.0, 0.55, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.6, 0.0, 0.0, 0.0, +1.0)`
 `/kʼ/`: `(0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.6, 0.0, 0.0, 0.0, +1.0)`
@@ -191,14 +191,14 @@ Complete 16‑dimensional vector table for the IPA inventory. Format per segment
 `/t͡ʃʼ/`: `(0.0, 0.25, 0.25, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.6, 1.4, 0.85, 0.12, +1.0)`
 `/xʼ/`: `(0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.6, 0.85, 0.0, 0.09, +1.0)`
 
-### Implosives (glottalic ingressive; `cg=0.55`, `sg=0.0`, `voiced=1.0`)
+### Implosives (glottalic ingressive; `constricted_glottis=0.55`, `spread_glottis=0.0`, `voiced=1.0`)
 `/ɓ/`: `(1.0, 0.0, 0.55, 0.25, 0.0, 0.0, 0.0, 0.0, 1.0, 0.55, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0)`
 `/ɗ/`: `(0.0, 0.0, 0.55, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.55, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0)`
 `/ʄ/`: `(0.0, 0.0, 0.55, 0.25, 1.0, 0.0, 0.0, 0.0, 1.0, 0.55, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0)`
 `/ɠ/`: `(0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 0.0, 0.0, 1.0, 0.55, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0)`
 `/ʛ/`: `(0.0, 0.0, 0.55, 0.25, -0.72, 0.0, 0.0, 0.0, 1.0, 0.55, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0)`
 
-### Clicks (lingual; dual closure: front + velar `tb_pos=-0.5`)
+### Clicks (lingual; dual closure: front + velar `tongue_body_pos=-0.5`)
 `/ʘ/`: `(1.0, 0.0, 0.55, 0.25, -0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0, -1.0)`
 `/ǀ/`: `(0.0, 0.0, 1.0, 1.0, -0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0, -1.0)`
 `/ǃ/`: `(0.0, 0.0, 0.25, 1.0, -0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0, -1.0)`
@@ -217,20 +217,20 @@ Apply these deltas on top of the base vectors:
 | long             | `aː`      | `duration` → 2.0                                                       |
 | half‑long        | `aˑ`      | `duration` → 1.5                                                       |
 | geminate         | `ttː`     | `duration` → ×2                                                        |
-| aspirated        | `pʰ`      | `sg` → 0.9, `cg` → 0.0                                                 |
-| creaky voice     | `a̰`      | `cg` → 0.7, `sg` → 0.0, `laryngeal_tension` → +0.7                     |
-| breathy voice    | `a̤`      | `sg` → 0.55, `cg` → 0.2, `laryngeal_tension` → −0.6                    |
-| pharyngealised   | `tˤ`      | `tongue_root` → +0.7, `tb_pos` → −0.2                                  |
-| velarised        | `lˠ`      | `tb_pos` → −0.3, `tongue_root` → +0.3                                  |
-| palatalised      | `tʲ`      | `tb_pos` → +0.6                                                        |
+| aspirated        | `pʰ`      | `spread_glottis` → 0.9, `constricted_glottis` → 0.0                                                 |
+| creaky voice     | `a̰`      | `constricted_glottis` → 0.7, `spread_glottis` → 0.0, `laryngeal_tension` → +0.7                     |
+| breathy voice    | `a̤`      | `spread_glottis` → 0.55, `constricted_glottis` → 0.2, `laryngeal_tension` → −0.6                    |
+| pharyngealised   | `tˤ`      | `tongue_root` → +0.7, `tongue_body_pos` → −0.2                                  |
+| velarised        | `lˠ`      | `tongue_body_pos` → −0.3, `tongue_root` → +0.3                                  |
+| palatalised      | `tʲ`      | `tongue_body_pos` → +0.6                                                        |
 | labialised       | `tʷ`      | `lips_rounded` → max(current, 0.5)                                     |
 | syllabic         | `n̩`      | `duration` → +0.5                                                      |
 | non‑syllabic     | `e̯`      | `duration` → −0.5                                                      |
 | unreleased       | `p̚`      | `duration` → 0.1                                                       |
-| voiceless sonorant | `l̥`    | `voiced` → 0.0, `cg` → 0.0, `sg` → 0.4                                 |
-| voiced click     | `ǃ̬`      | `voiced` → 1.0, `cg` → 0.2, `sg` → 0.0                                 |
-| nasal click      | `ᵑǃ`      | `vel_open` → 1.0, `voiced` → 1.0, `cg` → 0.2, `sg` → 0.0, `duration` → 1.0 |
-| dental          | `t̪` / `p̪` | lingual: `tt_pos` → 1.0, `tt_height` → max(0.5); labial: `tt_pos` → 1.0 (labiodental `p̪ b̪ m̪`, `ɱ` — the contact is at the teeth, same `tt_pos` as `t̪ θ ð`) |
+| voiceless sonorant | `l̥`    | `voiced` → 0.0, `constricted_glottis` → 0.0, `spread_glottis` → 0.4                                 |
+| voiced click     | `ǃ̬`      | `voiced` → 1.0, `constricted_glottis` → 0.2, `spread_glottis` → 0.0                                 |
+| nasal click      | `ᵑǃ`      | `vel_open` → 1.0, `voiced` → 1.0, `constricted_glottis` → 0.2, `spread_glottis` → 0.0, `duration` → 1.0 |
+| dental          | `t̪` / `p̪` | lingual: `tongue_tip_pos` → 1.0, `tongue_tip_height` → max(0.5); labial: `tongue_tip_pos` → 1.0 (labiodental `p̪ b̪ m̪`, `ɱ` — the contact is at the teeth, same `tongue_tip_pos` as `t̪ θ ð`) |
 
 ---
 

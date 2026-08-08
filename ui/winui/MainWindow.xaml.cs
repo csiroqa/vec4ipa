@@ -454,6 +454,7 @@ namespace Vec4ipaUI
         private TextBox? _focusedBox; // soft-keyboard target (last focused box)
         private TextBox? _kbPressedBox; // box focused when a key was pressed
         private bool _slideMode;         // glide-typing across keys
+        private bool _slid;              // glide typed (skip the final Click)
 
         private async void Settings_Click(object sender, RoutedEventArgs e)
         {
@@ -1076,19 +1077,29 @@ namespace Vec4ipaUI
             "vec4ipa", "favorites.txt");
 
         /* manner weight from the symbol's info text, for an intuitive
-         * plosive -> affricate -> fricative -> nasal -> lateral -> approx
-         * order inside each place group */
+         * plosive -> affricate -> fricative -> nasal -> lateral -> tap ->
+         * trill -> approximant order (IPA chart rows) */
         private static int MannerWeight(string info)
         {
             if (info.Contains(".pls")) return 0;
-            if (info.Contains(".afr")) return 1;
+            if (info.Contains(".afc")) return 1;
             if (info.Contains(".frc")) return 2;
             if (info.Contains(".nas")) return 3;
             if (info.Contains(".lat")) return 4;
             if (info.Contains(".tap") || info.Contains(".flp")) return 5;
-            if (info.Contains(".trill")) return 6;
-            if (info.Contains(".appr")) return 7;
+            if (info.Contains(".trl")) return 6;
+            if (info.Contains(".appr") || info.Contains(".apx")) return 7;
             return 8;
+        }
+
+        /* non-pulmonic: group by airstream type first */
+        private static int AirstreamWeight(string info)
+        {
+            if (info.Contains("egressive")) return 0;   /* ejectives */
+            if (info.Contains("ingressive")) return 1;  /* implosives */
+            if (info.Contains("lingual")) return 2;     /* clicks */
+            if (info.Contains("percussive")) return 3;
+            return 4;
         }
 
         private void BuildKeyboard()
@@ -1106,12 +1117,15 @@ namespace Vec4ipaUI
                 consPos.TryGetValue(s, out var d) ? d : 0.5;
 
             _allCons.Clear();
-            _allCons.AddRange(Core.KeyboardCons().OrderBy(Pos)
-                .ThenBy(s => MannerWeight(Info(s))));
+            _allCons.AddRange(Core.KeyboardCons()
+                .OrderBy(s => MannerWeight(Info(s)))
+                .ThenBy(Pos));
             _allCons.AddRange(TieComposites);
             _allNp.Clear();
-            _allNp.AddRange(Core.KeyboardConsNp().OrderBy(Pos)
-                .ThenBy(s => MannerWeight(Info(s))));
+            _allNp.AddRange(Core.KeyboardConsNp()
+                .OrderBy(s => AirstreamWeight(Info(s)))
+                .ThenBy(s => MannerWeight(Info(s)))
+                .ThenBy(Pos));
 
             var pos = Core.VowelPositions();
             _allVow.Clear();
@@ -1153,7 +1167,13 @@ namespace Vec4ipaUI
             {
                 if (filter.Length == 0) return true;
                 if (sym.Contains(filter)) return true;
-                return Info(sym).Contains(filter, StringComparison.OrdinalIgnoreCase);
+                var info = Info(sym);
+                if (info.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                    return true;
+                /* Chinese UI: also match the translated feature names */
+                if (_zh && TranslateTerms(info).Contains(filter))
+                    return true;
+                return false;
             }
             ConsKeys.Items.Clear();
             NpKeys.Items.Clear();
@@ -1199,6 +1219,31 @@ namespace Vec4ipaUI
             ScrollToSection(LblFav);
         }
 
+        /* right-click (or double-click fallback) symbol details */
+        private void ShowSymbolDetail(string sym)
+        {
+            bool fav = _favorites.Contains(sym);
+            var dlg = new ContentDialog
+            {
+                XamlRoot = Content.XamlRoot,
+                Title = _zh ? $"符号 {sym}" : $"Symbol {sym}",
+                Content = new TextBlock
+                {
+                    Text = _zh ? TranslateTerms(_symInfo[sym]) : _symInfo[sym],
+                    FontSize = 15,
+                    FontFamily = new Microsoft.UI.Xaml.Media.FontFamily(
+                        "Gentium Book Plus"),
+                    TextWrapping = TextWrapping.Wrap,
+                },
+                PrimaryButtonText = fav
+                    ? (_zh ? "从收藏移除" : "Remove from favorites")
+                    : (_zh ? "加入收藏" : "Add to favorites"),
+                CloseButtonText = _zh ? "确定" : "OK",
+            };
+            dlg.PrimaryButtonClick += (s2, e2) => ToggleFavorite(sym);
+            dlg.ShowAsync();
+        }
+
         private void ToggleFavorite(string sym)
         {
             if (_favorites.Contains(sym))
@@ -1235,30 +1280,119 @@ namespace Vec4ipaUI
             new()
             {
                 { "vl", "清" }, { "vd", "浊" }, { "asp", "送气" },
-                { "blab", "双唇" }, { "lab.dnt", "唇齿" }, { "dnt", "齿" },
+                { "blab", "双唇" }, { "bil", "双唇" }, { "lab", "唇" },
+                { "lab.dnt", "唇齿" }, { "lbd", "唇齿" },
+                { "dnt", "齿" }, { "den", "齿" },
                 { "alv", "齿龈" }, { "rfl", "卷舌" }, { "alvpal", "龈腭" },
-                { "pal", "硬腭" }, { "vel", "软腭" }, { "uul", "小舌" },
-                { "phr", "咽" }, { "epi", "会厌" }, { "glt", "喉" },
-                { "pls", "塞音" }, { "nas", "鼻音" }, { "frc", "擦音" },
-                { "appr", "近音" }, { "lat", "边音" }, { "tap", "闪音" },
-                { "flp", "拍音" }, { "trill", "颤音" }, { "afr", "塞擦音" },
-                { "per", "敲击" }, { "vwl", "元音" }, { "cls", "高" },
-                { "omid", "半开" }, { "mid", "中" }, { "opn", "开" },
-                { "unr", "不圆唇" }, { "rnd", "圆唇" }, { "cnt", "央" },
-                { "fr", "前" }, { "bk", "后" }, { "rhot", "卷舌化" },
-                { "ej", "挤喉" }, { "unr", "不圆唇" },
+                { "pst", "龈后" }, { "pal", "腭" }, { "vel", "软腭" },
+                { "uvu", "小舌" }, { "pha", "咽" }, { "epl", "会厌" },
+                { "phr", "咽" }, { "epi", "会厌" }, { "glo", "喉" },
+                { "glt", "喉" },
+                { "pls", "塞音" }, { "nas", "鼻" }, { "frc", "擦音" },
+                { "appr", "近音" }, { "apx", "近音" },
+                { "lat", "边音" }, { "tap", "闪音" }, { "flp", "拍音" },
+                { "trl", "颤音" }, { "trill", "颤音" },
+                { "afc", "塞擦音" }, { "afr", "塞擦音" },
+                { "per", "敲击" },
+                { "vwl", "元音" }, { "cls", "高" }, { "ncls", "次高" },
+                { "cmid", "半高" }, { "omid", "半开" }, { "nopn", "次开" },
+                { "mid", "中" }, { "opn", "开" },
+                { "unr", "不圆唇" }, { "rnd", "圆唇" },
+                { "cnt", "央" }, { "cent", "央" },
+                { "fr", "前" }, { "front", "前" },
+                { "bk", "后" }, { "back", "后" },
+                { "rhot", "卷舌化" }, { "ej", "挤喉" }, { "ejt", "挤喉音" },
+                { "clk", "搭嘴音" }, { "imp", "内爆音" },
                 { "pulmonic", "肺部气流" }, { "glottalic egressive", "挤喉音" },
                 { "glottalic ingressive", "内爆音" }, { "lingual", "搭嘴音" },
                 { "percussive", "敲击音" },
+                /* modifier-detail framework words */
+                { "modifier: ", "修饰符：" },
+                { "extIPA base: ", "extIPA 基段：" },
+                { "base: ", "基段：" },
+                { "tier=", "层级=" },
+                { "[sets airstream]", "[设置气流]" },
+                { "[inference]", "[推断]" },
+                /* superscript / subscript letters */
+                { "sup_rhot_ʢ", "卷舌化上标ʢ" }, { "sup_rhot_ʕ", "卷舌化上标ʕ" },
+                { "sup_rhot_ʁ", "卷舌化上标ʁ" }, { "sup_rhot_r", "卷舌化上标r" },
+                { "sup_e", "上标e" }, { "sup_u", "上标u" },
+                { "sup_O", "上标O" }, { "sup_U", "上标U" },
+                { "sup_W", "上标W" }, { "sup_ɛ", "上标ɛ" },
+                { "sup_d", "上标d" }, { "sup_B", "上标B" },
+                { "sup_P", "上标P" }, { "sup_N", "上标N" },
+                { "sup_A", "上标A" },
+                { "sub_i", "下标i" }, { "sub_r", "下标r" },
+                { "bidental", "双齿" }, { "velophar", "咽软腭" },
+                /* tone names */
+                { "tone_5", "最高" }, { "tone_4", "高" },
+                { "tone_3", "中" }, { "tone_2", "低" }, { "tone_1", "最低" },
+                { "tone_high", "高平" }, { "tone_low", "低平" },
+                { "tone_fall", "降调" }, { "tone_rise", "升调" },
+                { "tone_extralow", "特低" }, { "tone_lowfall", "低降" },
+                { "tone_lowrise", "低升" }, { "tone_highv", "高" },
+                { "tone_lowv", "低" },
+                { "pitch_0", "音高0" }, { "pitch_1", "音高1" },
+                { "pitch_2", "音高2" }, { "pitch_3", "音高3" },
+                { "pitch_4", "音高4" }, { "pitch_5", "音高5" },
+                { "pitch_6", "音高6" }, { "pitch_7", "音高7" },
+                { "pitch_8", "音高8" }, { "pitch_9", "音高9" },
+                { "pitch_highrise", "高升" }, { "pitch_highfall", "高降" },
+                { "pitch_midrise", "中升" }, { "pitch_midfall", "中降" },
+                { "pitch_risefall", "升降" }, { "pitch_fallrise", "降升" },
+                { "sandhi_5", "变调5" }, { "sandhi_4", "变调4" },
+                { "sandhi_3", "变调3" }, { "sandhi_2", "变调2" },
+                { "sandhi_1", "变调1" },
+                { "class1", "阴平" }, { "class2", "阳平" },
+                { "class3", "阴上" }, { "class4", "阳上" },
+                { "class5", "阴去" }, { "class6", "阳去" },
+                { "class7", "阴入" }, { "class8", "阳入" },
+                { "upstep", "升阶" }, { "downstep", "降阶" },
+                { "global_up", "全局升" }, { "global_down", "全局降" },
+                { "macron_tone", "长音调" }, { "sliding", "滑动" },
+                /* common modifier names */
+                { "short", "短" }, { "long", "长" },
+                { "lengthened", "延长" }, { "gemination", "重叠" },
+                { "half", "半长" }, { "unrel", "未除阻" },
+                { "fric_release", "擦除阻" }, { "lat_release", "边除阻" },
+                { "nasal_rel", "鼻除阻" }, { "nas_rel", "鼻化除阻" },
+                { "adv", "前移" }, { "retr", "后移" },
+                { "rtr", "舌根后缩" }, { "atr", "舌根前伸" },
+                { "raised", "抬高" }, { "lowered", "降低" },
+                { "centralized", "央化" }, { "midcent", "中央" },
+                { "breathy", "气声" }, { "breathy_asp", "气声送气" },
+                { "creaky", "嘎裂声" }, { "fortis", "强" },
+                { "lenis", "弱" }, { "weak_asp", "弱送气" },
+                { "whistled", "哨音" }, { "syl", "成音节" },
+                { "nsyl", "不成音节" }, { "link", "连接" },
+                { "tie", "连音线" }, { "stress_1", "主重音" },
+                { "stress_2", "次重音" }, { "dark", "软腭化" },
+                { "light", "清亮" },
+                { "pal_hook", "腭化钩" }, { "pal_prime", "腭化撇" },
+                { "lab_subw", "唇化下标w" }, { "labiodental", "唇齿" },
+                { "linguolabial", "舌唇" }, { "dental", "齿" },
+                { "alveolar", "齿龈" }, { "apical", "舌尖" },
+                { "laminal", "舌叶" }, { "retroflex", "卷舌" },
+                { "phar", "咽化" }, { "glottal_onset", "喉塞起始" },
+                { "nas_click", "鼻搭嘴" },
+                { "schwa_rel", "ə化" }, { "offglide", "滑音" },
+                { "rnd_less", "少圆唇" }, { "rnd_more", "多圆唇" },
+                { "lam", "舌叶" },
             };
 
-        /* translate "vl.alv.pls" -> "清·齿龈·塞音" */
+        /* translate feature abbreviations in symbol details. Keys are
+         * replaced only at token boundaries (not inside words), so e.g.
+         * "fr" cannot corrupt "fric" and "lab" cannot corrupt "labial".
+         * Longest keys first (omid before mid, labiodental before lab). */
         private static string TranslateTerms(string text)
         {
-            foreach (var (en, zh) in TermMap)
+            foreach (var kv in TermMap.OrderByDescending(k => k.Key.Length))
             {
-                if (text.Contains(en))
-                    text = text.Replace(en, zh);
+                text = System.Text.RegularExpressions.Regex.Replace(
+                    text,
+                    @"(?<![\w])" + System.Text.RegularExpressions.Regex.Escape(kv.Key) +
+                    @"(?![\w])",
+                    kv.Value);
             }
             return text;
         }
@@ -1283,51 +1417,45 @@ namespace Vec4ipaUI
             if (!_symInfo.ContainsKey(sym))
                 _symInfo[sym] = QuerySymbol(sym);
             ToolTipService.SetToolTip(btn, _zh ? TranslateTerms(_symInfo[sym]) : _symInfo[sym]);
-            /* press = type immediately; keep the pointer down and glide
-             * over neighbouring keys to type several symbols (like a
-             * phone keyboard). Focus is captured on press so the symbol
-             * lands in the box the user was editing. */
+            /* left press starts glide mode; left release types via Click.
+             * Gliding over neighbouring keys types while held down.
+             * Right press shows the symbol details instead. */
             btn.PointerPressed += (s, e) =>
             {
                 try
                 {
+                    var pt = e.GetCurrentPoint(btn);
+                    if (pt.Properties.IsRightButtonPressed)
+                    {
+                        _kbPressedBox = FocusManager.GetFocusedElement(
+                            Content.XamlRoot) as TextBox;
+                        ShowSymbolDetail(sym);
+                        e.Handled = true;
+                        return;
+                    }
                     _kbPressedBox = FocusManager.GetFocusedElement(
                         Content.XamlRoot) as TextBox;
                 }
                 catch { }
                 _slideMode = true;
-                AppendToInput(sym);
-                e.Handled = true;
+                _slid = false;
             };
             btn.PointerEntered += (s, e) =>
             {
                 if (_slideMode)
+                {
+                    _slid = true;
                     AppendToInput(sym);
+                }
             };
             btn.PointerReleased += (s, e) => _slideMode = false;
             btn.PointerCanceled += (s, e) => _slideMode = false;
             btn.PointerCaptureLost += (s, e) => _slideMode = false;
-            btn.DoubleTapped += (s, e) =>
+            btn.Click += (s, e) =>
             {
-                bool fav = _favorites.Contains(sym);
-                var dlg = new ContentDialog
-                {
-                    XamlRoot = Content.XamlRoot,
-                    Title = $"Symbol {sym}",
-                    Content = new TextBlock
-                    {
-                        Text = _zh ? TranslateTerms(_symInfo[sym]) : _symInfo[sym],
-                        FontSize = 15,
-                        FontFamily = new Microsoft.UI.Xaml.Media.FontFamily(
-                            "Gentium Book Plus"),
-                        TextWrapping = TextWrapping.Wrap,
-                    },
-                    PrimaryButtonText = fav
-                        ? "Remove from favorites" : "Add to favorites",
-                    CloseButtonText = "OK",
-                };
-                dlg.PrimaryButtonClick += (s2, e2) => ToggleFavorite(sym);
-                dlg.ShowAsync();
+                if (!_slid)
+                    AppendToInput(sym);
+                _slid = false;
             };
             return btn;
         }
@@ -1343,9 +1471,21 @@ namespace Vec4ipaUI
 
         private void AppendToInput(string sym)
         {
+            try
+            {
+                File.AppendAllText(
+                    Path.Combine(Path.GetTempPath(), "vec4ipa", "kb.log"),
+                    $"{DateTime.Now:HH:mm:ss.fff}: append '{sym}' " +
+                    $"pressed={_kbPressedBox?.GetType().Name ?? "null"} " +
+                    $"focused={_focusedBox?.GetType().Name ?? "null"}\n");
+            }
+            catch { }
             /* the soft keyboard types into the text box that currently
-             * has focus (falling back to the IPA input), and keeps it */
-            var target = _kbPressedBox ?? _focusedBox ?? IpaInputRight;
+             * has focus (falling back to the IPA input); the filter box
+             * never receives keyboard input - typing goes to the IPA box
+             * while focus (and the caret) stays in the filter box */
+            var source = _kbPressedBox ?? _focusedBox ?? IpaInputRight;
+            var target = source == FilterBox ? IpaInputRight : source;
             _kbPressedBox = null;
 
             /* the welcome example ("tʰa") is a placeholder: the first
@@ -1358,8 +1498,9 @@ namespace Vec4ipaUI
                 _placeholder = false;
             }
             /* keyboard buttons show diacritics on a dotted circle (◌,
-             * U+25CC) as a hint; strip the circle before inserting */
-            if (sym.Contains('\u25CC'))
+             * U+25CC) as a hint; strip the circle before inserting.
+             * A lone ◌ (the placeholder key) is kept as-is. */
+            if (sym.Length > 1 && sym.Contains('\u25CC'))
                 sym = sym.Replace("\u25CC", "");
             /* combining modifiers (◌...) need a base symbol before them */
             if (target.Text.Length == 0 && IsCombiningModifier(sym))
@@ -1372,8 +1513,9 @@ namespace Vec4ipaUI
             target.Text = target.Text.Insert(pos, sym);
             target.SelectionStart = pos + sym.Length;
             _programmatic = false;
-            /* keep focus in the box (the keyboard button grabbed it) */
-            target.Focus(FocusState.Programmatic);
+            /* keep focus in the box the user was editing (the filter box
+             * keeps its caret even though the symbol went to the IPA box) */
+            source.Focus(FocusState.Programmatic);
             if (target == IpaInputRight)
                 ScrollRightInput();
             if (_recentBtns.TryGetValue(sym, out var old))
@@ -1505,10 +1647,13 @@ namespace Vec4ipaUI
 
         private void OutputSet(string text)
         {
-            /* RichEditBox paragraphs are \r-separated */
+            /* RichEditBox paragraphs are \r-separated; normalise all
+             * line endings first so \r\n does not become a blank line */
+            string norm = text.Replace("\r\n", "\n")
+                              .Replace('\r', '\n')
+                              .Replace("\n", "\r");
             OutputBox.Document.SetText(
-                Microsoft.UI.Text.TextSetOptions.None,
-                text.Replace("\n", "\r"));
+                Microsoft.UI.Text.TextSetOptions.None, norm);
         }
 
         private void OutputAppendRaw(string text)

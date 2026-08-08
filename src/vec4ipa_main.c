@@ -29,7 +29,7 @@
 
 static void print_table(void)
 {
-    printf("# ipa\tlatin\tlips_closed lips_rounded tt_pos tt_height tb_pos "
+    printf("# ipa\tlatin\tlips_closed lips_rounded tongue_tip_pos tongue_tip_height tongue_body_pos "
            "tongue_root vel_open lateral_ratio voiced cg sg laryngeal_tension "
            "duration jet_focus effective_oral_area airflow_direction\tairstream\n");
     for (int i = 0; i < NSEG; i++) {

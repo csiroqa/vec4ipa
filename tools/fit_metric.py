@@ -41,8 +41,8 @@ METRIC_JSON = os.path.join(ROOT, 'metric.json')
 
 RHO = 0.1   # log-space regulariser strength (see METRIC.md §2 discussion)
 
-DIMS = ['lips_closed', 'lips_rounded', 'tt_pos', 'tt_height', 'tb_pos',
-        'tongue_root', 'vel_open', 'lateral_ratio', 'voiced', 'cg', 'sg',
+DIMS = ['lips_closed', 'lips_rounded', 'tongue_tip_pos', 'tongue_tip_height', 'tongue_body_pos',
+        'tongue_root', 'vel_open', 'lateral_ratio', 'voiced', 'constricted_glottis', 'spread_glottis',
         'laryngeal_tension', 'duration', 'jet_focus',
         'effective_oral_area', 'airflow_direction']
 

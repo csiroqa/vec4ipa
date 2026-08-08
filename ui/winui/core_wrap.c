@@ -53,6 +53,30 @@ EXPORT int ipa2v_forward(const char *str, char *err, size_t errsz,
     return po.nsegs;
 }
 
+/* forward + tone extra vectors: tone[3][3] per segment (NAN = unset),
+ * tkind[3] per segment (0 none, 1 contour, 2 = 3-D vector) */
+EXPORT int ipa2v_forward_tone(const char *str, char *err, size_t errsz,
+                              double *out /* NDIM * MAX_TOKS */,
+                              double *tone /* 9 * MAX_TOKS */,
+                              int *tkind /* 3 * MAX_TOKS */)
+{
+    ParseOut po;
+    if (lex(str, po.layer1, &po.n1, err, errsz))
+        return -1;
+    canonicalise(po.layer1, po.n1, po.layer2, &po.n2);
+    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs);
+    for (int s = 0; s < po.nsegs && s < MAX_TOKS; s++) {
+        for (int i = 0; i < NDIM; i++)
+            out[s * NDIM + i] = po.segs[s].v[i];
+        for (int g = 0; g < 3; g++) {
+            tkind[s * 3 + g] = po.segs[s].tkind[g];
+            for (int k = 0; k < 3; k++)
+                tone[s * 9 + g * 3 + k] = po.segs[s].tone[g][k];
+        }
+    }
+    return po.nsegs;
+}
+
 /* reverse: 16-D vector -> IPA fit. Returns 0 on success. */
 EXPORT int ipa2v_reverse(const double *v, int width,
                          char *out /* 512 */, size_t outsz)
@@ -230,7 +254,7 @@ EXPORT int ipa2v_kb_tones(char *out, size_t outsz)
         if (n < 0 || (size_t)n >= outsz - L) break;
         L += n;
     }
-    static const char extra[] = "\u203f\n \n";  /* ‿ and space */
+    static const char extra[] = "\u203f\n\xe2\x97\x8c\n";  /* ‿ and ◌ placeholder */
     if (L + sizeof(extra) <= outsz)
         memcpy(out + L, extra, sizeof(extra));
     return (int)strlen(out);
