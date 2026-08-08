@@ -1,9 +1,9 @@
 /*
  * ipa2vec_core.dll — C export layer over src/ipa2vec_core.h for the
- * WinUI 3 front-end (ui/winui/). Compiled with MinGW:
+ * WinUI 3 front-end (ui/winui/). Compiled with MinGW (build.bat):
  *
- *   gcc -O2 -std=c11 -I../src -shared -o ipa2vec_core.dll core_wrap.c \
- *       -Wl,--out-implib,libipa2vec_core.a -lwinmm
+ *   gcc -O2 -std=c11 -Wno-unused-function -Wno-unused-variable ^
+ *       -I..\..\src -shared -o ..\ipa2vec_core.dll core_wrap.c
  *
  * The DLL is a thin adapter: all tables and algorithms live in the
  * header (ipa2vec_core.h), identical to the CLI tools.
@@ -353,24 +353,6 @@ EXPORT int ipa2v_stats(char *out, size_t outsz)
              AIRSTREAM_LABELS[0], AIRSTREAM_LABELS[1], AIRSTREAM_LABELS[2],
              AIRSTREAM_LABELS[3], AIRSTREAM_LABELS[4]);
     return 0;
-}
-
-/* -w equivalent: metric weights */
-EXPORT int ipa2v_weights(char *out, size_t outsz)
-{
-    size_t L = 0;
-    int n = snprintf(out + L, outsz - L,
-                     "# dimension weights (metric v4)\n");
-    if (n > 0 && (size_t)n < outsz - L) L += n;
-    for (int i = 0; i < NDIM; i++) {
-        n = snprintf(out + L, outsz - L, "%2d  %-22s %8.4f\n", i,
-                     DIM_NAMES[i], METRIC_W[i]);
-        if (n < 0 || (size_t)n >= outsz - L) break; L += n;
-    }
-    n = snprintf(out + L, outsz - L, "lambda (airstream penalty):  %.2f\n",
-                 METRIC_LAMBDA);
-    if (n > 0 && (size_t)n < outsz - L) L += n;
-    return (int)L;
 }
 
 /* --metric FILE: load metric.json weights/lambda at runtime */

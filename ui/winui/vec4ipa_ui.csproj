@@ -7,7 +7,6 @@
     <Platforms>x64</Platforms>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <Nullable>enable</Nullable>
-    <EnableMsixTooling>true</EnableMsixTooling>
     <PublishDir>$(MSBuildProjectDirectory)\dist\</PublishDir>
     <RootNamespace>Vec4ipaUI</RootNamespace>
     <AssemblyName>vec4ipa_ui</AssemblyName>

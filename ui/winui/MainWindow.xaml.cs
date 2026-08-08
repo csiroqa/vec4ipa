@@ -4,11 +4,11 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Windowing;
 using Microsoft.UI;
 using Microsoft.UI.Input;
-using Windows.UI.Core;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Vec4ipaUI
 {
@@ -32,15 +32,9 @@ namespace Vec4ipaUI
             Title = "vec4ipa Workbench";
             SetIcon();
             RestoreState();
-            BuildKeyboard();
-            IpaInputRight.KeyDown += (s, e) =>
-            {
-                if (e.Key == Windows.System.VirtualKey.Enter)
-                {
-                    ConvertBtn_Click(s, e);
-                    e.Handled = true;
-                }
-            };
+            WireSplitGrip();
+            WireCursorMagnet();
+            BindEnterToButton(IpaInputRight, ConvertBtn_Click);
             IpaInputRight.TextChanged += (s, e) =>
             {
                 /* keep it a single line: strip pasted newlines */
@@ -75,32 +69,15 @@ namespace Vec4ipaUI
             LblLet.Tapped += (s, e) => ScrollToSection(LblLet);
             LblTone.Tapped += (s, e) => ScrollToSection(LblTone);
             LblRec.Tapped += (s, e) => ScrollToSection(LblRec);
-            VecInput.KeyDown += (s, e) =>
-            {
-                if (e.Key == Windows.System.VirtualKey.Enter)
-                {
-                    ReverseBtn_Click(s, e);
-                    e.Handled = true;
-                }
-            };
-            DistA.KeyDown += (s, e) =>
-            {
-                if (e.Key == Windows.System.VirtualKey.Enter)
-                {
-                    DistBtn_Click(s, e);
-                    e.Handled = true;
-                }
-            };
-            DistB.KeyDown += (s, e) =>
-            {
-                if (e.Key == Windows.System.VirtualKey.Enter)
-                {
-                    DistBtn_Click(s, e);
-                    e.Handled = true;
-                }
-            };
+            BindEnterToButton(VecInput, ReverseBtn_Click);
+            BindEnterToButton(DistA, DistBtn_Click);
+            BindEnterToButton(DistB, DistBtn_Click);
             SetStatus("Ready - click keyboard buttons or type IPA");
-            Closed += (s, e) => SaveState();
+            Closed += (s, e) =>
+            {
+                SaveState();
+                FlushExtLog();
+            };
             InitStatus();
             ShowWelcome();
             UpdateButtons();
@@ -123,16 +100,38 @@ namespace Vec4ipaUI
             };
             if (!InitCore())
                 return;
+            InitExternalTracking();
             /* --help / --export-tools dialogs need XamlRoot; run them
              * once the window is activated */
-            Activated += (s, e) =>
+            Activated += async (s, e) =>
             {
                 if (_argsPending)
                 {
                     _argsPending = false;
-                    HandleArgs(_startupArgs);
+                    await HandleArgs(_startupArgs);
                 }
             };
+        }
+
+        /* Enter in a text box triggers the button next to it */
+        private static void BindEnterToButton(UIElement box,
+            RoutedEventHandler handler)
+        {
+            box.KeyDown += (s, e) =>
+            {
+                if (e.Key == Windows.System.VirtualKey.Enter)
+                {
+                    handler(box, e);
+                    e.Handled = true;
+                }
+            };
+        }
+
+        /* pickers need an owner HWND or they fail on WinUI 3 desktop */
+        private void InitializePicker(object picker)
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
         }
 
         /* returns false when ipa2vec_core.dll is missing (UI stays up
@@ -296,21 +295,100 @@ namespace Vec4ipaUI
         }
 
         /* custom title bar: content extends into the caption area; the
-         * title row is the drag region (window buttons stay on the right) */
+         * title row is the drag region. The system min/max/close buttons
+         * stay untouched (snap layouts, Win+Up/Down and maximize all
+         * keep their native behaviour) and the always-on-top button is a
+         * XAML button right next to them. */
         private void SetupTitleBar(AppWindow appWindow)
         {
             try
             {
                 appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
+                ApplyDragRect(appWindow);
+                ApplyTitleBarTheme(appWindow);
+                WireWindowButtons(appWindow);
+                /* drag rects must be re-applied once the window is shown
+                 * and whenever it is resized (physical px follow size) */
+                Activated += (s, e) => ApplyDragRect(appWindow);
+                SizeChanged += (s, e) => ApplyDragRect(appWindow);
+            }
+            catch { }
+        }
+
+        /* always on top toggle (the only custom window button) */
+        private void WireWindowButtons(AppWindow appWindow)
+        {
+            try
+            {
+                PinBtn.Click += (s, e) =>
+                {
+                    var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                    bool top = IsTopmost();
+                    SetWindowPos(hwnd, top ? new IntPtr(-2) /* HWND_NOTOPMOST */
+                                           : new IntPtr(-1) /* HWND_TOPMOST */,
+                        0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+                    RefreshPinVisual();
+                    SetStatus(top
+                        ? (_zh ? "取消置顶" : "always on top off")
+                        : (_zh ? "窗口已置顶" : "window pinned on top"));
+                };
+                RefreshPinVisual();
+            }
+            catch { }
+        }
+
+        private void RefreshPinVisual()
+        {
+            try
+            {
+                bool top = IsTopmost();
+                PinBtn.Content = top ? "\uE77A" : "\uE718";
+                bool dark = _themeName == "Dark";
+                var accent = (Microsoft.UI.Xaml.Media.Brush?)(
+                    Application.Current.Resources["AccentFillColorDefaultBrush"]
+                        ?? new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                            Windows.UI.Color.FromArgb(255, 0, 120, 215)));
+                PinBtn.Foreground = top ? accent
+                    : new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                        Windows.UI.Color.FromArgb(255, (byte)(dark ? 240 : 20),
+                            (byte)(dark ? 240 : 20), (byte)(dark ? 240 : 20)));
+                PinBtn.Background = top
+                    ? new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                        Windows.UI.Color.FromArgb(38, 127, 127, 127))
+                    : new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                        Microsoft.UI.Colors.Transparent);
+            }
+            catch { }
+        }
+
+        private bool IsTopmost()
+        {
+            try
+            {
                 var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-                double scale = GetDpiForWindow(hwnd) / 96.0;
-                int dragW = (int)(600 * scale);
-                int dragH = (int)(32 * scale);
+                return (GetWindowLongPtr(hwnd, -20).ToInt64() & 0x8) != 0;
+            }
+            catch { return false; }
+        }
+
+        private void ApplyDragRect(AppWindow appWindow)
+        {
+            try
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                double scale = GetDpiForWindow(hwnd);
+                if (scale == 0) scale = 96;
+                scale /= 96.0;
+                if (scale < 1.0) scale = 1.0;
+                int physW = appWindow.Size.Width;   /* physical px */
+                if (physW <= 0) physW = (int)(1180 * scale);
+                int dragW = physW - (int)(200 * scale); /* leave window buttons */
+                if (dragW < 100) dragW = 100;
+                int dragH = (int)(30 * scale);
                 appWindow.TitleBar.SetDragRectangles(new[]
                 {
                     new Windows.Graphics.RectInt32(0, 0, dragW, dragH),
                 });
-                ApplyTitleBarTheme(appWindow);
             }
             catch { }
         }
@@ -343,8 +421,10 @@ namespace Vec4ipaUI
         }
 
         /* ---- command-line arguments (CLI-compatible) ---- */
-        private async void HandleArgs(string[] args)
+        private async Task HandleArgs(string[] args)
         {
+            try
+            {
             string? input = null, query = null, vec = null, exportDir = null;
             string? theme = null;
             bool reverse = false, showHelp = false;
@@ -443,6 +523,11 @@ namespace Vec4ipaUI
                 IpaInputRight.Text = input;
                 ConvertBtn_Click(this, new RoutedEventArgs());
             }
+            }
+            catch (Exception ex)
+            {
+                SetStatus("startup arguments failed: " + ex.Message);
+            }
         }
 
         /* ---- Settings dialog: theme / language / feature names / modules ---- */
@@ -455,6 +540,312 @@ namespace Vec4ipaUI
         private TextBox? _kbPressedBox; // box focused when a key was pressed
         private bool _slideMode;         // glide-typing across keys
         private bool _slid;              // glide typed (skip the final Click)
+        private bool _externalMode;      // SendInput into the foreground window
+        private IntPtr _extTarget = IntPtr.Zero; // the external window to type into
+
+        /* remember which window the user switched to while this app
+         * loses activation (the global-input target) */
+        private void InitExternalTracking()
+        {
+            Activated += (s, e) =>
+            {
+                try
+                {
+                    if (e.WindowActivationState ==
+                        Microsoft.UI.Xaml.WindowActivationState.Deactivated)
+                        _extTarget = GetForegroundWindow();
+                }
+                catch { }
+            };
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd,
+            out uint lpdwProcessId);
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        private static extern uint GetCurrentThreadId();
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool AttachThreadInput(uint idAttach,
+            uint idAttachTo, bool fAttach);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        /* restore activation to the external window (bypasses the
+         * foreground lock via AttachThreadInput) */
+        private static void RestoreForeground(IntPtr target)
+        {
+            if (target == IntPtr.Zero) return;
+            try
+            {
+                uint cur = GetCurrentThreadId();
+                uint tgt = GetWindowThreadProcessId(target, out _);
+                bool attached = AttachThreadInput(cur, tgt, true);
+                bool ok = SetForegroundWindow(target);
+                if (attached) AttachThreadInput(cur, tgt, false);
+                LogExt($"restore fg hwnd={target} attach={attached} setfg={ok} " +
+                       $"now={GetForegroundWindow()}");
+            }
+            catch (Exception ex) { LogExt("restore fg err " + ex.Message); }
+        }
+
+        /* hot-path log: buffered in memory, flushed to disk at most once
+         * per second (pointer events fire far more often than that) */
+        private static readonly List<string> _extLogBuffer = new();
+        private static DateTime _lastExtFlush = DateTime.MinValue;
+
+        private static void LogExt(string msg)
+        {
+            _extLogBuffer.Add($"{DateTime.Now:HH:mm:ss.fff}: {msg}");
+            if (_extLogBuffer.Count > 200)
+                _extLogBuffer.RemoveAt(0);
+            var now = DateTime.Now;
+            if ((now - _lastExtFlush).TotalMilliseconds < 1000) return;
+            try
+            {
+                File.AppendAllLines(
+                    Path.Combine(Path.GetTempPath(), "vec4ipa", "ext.log"),
+                    _extLogBuffer);
+                _extLogBuffer.Clear();
+                _lastExtFlush = now;
+            }
+            catch { }
+        }
+
+        private static void FlushExtLog()
+        {
+            if (_extLogBuffer.Count == 0) return;
+            try
+            {
+                File.AppendAllLines(
+                    Path.Combine(Path.GetTempPath(), "vec4ipa", "ext.log"),
+                    _extLogBuffer);
+                _extLogBuffer.Clear();
+            }
+            catch { }
+        }
+
+        /* external input: a global low-level mouse hook. A click on the
+         * soft keyboard while the external app is focused would otherwise
+         * first activate this window (WinUI swallows the press and steals
+         * focus); the hook sees the press before activation, types the
+         * symbol into the still-focused external app and swallows the
+         * click so this window never activates. */
+        private LowLevelMouseProc? _llProc;
+        private IntPtr _llHook = IntPtr.Zero;
+
+        private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam,
+            IntPtr lParam);
+
+        [System.Runtime.InteropServices.StructLayout(
+            System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct MSLLHOOKSTRUCT
+        {
+            public POINT32 pt;
+            public uint mouseData;
+            public uint flags;
+            public uint time;
+            public System.IntPtr dwExtraInfo;
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr SetWindowsHookEx(int idHook,
+            LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode,
+            IntPtr wParam, IntPtr lParam);
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        private static extern IntPtr GetModuleHandle(string? lpModuleName);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+
+        [System.Runtime.InteropServices.StructLayout(
+            System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        private void InstallLLHook()
+        {
+            try
+            {
+                if (_llHook != IntPtr.Zero) return;
+                _llProc = MouseHookProc;
+                _llHook = SetWindowsHookEx(14 /* WH_MOUSE_LL */, _llProc,
+                    GetModuleHandle(null), 0);
+                LogExt("ll hook " + (_llHook != IntPtr.Zero
+                    ? "installed" : "FAILED"));
+            }
+            catch (Exception ex) { LogExt("ll hook err " + ex.Message); }
+        }
+
+        private void UninstallLLHook()
+        {
+            try
+            {
+                if (_llHook != IntPtr.Zero)
+                {
+                    UnhookWindowsHookEx(_llHook);
+                    _llHook = IntPtr.Zero;
+                    LogExt("ll hook removed");
+                }
+            }
+            catch { }
+        }
+
+        private IntPtr MouseHookProc(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            try
+            {
+                if (nCode >= 0 && _externalMode &&
+                    (int)wParam == 0x0201 /* WM_LBUTTONDOWN */)
+                {
+                    var info = (MSLLHOOKSTRUCT)System.Runtime.InteropServices
+                        .Marshal.PtrToStructure(lParam,
+                            typeof(MSLLHOOKSTRUCT))!;
+                    var hwnd = WinRT.Interop.WindowNative
+                        .GetWindowHandle(this);
+                    /* only intercept presses inside this window */
+                    var pt = info.pt;
+                    ScreenToClient(hwnd, ref pt);
+                    GetClientRect(hwnd, out var rc);
+                    if (pt.X >= 0 && pt.Y >= 0 &&
+                        pt.X < rc.Right && pt.Y < rc.Bottom)
+                    {
+                        string? sym = FindSymbolAtPoint(pt.X, pt.Y);
+                        if (sym != null)
+                        {
+                            LogExt($"ll down '{sym}' fg={GetForegroundWindow()}");
+                            ExtType(sym);
+                            return new IntPtr(1); /* swallow: no activation */
+                        }
+                    }
+                }
+            }
+            catch { }
+            return CallNextHookEx(_llHook, nCode, wParam, lParam);
+        }
+
+        private void ExtToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            _externalMode = ExtToggle.IsChecked == true;
+            LogExt($"toggle sender={sender.GetType().Name} " +
+                   $"checked={ExtToggle.IsChecked}");
+            if (_externalMode)
+                InstallLLHook();
+            else
+                UninstallLLHook();
+            SetStatus(_externalMode
+                ? (_zh ? "外部输入开启 - 软键盘输入到当前前台窗口"
+                       : "external input ON - soft keyboard types into the focused window")
+                : (_zh ? "外部输入关闭" : "external input OFF"));
+        }
+
+        private string? FindSymbolAtPoint(int xPhys, int yPhys)
+        {
+            try
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                double scale = GetDpiForWindow(hwnd);
+                if (scale == 0) scale = 96;
+                scale /= 96.0;
+                double x = xPhys / scale;
+                double y = yPhys / scale;
+                var root = Content.XamlRoot.Content as UIElement;
+                if (root == null || _kbButtons.Count == 0) return null;
+                foreach (var (sym, btn) in _kbButtons)
+                {
+                    if (btn.ActualWidth <= 0) continue;
+                    var t = btn.TransformToVisual(root);
+                    var pt = t.TransformPoint(new Windows.Foundation.Point(0, 0));
+                    if (x >= pt.X && x <= pt.X + btn.ActualWidth &&
+                        y >= pt.Y && y <= pt.Y + btn.ActualHeight)
+                        return sym;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        /* type a symbol into the external (foreground) window */
+        private void ExtType(string sym)
+        {
+            try
+            {
+                string clean = sym.Contains('\u25CC') && sym.Length > 1
+                    ? sym.Replace("\u25CC", "") : sym;
+                if (_extTarget != IntPtr.Zero)
+                    RestoreForeground(_extTarget);
+                SendTextToForeground(clean);
+            }
+            catch { }
+        }
+
+        /* send UTF-16 text to the foreground window via SendInput */
+        [System.Runtime.InteropServices.StructLayout(
+            System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct KEYBDINPUT
+        {
+            public ushort wVk;
+            public ushort wScan;
+            public uint dwFlags;
+            public uint time;
+            public System.IntPtr dwExtraInfo;
+        }
+
+        [System.Runtime.InteropServices.StructLayout(
+            System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct INPUT
+        {
+            public uint type;
+            public KEYBDINPUT ki;
+            /* INPUT is a union: the real size is 28 bytes (MOUSEINPUT is
+             * the largest member); SendInput rejects smaller cbSize */
+            public uint padding;
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll",
+            SetLastError = true)]
+        private static extern uint SendInput(uint nInputs, INPUT[] pInputs,
+            int cbSize);
+
+        private static void SendTextToForeground(string text)
+        {
+            uint sent = 0;
+            foreach (char c in text)
+            {
+                var input = new INPUT
+                {
+                    type = 1, // INPUT_KEYBOARD
+                    ki = new KEYBDINPUT
+                    {
+                        wVk = 0,
+                        wScan = c,
+                        dwFlags = 4, // KEYEVENTF_UNICODE
+                        dwExtraInfo = System.IntPtr.Zero,
+                    },
+                };
+                sent += SendInput(1, new[] { input },
+                    System.Runtime.InteropServices.Marshal.SizeOf(input));
+            }
+            LogExt($"SendInput '{text}' chars={text.Length} sent={sent} " +
+                   $"fg={GetForegroundWindow()}");
+        }
 
         private async void Settings_Click(object sender, RoutedEventArgs e)
         {
@@ -540,8 +931,7 @@ namespace Vec4ipaUI
                 async (s2, e2) =>
                 {
                     var picker = new Windows.Storage.Pickers.FileOpenPicker();
-                    var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-                    WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+                    InitializePicker(picker);
                     picker.FileTypeFilter.Add(".json");
                     var file = await picker.PickSingleFileAsync();
                     if (file == null) return;
@@ -587,7 +977,6 @@ namespace Vec4ipaUI
             _zh = zh;
             var lbls = new[]
             {
-                (LblIpa, zh ? "操作：" : "Actions:"),
                 (LblVec, zh ? "16 维向量（逗号分隔）→ 反向拟合："
                              : "16-D vector (comma separated) → reverse fit:"),
                 (LblDist, zh ? "两个符号之间的距离：" : "Distance between two symbols:"),
@@ -609,6 +998,13 @@ namespace Vec4ipaUI
             ViewBtn.Content = zh ? "视图" : "View";
             HelpBtn.Content = zh ? "帮助" : "Help";
             LoopBtn.Content = zh ? "回环" : "Loop";
+            ToolTipService.SetToolTip(SplitGrip, zh
+                ? "左键单击：收起左栏；右键单击：收起右栏"
+                : "Left click: collapse left pane; right click: collapse right pane");
+            ExtToggle.Content = zh ? "外部" : "Ext";
+            ToolTipService.SetToolTip(ExtToggle, zh
+                ? "外部输入：软键盘输入到其他应用的当前窗口"
+                : "Global input: type into the focused window of other apps");
 
             var menus = new (Microsoft.UI.Xaml.Controls.MenuFlyoutItemBase Ctl, string Text)[]
             {
@@ -637,13 +1033,6 @@ namespace Vec4ipaUI
             }
             FilterBox.PlaceholderText = zh ? "筛选符号（名称或符号）…" : "filter symbols (name or symbol)…";
             LblFav.Text = zh ? "收藏" : "Favorites";
-            LblCons.Text = zh ? "辅音" : "Consonants";
-            LblNp.Text = zh ? "非肺部气流" : "Non-pulmonic";
-            LblVow.Text = zh ? "元音" : "Vowels";
-            LblDiac.Text = zh ? "附加符号" : "Diacritics";
-            LblLet.Text = zh ? "修饰字母" : "Letters";
-            LblTone.Text = zh ? "声调" : "Tones";
-            LblRec.Text = zh ? "最近使用" : "Recent";
             DistA.PlaceholderText = zh ? "符号 A" : "symbol A";
             DistB.PlaceholderText = zh ? "符号 B" : "symbol B";
         }
@@ -672,28 +1061,6 @@ namespace Vec4ipaUI
             SetStatus("module details shown");
         }
 
-        private async void LoadMetric_Click(object sender, RoutedEventArgs e)
-        {
-            var picker = new Windows.Storage.Pickers.FileOpenPicker();
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-            picker.FileTypeFilter.Add(".json");
-            var file = await picker.PickSingleFileAsync();
-            if (file == null) return;
-            string? err = Core.LoadMetric(file.Path);
-            if (err != null)
-            {
-                SetStatus(err);
-                AppendOutput("=== Load metric ===\n" + err);
-            }
-            else
-            {
-                SetStatus("metric loaded: " + file.Name);
-                AppendOutput($"=== Metric loaded: {file.Name} ===\n" +
-                             Core.WeightsEffective());
-            }
-        }
-
         private async void SaveIr_Click(object sender, RoutedEventArgs e)
         {
             if (IpaInputRight.Text.Length == 0)
@@ -702,8 +1069,7 @@ namespace Vec4ipaUI
                 return;
             }
             var picker = new Windows.Storage.Pickers.FileSavePicker();
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+            InitializePicker(picker);
             picker.SuggestedFileName = "ipa-ir";
             picker.FileTypeChoices.Add("IR base", new List<string> { ".layer1" });
             var file = await picker.PickSaveFileAsync();
@@ -734,7 +1100,7 @@ namespace Vec4ipaUI
                 var names = Core.DimNames;
                 sb.AppendLine($"{a} vs {b}:");
                 for (int i = 0; i < Core.NDIM; i++)
-                    sb.AppendLine($"  {names[i],-22} {va[0][i],8:F4}  {vb[0][i],8:F4}  diff {vb[0][i] - va[0][i],+8:F4}");
+                    sb.AppendLine($"  {names[i]}\t{va[0][i]:F4}\t{vb[0][i]:F4}\tdiff\t{vb[0][i] - va[0][i]:F4}");
                 sb.AppendLine("  weighted distance: " + Core.Distance(a, b));
             }
             AppendOutput($"=== Compare {a} ~ {b} ===\n" +
@@ -745,8 +1111,7 @@ namespace Vec4ipaUI
         private async void SaveOutput_Click(object sender, RoutedEventArgs e)
         {
             var picker = new Windows.Storage.Pickers.FileSavePicker();
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+            InitializePicker(picker);
             picker.SuggestedFileName = "ipa2vec-output.txt";
             picker.FileTypeChoices.Add("Text file", new List<string> { ".txt" });
             var file = await picker.PickSaveFileAsync();
@@ -783,8 +1148,7 @@ namespace Vec4ipaUI
         private async void OpenFileConvert_Click(object sender, RoutedEventArgs e)
         {
             var picker = new Windows.Storage.Pickers.FileOpenPicker();
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+            InitializePicker(picker);
             picker.FileTypeFilter.Add(".txt");
             var file = await picker.PickSingleFileAsync();
             if (file == null) return;
@@ -811,7 +1175,7 @@ namespace Vec4ipaUI
             }
         }
 
-        private void VectorEditor_Click(object sender, RoutedEventArgs e)
+        private async void VectorEditor_Click(object sender, RoutedEventArgs e)
         {
             var names = Core.DimNames;
             var boxes = new NumberBox[Core.NDIM];
@@ -883,7 +1247,7 @@ namespace Vec4ipaUI
                 VecInput.Text = string.Join(",", Array.ConvertAll(v,
                     x => x.ToString("F4")));
             };
-            dlg.ShowAsync();
+            await dlg.ShowAsync();
         }
 
         private async void History_Click(object sender, RoutedEventArgs e)
@@ -918,6 +1282,31 @@ namespace Vec4ipaUI
             };
             await dlg.ShowAsync();
         }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool SetWindowPos(IntPtr hWnd,
+            IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        [System.Runtime.InteropServices.StructLayout(
+            System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct POINT32 { public int X; public int Y; }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out POINT32 lpPoint);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool SetCursorPos(int X, int Y);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool ScreenToClient(IntPtr hWnd,
+            ref POINT32 lpPoint);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool ClientToScreen(IntPtr hWnd,
+            ref POINT32 lpPoint);
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern uint GetDpiForWindow(IntPtr hwnd);
@@ -1009,8 +1398,7 @@ namespace Vec4ipaUI
         private async void ExportCsv_Click(object sender, RoutedEventArgs e)
         {
             var picker = new Windows.Storage.Pickers.FileSavePicker();
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+            InitializePicker(picker);
             picker.SuggestedFileName = "ipa2vec-table.csv";
             picker.FileTypeChoices.Add("CSV", new List<string> { ".csv" });
             var file = await picker.PickSaveFileAsync();
@@ -1040,29 +1428,288 @@ namespace Vec4ipaUI
 
         private bool _zh;
 
+        private bool _leftCollapsed;
+        private bool _rightCollapsed;
+        private double _savedLeftWidth = 560;
+        private bool _gripMoved;   /* the press turned into a drag */
+
+        /* the grip button's template handles PointerPressed internally
+         * (marked as handled), so the splitter needs the events with
+         * handledEventsToo to start dragging from the button itself */
+        private void WireSplitGrip()
+        {
+            try
+            {
+                SplitGrip.AddHandler(UIElement.PointerPressedEvent,
+                    new PointerEventHandler(Splitter_Pressed), true);
+                SplitGrip.AddHandler(UIElement.PointerMovedEvent,
+                    new PointerEventHandler(Splitter_Moved), true);
+                SplitGrip.AddHandler(UIElement.PointerReleasedEvent,
+                    new PointerEventHandler(Splitter_Released), true);
+                SplitGrip.AddHandler(UIElement.PointerCanceledEvent,
+                    new PointerEventHandler(Splitter_Released), true);
+                SplitGrip.AddHandler(UIElement.PointerCaptureLostEvent,
+                    new PointerEventHandler(Splitter_Released), true);
+            }
+            catch { }
+        }
+
         private void Splitter_Pressed(object sender, PointerRoutedEventArgs e)
         {
+            var pt = e.GetCurrentPoint(SplitHit);
+            if (pt.Properties.IsRightButtonPressed)
+            {
+                _drag = false;  /* right press: collapse right (RightTapped) */
+                return;
+            }
             _drag = true;
+            _gripMoved = false;
             _dragStartX = e.GetCurrentPoint(null).Position.X;
+            /* dragging out of a collapsed pane restores both panes */
+            if (_leftCollapsed)
+            {
+                _leftCollapsed = false;
+                LeftCol.Width = new GridLength(480);
+            }
+            if (_rightCollapsed)
+            {
+                _rightCollapsed = false;
+                RightCol.Width = new GridLength(1, GridUnitType.Star);
+            }
             _dragStartWidth = LeftCol.ActualWidth;
-            Splitter.CapturePointer(e.Pointer);
+            /* the cursor snaps onto the divider line itself so the drag
+             * has no offset (pressing anywhere in the 12px hit strip) */
+            SnapCursorToLine();
+            SplitHit.CapturePointer(e.Pointer);
+            SetResizeCursor(true);
+            e.Handled = true;
         }
 
         private void Splitter_Moved(object sender, PointerRoutedEventArgs e)
         {
             if (!_drag) return;
             double dx = e.GetCurrentPoint(null).Position.X - _dragStartX;
+            if (Math.Abs(dx) > 4) _gripMoved = true;
             double w = _dragStartWidth + dx;
-            if (w < 360) w = 360;
+            if (w < 480) w = 480;
             if (w > 1400) w = 1400;
-            LeftCol.Width = new GridLength(w);
+            if (w >= 480)
+            {
+                _leftCollapsed = false;
+                LeftCol.Width = new GridLength(w);
+            }
+        }
+
+        /* pull the cursor onto the divider line (same x as the line) */
+        private void SnapCursorToLine()
+        {
+            try
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                GetCursorPos(out var cur);
+                double scale = GetDpiForWindow(hwnd);
+                if (scale == 0) scale = 96;
+                scale /= 96.0;
+                if (scale < 1.0) scale = 1.0;
+                var pt = new POINT32
+                {
+                    X = (int)((LeftCol.ActualWidth + 6) * scale),
+                    Y = cur.Y,
+                };
+                ClientToScreen(hwnd, ref pt);
+                SetCursorPos(pt.X, pt.Y);
+            }
+            catch { }
         }
 
         private void Splitter_Released(object sender, PointerRoutedEventArgs e)
         {
             if (!_drag) return;
             _drag = false;
-            Splitter.ReleasePointerCapture(e.Pointer);
+            SetResizeCursor(false);
+            SplitHit.ReleasePointerCapture(e.Pointer);
+        }
+
+        private InputSystemCursor? _resizeCursor;
+
+        private void SetResizeCursor(bool on)
+        {
+            try
+            {
+                if (on)
+                {
+                    _resizeCursor ??= InputSystemCursor.Create(
+                        InputSystemCursorShape.SizeWestEast);
+                    SplitHit.SetPointerCursor(_resizeCursor);
+                }
+                else
+                {
+                    SplitHit.SetPointerCursor(null);
+                }
+            }
+            catch { }
+        }
+
+        /* the divider shows a resize cursor (and nothing else) */
+        private void SplitHit_PointerEntered(object sender,
+            PointerRoutedEventArgs e)
+        {
+            SetResizeCursor(true);
+        }
+
+        private void SplitHit_PointerExited(object sender,
+            PointerRoutedEventArgs e)
+        {
+            if (!_drag) SetResizeCursor(false);
+        }
+
+        private bool _snapped;   /* the cursor is stuck to the divider */
+        private int _lastCursorX;
+        private long _lastMoveTick;
+
+        /* magnetic line: while the pointer glides past the divider it is
+         * pulled onto the line itself and held there (slow moves keep
+         * being pulled back, a fast flick escapes); skipped while
+         * dragging or in external mode */
+        private void WireCursorMagnet()
+        {
+            try
+            {
+                if (Content is Grid root)
+                    root.AddHandler(UIElement.PointerMovedEvent,
+                        new PointerEventHandler(CursorMagnet_Moved), true);
+            }
+            catch { }
+        }
+
+        private void CursorMagnet_Moved(object sender,
+            PointerRoutedEventArgs e)
+        {
+            try
+            {
+                if (_drag || _externalMode) return;
+                var hwnd = WinRT.Interop.WindowNative
+                    .GetWindowHandle(this);
+                GetCursorPos(out var cur);
+                ScreenToClient(hwnd, ref cur);
+                double scale = GetDpiForWindow(hwnd);
+                if (scale == 0) scale = 96;
+                scale /= 96.0;
+                if (scale < 1.0) scale = 1.0;
+                double lineX = LeftCol.ActualWidth + 6;   /* DIP */
+                int lineXPhys = (int)(lineX * scale);
+                double dist = Math.Abs(cur.X / scale - lineX);
+                long now = Environment.TickCount64;
+                double dt = Math.Max((now - _lastMoveTick) / 1000.0, 1e-3);
+                _lastMoveTick = now;
+                if (_snapped)
+                {
+                    /* escape when the pointer moves faster than
+                     * 6 DIP per 60fps frame (i.e. 360 DIP/s), scaled by
+                     * the actual DPI and measured frame interval */
+                    double escapePhys = 6 * scale * 60;   /* px/s */
+                    double speedPhys = Math.Abs(cur.X - _lastCursorX) / dt;
+                    if (speedPhys > escapePhys)
+                    {
+                        _snapped = false;
+                    }
+                    else if (Math.Abs(cur.X - lineXPhys) > 1)
+                    {
+                        var pt = new POINT32 { X = lineXPhys, Y = cur.Y };
+                        ClientToScreen(hwnd, ref pt);
+                        SetCursorPos(pt.X, pt.Y);
+                        LogExt("magnet pull");
+                        _lastCursorX = lineXPhys;
+                        return;
+                    }
+                }
+                else if (dist < 12)
+                {
+                    _snapped = true;
+                    var pt = new POINT32 { X = lineXPhys, Y = cur.Y };
+                    ClientToScreen(hwnd, ref pt);
+                    SetCursorPos(pt.X, pt.Y);
+                    LogExt("magnet snap");
+                    _lastCursorX = lineXPhys;
+                    return;
+                }
+                _lastCursorX = cur.X;
+            }
+            catch { }
+        }
+
+        /* collapse / restore one pane; the other always stretches */
+        private void SetPaneCollapsed(bool left, bool collapse)
+        {
+            if (collapse)
+            {
+                _savedLeftWidth = LeftCol.ActualWidth > 0
+                    ? LeftCol.ActualWidth : _savedLeftWidth;
+                if (left)
+                {
+                    _leftCollapsed = true;
+                    LeftCol.Width = new GridLength(0);
+                    RightCol.Width = new GridLength(1, GridUnitType.Star);
+                }
+                else
+                {
+                    _rightCollapsed = true;
+                    RightCol.Width = new GridLength(0);
+                    LeftCol.Width = new GridLength(1, GridUnitType.Star);
+                }
+            }
+            else if (left)
+            {
+                _leftCollapsed = false;
+                LeftCol.Width = new GridLength(_savedLeftWidth);
+                RightCol.Width = new GridLength(1, GridUnitType.Star);
+            }
+            else
+            {
+                _rightCollapsed = false;
+                RightCol.Width = new GridLength(1, GridUnitType.Star);
+                LeftCol.Width = new GridLength(_savedLeftWidth);
+            }
+        }
+
+        /* left click on the grip: collapse the left pane, expand right */
+        private void SplitGrip_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_gripMoved) return;   /* a drag is not a click */
+                SetPaneCollapsed(true, !_leftCollapsed);
+            }
+            catch { }
+        }
+
+        /* left double click on the divider itself: reset both panes to
+         * the default widths */
+        private void SplitHit_DoubleTapped(object sender,
+            DoubleTappedRoutedEventArgs e)
+        {
+            try
+            {
+                _leftCollapsed = false;
+                _rightCollapsed = false;
+                _savedLeftWidth = 560;
+                LeftCol.Width = new GridLength(560);
+                RightCol.Width = new GridLength(1, GridUnitType.Star);
+                e.Handled = true;
+            }
+            catch { }
+        }
+
+        /* right click: collapse the right pane and expand the left */
+        private void SplitGrip_RightTapped(object sender,
+            RightTappedRoutedEventArgs e)
+        {
+            try
+            {
+                SetPaneCollapsed(false, !_rightCollapsed);
+                e.Handled = true;
+            }
+            catch { }
         }
 
         private readonly List<string> _allCons = new();
@@ -1141,6 +1788,7 @@ namespace Vec4ipaUI
             _allDiac.Clear();
             _allDiac.AddRange(Core.KeyboardMods()
                 .Where(IsCombiningModifier).OrderBy(Tier));
+            _allDiac.Add("\u25CC");   /* dotted-circle placeholder key */
             _allLet.Clear();
             _allLet.AddRange(Core.KeyboardMods()
                 .Where(m => !IsCombiningModifier(m)).OrderBy(Tier));
@@ -1163,6 +1811,7 @@ namespace Vec4ipaUI
         /* rebuild every section applying the current filter */
         private void RebuildKeyboard(string filter)
         {
+            _kbButtons.Clear();
             bool Matches(string sym)
             {
                 if (filter.Length == 0) return true;
@@ -1219,29 +1868,231 @@ namespace Vec4ipaUI
             ScrollToSection(LblFav);
         }
 
-        /* right-click (or double-click fallback) symbol details */
-        private void ShowSymbolDetail(string sym)
+        /* ---- hover preview (in-window overlay, never swallows clicks) ---- */
+
+        private Canvas? _hoverCanvas;
+        private int _hoverToken;
+
+        private void ScheduleHover(Button btn, string sym)
+        {
+            int token = ++_hoverToken;
+            DispatcherQueue.TryEnqueue(async () =>
+            {
+                await System.Threading.Tasks.Task.Delay(50);
+                if (token != _hoverToken || !btn.IsPointerOver) return;
+                ShowHover(btn, sym);
+            });
+        }
+
+        private void CancelHover()
+        {
+            _hoverToken++;
+            HideHoverPreview();
+        }
+
+        /* the preview is a plain child of the root grid: a real popup is
+         * its own HWND and swallows the mouse even with IsHitTestVisible
+         * false, which broke clicking under it (e.g. external mode) */
+        private Canvas EnsureHoverCanvas()
+        {
+            if (_hoverCanvas != null) return _hoverCanvas;
+            if (Content is Grid root)
+            {
+                _hoverCanvas = new Canvas { IsHitTestVisible = false };
+                root.Children.Add(_hoverCanvas);
+            }
+            return _hoverCanvas!;
+        }
+
+        private void ShowHover(Button btn, string sym)
+        {
+            try
+            {
+                /* split the query text into: name (line 2) and
+                 * airstream / tier (line 3), e.g. k' / vel.ejt / egressive
+                 * or ◌̤ / breathy / tier=2 */
+                string raw = _symInfo[sym];
+                string air = "";
+                string name;
+                if (raw.StartsWith("modifier:"))
+                {
+                    var parts = raw.Split(new[] { "  " },
+                        StringSplitOptions.RemoveEmptyEntries);
+                    name = parts.Length > 1 ? parts[1].Trim()
+                                            : raw.Replace("modifier: ", "").Trim();
+                    air = parts.Length > 2 ? parts[2].Trim() : "";
+                }
+                else
+                {
+                    var m = System.Text.RegularExpressions.Regex.Match(
+                        raw, @"\(([^()]+)\)");
+                    if (m.Success)
+                        air = m.Groups[1].Value;
+                    name = System.Text.RegularExpressions.Regex.Replace(
+                        raw, @"\([^()]*\)", "");
+                    name = System.Text.RegularExpressions.Regex.Replace(
+                        name, @"^(?:extIPA )?base: /[^/]*/\s*", "");
+                    name = System.Text.RegularExpressions.Regex.Replace(
+                        name, @"^(?:modifier|alias):\s*", "");
+                    name = name.Trim();
+                }
+                if (_zh)
+                {
+                    name = TranslateTerms(name);
+                    air = TranslateTerms(air);
+                }
+                var canvas = EnsureHoverCanvas();
+                if (canvas == null) return;
+                canvas.Children.Clear();
+                /* follow the actual (effective) theme */
+                bool dark = (Content.XamlRoot.Content as FrameworkElement)
+                    ?.ActualTheme == ElementTheme.Dark;
+                var stack = new StackPanel { Spacing = 4 };
+                var border = new Border
+                {
+                    MaxWidth = 480,
+                    Padding = new Thickness(10, 6, 10, 6),
+                    CornerRadius = new CornerRadius(6),
+                    Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                        Microsoft.UI.ColorHelper.FromArgb(
+                            245, (byte)(dark ? 40 : 245),
+                            (byte)(dark ? 40 : 245),
+                            (byte)(dark ? 40 : 245))),
+                    Child = stack,
+                };
+                var fg = new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                    Microsoft.UI.ColorHelper.FromArgb(
+                        255, (byte)(dark ? 240 : 20),
+                        (byte)(dark ? 240 : 20),
+                        (byte)(dark ? 240 : 20)));
+                stack.Children.Add(new TextBlock
+                {
+                    Text = sym,
+                    /* combining diacritics need a larger glyph */
+                    FontSize = IsCombiningModifier(sym) ? 30 : 24,
+                    Foreground = fg,
+                    FontFamily = new Microsoft.UI.Xaml.Media.FontFamily(
+                        "Gentium Book Plus"),
+                });
+                stack.Children.Add(new TextBlock
+                {
+                    Text = name,
+                    FontSize = 13,
+                    Foreground = fg,
+                    TextWrapping = TextWrapping.Wrap,
+                    MaxWidth = 420,
+                });
+                stack.Children.Add(new TextBlock
+                {
+                    Text = air,
+                    FontSize = 13,
+                    Foreground = fg,
+                    TextWrapping = TextWrapping.Wrap,
+                    MaxWidth = 420,
+                });
+                canvas.Children.Add(border);
+
+                var transform = btn.TransformToVisual(
+                    Content.XamlRoot.Content as UIElement);
+                var pt = transform.TransformPoint(
+                    new Windows.Foundation.Point(0, 0));
+                double h = btn.ActualHeight;
+                Canvas.SetLeft(border, Math.Max(0, pt.X - 8));
+                Canvas.SetTop(border, Math.Max(0, pt.Y - h - 46));
+            }
+            catch { }
+        }
+
+        private void HideHoverPreview()
+        {
+            if (_hoverCanvas != null) _hoverCanvas.Children.Clear();
+        }
+
+        /* right-click symbol details: the glyph on top (large, Gentium),
+         * the translated term name, then the vector and the aligned
+         * feature=value table */
+        private async void ShowSymbolDetail(string sym)
         {
             bool fav = _favorites.Contains(sym);
+            string info = _zh ? TranslateTerms(_symInfo[sym]) : _symInfo[sym];
+            /* drop the vector line from the query text; we rebuild it
+             * aligned below */
+            info = string.Join("\n", info.Split('\n')
+                .Where(l => !l.TrimStart().StartsWith("(")));
+            var glyph = new TextBlock
+            {
+                Text = sym,
+                FontSize = 24,
+                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily(
+                    "Gentium Book Plus"),
+                TextWrapping = TextWrapping.Wrap,
+            };
+            var terms = new TextBlock
+            {
+                Text = info,
+                FontSize = 14,
+                TextWrapping = TextWrapping.Wrap,
+            };
+            var body = new StackPanel { Spacing = 8, Children = { glyph, terms } };
+
+            /* vector + tab-aligned feature = value table */
+            string tableText = "";
+            var rows = Core.ForwardRaw(sym);
+            if (rows != null && rows.Length > 0)
+            {
+                var v = rows[0];
+                var names = Core.DimNames;
+                var sb = new System.Text.StringBuilder();
+                sb.Append("(");
+                for (int i = 0; i < Core.NDIM; i++)
+                    sb.Append(i == 0 ? $"{v[i]:F4}" : $", {v[i]:F4}");
+                sb.AppendLine(")");
+                for (int i = 0; i < Core.NDIM; i++)
+                    sb.AppendLine($"{names[i]}\t{v[i]:F4}");
+                tableText = sb.ToString();
+                body.Children.Add(new ScrollViewer
+                {
+                    MaxHeight = 220,
+                    HorizontalScrollBarVisibility =
+                        Microsoft.UI.Xaml.Controls.ScrollBarVisibility.Auto,
+                    VerticalScrollBarVisibility =
+                        Microsoft.UI.Xaml.Controls.ScrollBarVisibility.Auto,
+                    Content = new TextBlock
+                    {
+                        Text = tableText,
+                        FontSize = 13,
+                        FontFamily = new Microsoft.UI.Xaml.Media.FontFamily(
+                            "Consolas"),
+                        TextWrapping = TextWrapping.NoWrap,
+                    },
+                });
+            }
+
             var dlg = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot,
                 Title = _zh ? $"符号 {sym}" : $"Symbol {sym}",
-                Content = new TextBlock
-                {
-                    Text = _zh ? TranslateTerms(_symInfo[sym]) : _symInfo[sym],
-                    FontSize = 15,
-                    FontFamily = new Microsoft.UI.Xaml.Media.FontFamily(
-                        "Gentium Book Plus"),
-                    TextWrapping = TextWrapping.Wrap,
-                },
+                Content = body,
                 PrimaryButtonText = fav
                     ? (_zh ? "从收藏移除" : "Remove from favorites")
                     : (_zh ? "加入收藏" : "Add to favorites"),
+                SecondaryButtonText = _zh ? "复制" : "Copy",
                 CloseButtonText = _zh ? "确定" : "OK",
             };
+            string copyText = sym + "\n" + info +
+                              (tableText.Length > 0 ? "\n" + tableText : "");
+            dlg.SecondaryButtonClick += (s2, e2) =>
+            {
+                try
+                {
+                    var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
+                    dp.SetText(copyText);
+                    Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
+                }
+                catch { }
+            };
             dlg.PrimaryButtonClick += (s2, e2) => ToggleFavorite(sym);
-            dlg.ShowAsync();
+            await dlg.ShowAsync();
         }
 
         private void ToggleFavorite(string sym)
@@ -1266,6 +2117,7 @@ namespace Vec4ipaUI
         };
 
         private readonly Dictionary<string, string> _symInfo = new();
+        private readonly List<(string Sym, Button Btn)> _kbButtons = new();
         private readonly List<string> _recent = new();
         private readonly Dictionary<string, Button> _recentBtns = new();
         private readonly List<(string Title, string Body)> _history = new();
@@ -1310,6 +2162,8 @@ namespace Vec4ipaUI
                 { "modifier: ", "修饰符：" },
                 { "extIPA base: ", "extIPA 基段：" },
                 { "base: ", "基段：" },
+                { "alias: ", "别名：" },
+                { "dotted circle", "点圆圈" }, { "placeholder", "占位符" },
                 { "tier=", "层级=" },
                 { "[sets airstream]", "[设置气流]" },
                 { "[inference]", "[推断]" },
@@ -1384,9 +2238,12 @@ namespace Vec4ipaUI
          * replaced only at token boundaries (not inside words), so e.g.
          * "fr" cannot corrupt "fric" and "lab" cannot corrupt "labial".
          * Longest keys first (omid before mid, labiodental before lab). */
+        private static readonly KeyValuePair<string, string>[] TermSorted =
+            TermMap.OrderByDescending(k => k.Key.Length).ToArray();
+
         private static string TranslateTerms(string text)
         {
-            foreach (var kv in TermMap.OrderByDescending(k => k.Key.Length))
+            foreach (var kv in TermSorted)
             {
                 text = System.Text.RegularExpressions.Regex.Replace(
                     text,
@@ -1416,12 +2273,20 @@ namespace Vec4ipaUI
             };
             if (!_symInfo.ContainsKey(sym))
                 _symInfo[sym] = QuerySymbol(sym);
-            ToolTipService.SetToolTip(btn, _zh ? TranslateTerms(_symInfo[sym]) : _symInfo[sym]);
+            _kbButtons.Add((sym, btn));
+            /* hover preview: glyph (24pt Gentium) over the term name,
+             * shown after a short delay (system tooltips are too slow) */
+            btn.PointerEntered += (s, e) => ScheduleHover(btn, sym);
+            btn.PointerExited += (s, e) => CancelHover();
+            btn.PointerPressed += (s, e) => CancelHover();
             /* left press starts glide mode; left release types via Click.
              * Gliding over neighbouring keys types while held down.
              * Right press shows the symbol details instead. */
             btn.PointerPressed += (s, e) =>
             {
+                LogExt($"pressed sym='{sym}' external={_externalMode} " +
+                       $"toggle={ExtToggle.IsChecked}");
+                HideHoverPreview();
                 try
                 {
                     var pt = e.GetCurrentPoint(btn);
@@ -1437,11 +2302,20 @@ namespace Vec4ipaUI
                         Content.XamlRoot) as TextBox;
                 }
                 catch { }
+                if (_externalMode)
+                {
+                    /* global input: type immediately and swallow the
+                     * press so this window never takes the focus */
+                    AppendToInput(sym);
+                    e.Handled = true;
+                    return;
+                }
                 _slideMode = true;
                 _slid = false;
             };
             btn.PointerEntered += (s, e) =>
             {
+                LogExt($"entered sym='{sym}' external={_externalMode}");
                 if (_slideMode)
                 {
                     _slid = true;
@@ -1453,33 +2327,48 @@ namespace Vec4ipaUI
             btn.PointerCaptureLost += (s, e) => _slideMode = false;
             btn.Click += (s, e) =>
             {
-                if (!_slid)
+                if (!_slid && !_externalMode)
                     AppendToInput(sym);
                 _slid = false;
             };
             return btn;
         }
 
-        /* set the IPA input programmatically (no placeholder reset) */
-        private void SetIpaInputRight(string text)
-        {
-            _programmatic = true;
-            IpaInputRight.Text = text;
-            _programmatic = false;
-            _placeholder = false;
-        }
+        /* hot-path log: only the latest event is kept, written at most
+         * once per second (single-line overwrite keeps the file tiny) */
+        private static string? _lastKbLog;
+        private static DateTime _lastKbFlush = DateTime.MinValue;
 
         private void AppendToInput(string sym)
         {
-            try
+            _lastKbLog = $"{DateTime.Now:HH:mm:ss.fff}: append '{sym}' " +
+                         $"pressed={_kbPressedBox?.GetType().Name ?? "null"} " +
+                         $"focused={_focusedBox?.GetType().Name ?? "null"}";
+            var now = DateTime.Now;
+            if ((now - _lastKbFlush).TotalMilliseconds >= 1000)
             {
-                File.AppendAllText(
-                    Path.Combine(Path.GetTempPath(), "vec4ipa", "kb.log"),
-                    $"{DateTime.Now:HH:mm:ss.fff}: append '{sym}' " +
-                    $"pressed={_kbPressedBox?.GetType().Name ?? "null"} " +
-                    $"focused={_focusedBox?.GetType().Name ?? "null"}\n");
+                try
+                {
+                    File.WriteAllText(
+                        Path.Combine(Path.GetTempPath(), "vec4ipa", "kb.log"),
+                        _lastKbLog + "\n");
+                    _lastKbFlush = now;
+                }
+                catch { }
             }
-            catch { }
+            /* external mode: type into the foreground (other app) window;
+             * first hand activation back to the external window so the
+             * keystrokes land there and this app never keeps the focus */
+            if (_externalMode)
+            {
+                string clean = sym.Contains('\u25CC') && sym.Length > 1
+                    ? sym.Replace("\u25CC", "") : sym;
+                if (_extTarget != IntPtr.Zero)
+                    RestoreForeground(_extTarget);
+                SendTextToForeground(clean);
+                _kbPressedBox = null;
+                return;
+            }
             /* the soft keyboard types into the text box that currently
              * has focus (falling back to the IPA input); the filter box
              * never receives keyboard input - typing goes to the IPA box
@@ -1734,7 +2623,7 @@ namespace Vec4ipaUI
             Close();
         }
 
-        private void About_Click(object sender, RoutedEventArgs e)
+        private async void About_Click(object sender, RoutedEventArgs e)
         {
             var ver = System.Reflection.Assembly.GetExecutingAssembly()
                 .GetName().Version?.ToString(3) ?? "?";
@@ -1749,10 +2638,10 @@ namespace Vec4ipaUI
                           + "https://github.com/csiroqa/vec4ipa",
                 CloseButtonText = "OK",
             };
-            dlg.ShowAsync();
+            await dlg.ShowAsync();
         }
 
-        private void Docs_Click(object sender, RoutedEventArgs e)
+        private async void Docs_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new ContentDialog
             {
@@ -1771,10 +2660,10 @@ namespace Vec4ipaUI
                 },
                 CloseButtonText = "Close",
             };
-            dlg.ShowAsync();
+            await dlg.ShowAsync();
         }
 
-        private void ExportCmd_Click(object sender, RoutedEventArgs e)
+        private async void ExportCmd_Click(object sender, RoutedEventArgs e)
         {
             string dir = AppContext.BaseDirectory;
             string text =
@@ -1820,14 +2709,13 @@ namespace Vec4ipaUI
                 }
                 catch { }
             };
-            dlg.ShowAsync();
+            await dlg.ShowAsync();
         }
 
         private async void ExportTools_Click(object sender, RoutedEventArgs e)
         {
             var picker = new Windows.Storage.Pickers.FolderPicker();
-            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+            InitializePicker(picker);
             picker.FileTypeFilter.Add("*");
             var folder = await picker.PickSingleFolderAsync();
             if (folder == null) return;
@@ -1861,4 +2749,13 @@ namespace Vec4ipaUI
             await msg.ShowAsync();
         }
     }
+
+/* exposes UIElement.ProtectedCursor (protected) so the splitter can
+   show the west-east resize cursor (WinAppSDK 1.6 has no ContentIsland) */
+public sealed class CursorGrid : Microsoft.UI.Xaml.Controls.Grid
+{
+    public void SetPointerCursor(Microsoft.UI.Input.InputCursor? cursor)
+        => ProtectedCursor = cursor;
+}
+
 }

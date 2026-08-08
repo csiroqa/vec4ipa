@@ -77,10 +77,6 @@ namespace Vec4ipaUI
         private static extern int ipa2v_stats(
             [MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder out_, int outsz);
 
-        [DllImport("ipa2vec_core.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int ipa2v_weights(
-            [MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder out_, int outsz);
-
         /// <summary>Apply CLI-style settings (school modules, --width).</summary>
         public static void SetArgs(string[] args) => ipa2v_set_args(args.Length, args);
 
@@ -102,13 +98,6 @@ namespace Vec4ipaUI
         {
             var sb = new StringBuilder(2048);
             ipa2v_stats(sb, 2048);
-            return sb.ToString();
-        }
-
-        public static string Weights()
-        {
-            var sb = new StringBuilder(8192);
-            ipa2v_weights(sb, 8192);
             return sb.ToString();
         }
 
@@ -427,7 +416,7 @@ namespace Vec4ipaUI
                     v = nums.ToArray();
                     continue;
                 }
-                if (v == null) continue;
+                if (v == null && nums.Count > 3) continue;
                 if (tonePos >= 3) break;
                 if (nums.Count > 0 && nums.Count <= 3)
                     toneSlots[tonePos] = nums.ToArray();
