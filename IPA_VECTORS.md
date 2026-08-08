@@ -213,7 +213,7 @@ Apply these deltas on top of the base vectors:
 
 | Diacritic        | Example   | Change                                                                 |
 | ---------------- | --------- | ---------------------------------------------------------------------- |
-| nasalised        | `ã`       | `vel_open` → 0.8                                                       |
+| nasalised        | `ã`       | `vel_open` → 0.6                                                       |
 | long             | `aː`      | `duration` → 2.0                                                       |
 | half‑long        | `aˑ`      | `duration` → 1.5                                                       |
 | geminate         | `ttː`     | `duration` → ×2                                                        |
