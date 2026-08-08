@@ -165,88 +165,15 @@ static void usage(void)
 }
 
 /* forward: IPA -> vectors */
-static int run_forward(const char *str, int ir, int json, const char *irbase)
+static int run_forward_v4(const char *str, int ir, int json, const char *irbase)
 {
-    ParseOut po;
-    char err[256];
-    if (lex(str, po.layer1, &po.n1, err, sizeof(err))) {
-        fprintf(stderr, "vec4ipa: %s\n", err);
-        return 1;
-    }
-    canonicalise(po.layer1, po.n1, po.layer2, &po.n2);
-    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs);
-
-    if (irbase)
-        export_ir(po.layer1, po.n1, po.layer2, po.n2, irbase);
-
-    if (ir) {
-        printf("input: /%s/\n", str);
-        print_layer(po.layer1, po.n1, "layer1 (char order) ");
-        print_layer(po.layer2, po.n2, "layer2 (feature order)");
-        for (int s = 0; s < po.nsegs; s++) {
-            printf("vector[%d]: (", s);
-            for (int i = 0; i < NDIM; i++)
-                printf("%s%.4f", i ? ", " : "", po.segs[s].v[i]);
-            printf(")  %s%s%s\n", AIRSTREAM_LABELS[po.segs[s].airstream],
-                   po.segs[s].note[0] ? "  [" : "", po.segs[s].note);
-            const SegEntry *b; double d;
-            nearest_base(po.segs[s].v, &b, &d);
-            const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
-            int nm = fit_modifiers(po.segs[s].v, b, mods);
-            char rebuilt[128];
-            build_ipa(b, mods, nm, rebuilt, sizeof(rebuilt));
-            char tb[48];
-            tone_rebuild(&po.segs[s], tb, sizeof(tb));
-            printf("rebuilt[%d]: /%s%s/\n", s, rebuilt, tb);
-        }
-        return 0;
-    }
-    if (json) {
-        printf("{\"input\": \"%s\", \"segments\": [\n", str);
-        int first = 1;
-        for (int s = 0; s < po.nsegs; s++) {
-            if (!first) printf(",\n");
-            first = 0;
-            printf("    {\"values\": {");
-            for (int i = 0; i < NDIM; i++)
-                printf("%s\"%s\": %.4f", i ? ", " : "", DIM_NAMES[i], po.segs[s].v[i]);
-            printf("}, \"airstream\": \"%s\"}", AIRSTREAM_LABELS[po.segs[s].airstream]);
-        }
-        printf("\n]}\n");
-        return 0;
-    }
-    for (int s = 0; s < po.nsegs; s++) {
-        char label[16];
-        snprintf(label, sizeof(label), "[%d]", s);
-        print_seg_text(&po.segs[s], label);
-    }
-    return 0;
-}
-
-static int parse_vector_arg(const char *s, double out[NDIM])
-{
-    char buf[512];
-    snprintf(buf, sizeof(buf), "%s", s);
-    char *tok = strtok(buf, ", \t");
-    int i = 0;
-    while (tok && i < NDIM) {
-        char *endp = NULL;
-        double x = strtod(tok, &endp);
-        if (endp == tok) return -1;
-        out[i++] = x;
-        tok = strtok(NULL, ", \t");
-    }
-    return (i == NDIM) ? 0 : -1;
+    return run_forward(str, ir, json, irbase, "vec4ipa");
 }
 
 #ifdef _WIN32
 int wmain(int argc, wchar_t **wargv)
 {
-    g_argc_utf8 = argc;
-    g_argv_utf8 = (char **)calloc((size_t)argc, sizeof(char *));
-    for (int i = 0; i < argc; i++)
-        g_argv_utf8[i] = wide_to_utf8(wargv[i]);
-    char **argv = g_argv_utf8;
+    char **argv = argv_utf8_from_wide(argc, wargv);
 #else
 int main(int argc, char **argv)
 {
@@ -309,53 +236,16 @@ int main(int argc, char **argv)
 
     if (dist_mode) {
         if (!seg_a || !seg_b) { usage(); return 1; }
-        ParseOut a, b;
-        char err[256];
-        if (lex(seg_a, a.layer1, &a.n1, err, sizeof(err)) ||
-            lex(seg_b, b.layer1, &b.n1, err, sizeof(err))) {
-            fprintf(stderr, "parse error: %s\n", err);
-            return 1;
-        }
-        canonicalise(a.layer1, a.n1, a.layer2, &a.n2);
-        canonicalise(b.layer1, b.n1, b.layer2, &b.n2);
-        apply_layer2(a.layer2, a.n2, a.segs, &a.nsegs);
-        apply_layer2(b.layer2, b.n2, b.segs, &b.nsegs);
-        if (a.nsegs != 1 || b.nsegs != 1) {
-            fprintf(stderr, "need exactly one segment per argument\n");
-            return 1;
-        }
-        printf("%.4f\n", seg_dist_full(&a.segs[0], &b.segs[0]));
-        return 0;
+        return run_distance(seg_a, seg_b);
     }
 
-    if (vecstr) {
-        double v[NDIM];
-        if (parse_vector_arg(vecstr, v) != 0) {
-            fprintf(stderr, "bad vector: need %d comma-separated values\n", NDIM);
-            return 1;
-        }
-        const SegEntry *b; double d;
-        nearest_base(v, &b, &d);
-        if (nearest_only) {
-            printf("/%s/  %s  d=%.4f  (%s)\n", b->ipa, base_name(b),
-                   d, AIRSTREAM_LABELS[b->airstream]);
-            return 0;
-        }
-        const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
-        int nm = fit_modifiers(v, b, mods);
-        order_mods(mods, nm);   /* canonical order — same as the rebuilt IPA */
-        char ipa[128];
-        build_ipa(b, mods, nm, ipa, sizeof(ipa));
-        printf("/%s/  (%s", b->ipa, base_name(b));
-        for (int j = 0; j < nm; j++) printf(" +%s", mods[j]->latin);
-        printf(")  d=%.4f  ->  /%s/\n", d, ipa);
-        return 0;
-    }
+    if (vecstr)
+        return run_reverse(vecstr, nearest_only);
 
     if (!str || strcmp(str, "-") == 0) {
         char *in = read_stdin();
         if (!in) { usage(); return 1; }
         str = in;
     }
-    return run_forward(str, ir, json, irbase);
+    return run_forward_v4(str, ir, json, irbase);
 }

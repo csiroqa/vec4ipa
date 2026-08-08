@@ -40,11 +40,7 @@ static void usage(void)
 #ifdef _WIN32
 int wmain(int argc, wchar_t **wargv)
 {
-    g_argc_utf8 = argc;
-    g_argv_utf8 = (char **)calloc((size_t)argc, sizeof(char *));
-    for (int i = 0; i < argc; i++)
-        g_argv_utf8[i] = wide_to_utf8(wargv[i]);
-    char **argv = g_argv_utf8;
+    char **argv = argv_utf8_from_wide(argc, wargv);
 #else
 int main(int argc, char **argv)
 {
@@ -96,61 +92,5 @@ int main(int argc, char **argv)
         if (!in) { usage(); return 1; }
         str = in;
     }
-
-    ParseOut po;
-    char err[256];
-    if (lex(str, po.layer1, &po.n1, err, sizeof(err))) {
-        fprintf(stderr, "ipa2vec: %s\n", err);
-        return 1;
-    }
-    canonicalise(po.layer1, po.n1, po.layer2, &po.n2);
-    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs);
-
-    if (irbase)
-        export_ir(po.layer1, po.n1, po.layer2, po.n2, irbase);
-
-    if (ir) {
-        printf("input: /%s/\n", str);
-        print_layer(po.layer1, po.n1, "layer1 (char order) ");
-        print_layer(po.layer2, po.n2, "layer2 (feature order)");
-        for (int s = 0; s < po.nsegs; s++) {
-            printf("vector[%d]: (", s);
-            for (int i = 0; i < NDIM; i++)
-                printf("%s%.4f", i ? ", " : "", po.segs[s].v[i]);
-            printf(")  %s%s%s\n", AIRSTREAM_LABELS[po.segs[s].airstream],
-                   po.segs[s].note[0] ? "  [" : "", po.segs[s].note);
-            const SegEntry *b; double d;
-            nearest_base(po.segs[s].v, &b, &d);
-            const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
-            int nm = fit_modifiers(po.segs[s].v, b, mods);
-            char rebuilt[128];
-            build_ipa(b, mods, nm, rebuilt, sizeof(rebuilt));
-            char tb[48];
-            tone_rebuild(&po.segs[s], tb, sizeof(tb));
-            printf("rebuilt[%d]: /%s%s/\n", s, rebuilt, tb);
-        }
-        return 0;
-    }
-
-    if (json) {
-        printf("{\"input\": \"%s\", \"segments\": [\n", str);
-        int first = 1;
-        for (int s = 0; s < po.nsegs; s++) {
-            if (!first) printf(",\n");
-            first = 0;
-            printf("    {\"values\": {");
-            for (int i = 0; i < NDIM; i++)
-                printf("%s\"%s\": %.4f", i ? ", " : "", DIM_NAMES[i], po.segs[s].v[i]);
-            printf("}, \"airstream\": \"%s\"}", AIRSTREAM_LABELS[po.segs[s].airstream]);
-        }
-        printf("\n]}\n");
-        return 0;
-    }
-
-    for (int s = 0; s < po.nsegs; s++) {
-        char label[16];
-        snprintf(label, sizeof(label), "[%d]", s);
-        print_seg_text(&po.segs[s], label);
-    }
-    return 0;
+    return run_forward(str, ir, json, irbase, "ipa2vec");
 }

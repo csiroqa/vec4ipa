@@ -29,7 +29,7 @@ vec4ipa: $(SRC)/vec4ipa_main.c $(SRC)/readme_embed.h $(VECTORS_H)
 # Win32 GUI wrapper (Windows only) — lives in ui/
 ui/vec4ipa_ui: ui/vec4ipa_ui.c ui/app.res
 	$(CC) $(CFLAGS) -mwindows -municode -o $@ ui/vec4ipa_ui.c ui/app.res \
-	    -lcomctl32 -lcomdlg32 -lshlwapi -lshell32 -lole32
+	    -lcomctl32 -lcomdlg32 -lshell32 -lole32
 
 ui/app.res: ui/app.rc ui/vec_ipa.ico ipa2vec.exe vec2ipa.exe vec4ipa.exe
 	windres ui/app.rc -O coff -o ui/app.res
