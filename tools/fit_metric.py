@@ -190,30 +190,15 @@ def loco(X, counts, weights):
     per fold, fit the condition scales on the training conditions, then
     the held-out scale on the held-out condition."""
     n_cond = counts.shape[0]
-    u = np.log(np.clip(weights, 1e-9, None))
     D = distance_matrix(X, weights)
     held = 0.0
     for c in range(n_cond):
         tr = np.delete(counts, c, axis=0)
-        def scale_obj(loga):
-            tot = 0.0
-            for t in range(n_cond - 1):
-                P = np.exp(-np.exp(loga[t]) * D)
-                P /= P.sum(axis=1, keepdims=True)
-                P = np.clip(P, 1e-300, None)
-                tot -= np.sum(tr[t] * np.log(P))
-            return tot
-        sc = minimize(scale_obj, np.zeros(n_cond - 1), method='L-BFGS-B')
-        def held_scale(loga):
-            P = np.exp(-np.exp(loga[0]) * D)
-            P /= P.sum(axis=1, keepdims=True)
-            P = np.clip(P, 1e-300, None)
-            return -np.sum(counts[c] * np.log(P))
-        sc2 = minimize(held_scale, [0.0], method='L-BFGS-B')
-        P = np.exp(-np.exp(sc2.x[0]) * D)
-        P /= P.sum(axis=1, keepdims=True)
-        P = np.clip(P, 1e-300, None)
-        held -= np.sum(counts[c] * np.log(P))
+        sc = minimize(lambda loga: nll_weights(tr, D, loga),
+                      np.zeros(n_cond - 1), method='L-BFGS-B')
+        sc2 = minimize(lambda loga: nll_weights(counts[c:c + 1], D, loga),
+                       [0.0], method='L-BFGS-B')
+        held += nll_weights(counts[c:c + 1], D, sc2.x)
     return held
 
 def main():

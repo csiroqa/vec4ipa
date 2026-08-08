@@ -4,7 +4,7 @@
 Data source: 新老派普通话的宽严式记音（含儿化韵） by unt
 (https://zhuanlan.zhihu.com/p/38258415; untunt/PhonoCollection).
 
-Run:  python tools/test_standard_chinese.py [ipa2vec] [vec2ipa] [vec4ipa]
+Run:  python tools/test_standard_chinese.py [ipa2vec] [vec2ipa]
 
 Covers, for every pinyin initial / glide / final / rhotacised final /
 syllabic component / tone of the article:
@@ -25,47 +25,17 @@ Precomposed ä in the sentence strings is spelled decomposed (a+◌̈,
 NFD-normalised) — identical IPA, same result.
 """
 
-import subprocess
 import sys
 import unicodedata
+from pathlib import Path
 
-EXE = sys.argv[1] if len(sys.argv) > 1 else r"D:\2-OGP\IPA2Vector\ipa2vec.exe"
-VEC2IPA = sys.argv[2] if len(sys.argv) > 2 else r"D:\2-OGP\IPA2Vector\vec2ipa.exe"
-VEC4IPA = sys.argv[3] if len(sys.argv) > 3 else r"D:\2-OGP\IPA2Vector\vec4ipa.exe"
+import _common
+from _common import check, run
 
-fails = 0
-total = 0
-
-def run(args):
-    return subprocess.run([EXE] + args, capture_output=True, text=True,
-                          encoding="utf-8", errors="replace")
-
-def count_segs(stdout):
-    return len([l for l in stdout.splitlines() if l.strip().startswith("[")])
-
-def check(name, argv, expect_rc=0, expect_segs=None, expect_tone=None,
-          expect_note=None, expect_warn=None):
-    global fails, total
-    total += 1
-    r = run(argv)
-    ok = (r.returncode == expect_rc)
-    if ok and expect_segs is not None:
-        ok = (count_segs(r.stdout) == expect_segs)
-    if ok and expect_tone is not None:
-        ok = expect_tone in r.stdout
-    if ok and expect_note is not None:
-        ok = expect_note in r.stderr
-    if ok and expect_warn is not None:
-        ok = expect_warn in r.stderr
-    if not ok:
-        fails += 1
-        print(f"FAIL: {name}")
-        print(f"  rc={r.returncode} (want {expect_rc})")
-        if expect_segs is not None:
-            print(f"  segs={count_segs(r.stdout)} (want {expect_segs})")
-        print(f"  stdout: {r.stdout.strip()[:120]!r}")
-        print(f"  stderr: {r.stderr.strip()[:120]!r}")
-    return ok
+ROOT = Path(__file__).resolve().parents[1]
+EXE = sys.argv[1] if len(sys.argv) > 1 else ROOT / "ipa2vec.exe"
+VEC2IPA = sys.argv[2] if len(sys.argv) > 2 else ROOT / "vec2ipa.exe"
+_common.EXE = EXE
 
 def check_forms(name, forms, **kw):
     for f in forms:
@@ -484,5 +454,5 @@ for name, form in GAP_ITEMS:
     check(f"gap {name}", [form], expect_rc=1)
 
 # ------------------------------------------------------------------
-print(f"\n{total - fails}/{total} checks passed")
-sys.exit(1 if fails else 0)
+print(f"\n{_common.total - _common.fails}/{_common.total} checks passed")
+sys.exit(1 if _common.fails else 0)

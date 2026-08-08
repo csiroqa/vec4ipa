@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ipa2vec stress-test suite.
 
-Run:  python3 tools/test_ipa2vec.py [path-to-ipa2vec]
+Run:  python3 tools/test_suite.py [path-to-ipa2vec]
 
 Covers: extIPA/clinical strings, tone system (5-level + Chinese classes +
 upstep/downstep + global contours), implicit affricates, regional modules
@@ -10,46 +10,21 @@ Japanologist/Africanist/OED), uppercase (listed only), inference notes,
 deprecated-symbol warnings, and round-trip fidelity of the base table.
 """
 
-import subprocess
-import sys
-import re
+import json as _json
 import os
+import re
+import sys
+import tempfile
+from pathlib import Path
 
-EXE = sys.argv[1] if len(sys.argv) > 1 else r"D:\2-OGP\IPA2Vector\ipa2vec.exe"
-VEC2IPA = sys.argv[2] if len(sys.argv) > 2 else r"D:\2-OGP\IPA2Vector\vec2ipa.exe"
-VEC4IPA = sys.argv[3] if len(sys.argv) > 3 else r"D:\2-OGP\IPA2Vector\vec4ipa.exe"
+import _common
+from _common import check, parse_rebuilt, parse_vector, run
 
-fails = 0
-total = 0
-
-def run(args):
-    return subprocess.run([EXE] + args, capture_output=True, text=True,
-                          encoding="utf-8", errors="replace")
-
-def check(name, argv, expect_rc=0, expect_segs=None, expect_tone=None,
-          expect_note=None, expect_warn=None):
-    global fails, total
-    total += 1
-    r = run(argv)
-    ok = (r.returncode == expect_rc)
-    if ok and expect_segs is not None:
-        n = len([l for l in r.stdout.splitlines() if l.strip().startswith("[")])
-        ok = (n == expect_segs)
-    if ok and expect_tone is not None:
-        ok = expect_tone in r.stdout
-    if ok and expect_note is not None:
-        ok = expect_note in r.stderr
-    if ok and expect_warn is not None:
-        ok = expect_warn in r.stderr
-    if not ok:
-        fails += 1
-        print(f"FAIL: {name}")
-        print(f"  rc={r.returncode} (want {expect_rc})")
-        if expect_segs is not None:
-            print(f"  segs={len([l for l in r.stdout.splitlines() if l.strip().startswith('[')])} (want {expect_segs})")
-        print(f"  stdout: {r.stdout.strip()[:120]!r}")
-        print(f"  stderr: {r.stderr.strip()[:120]!r}")
-    return ok
+ROOT = Path(__file__).resolve().parents[1]
+EXE = sys.argv[1] if len(sys.argv) > 1 else ROOT / "ipa2vec.exe"
+VEC2IPA = sys.argv[2] if len(sys.argv) > 2 else ROOT / "vec2ipa.exe"
+VEC4IPA = sys.argv[3] if len(sys.argv) > 3 else ROOT / "vec4ipa.exe"
+_common.EXE = EXE
 
 # ------------------------------------------------------------------
 # 1. The big clinical/extIPA stress string (from the spec discussion)
@@ -106,24 +81,21 @@ check("tone after rhoticised vowel", ["\u025d\u032f\u02e8\u02e9\u02e6"],
       expect_tone="tone=(2,1,4)")
 
 # ------------------------------------------------------------------
-# 7. Transcription narrowness (--width)
+# 3. Transcription narrowness (--width)
 # ------------------------------------------------------------------
 def width_vec(s):
-    r = subprocess.run([EXE, s], capture_output=True, text=True,
-                       encoding="utf-8", errors="replace")
+    r = run(EXE, [s])
     m = re.search(r"\(([^)]+)\)", r.stdout)
     return m.group(1) if m else "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
 
 wv = width_vec("t\u032c\u02de\u0329\u02e4")
-r0 = subprocess.run([VEC2IPA, "--width", "0", wv], capture_output=True,
-                    text=True, encoding="utf-8", errors="replace")
-r4 = subprocess.run([VEC2IPA, "--width", "4", wv], capture_output=True,
-                    text=True, encoding="utf-8", errors="replace")
+r0 = run(VEC2IPA, ["--width", "0", wv])
+r4 = run(VEC2IPA, ["--width", "4", wv])
 c0 = (r0.stdout or r0.stderr).count("+")
 c4 = (r4.stdout or r4.stderr).count("+")
-total += 1
+_common.total += 1
 if c4 < c0:
-    fails += 1
+    _common.fails += 1
     print(f"FAIL: --width 4 mods={c4} < --width 0 mods={c0}")
 check("nasalised nasal warns", ["n\u0303"],
       expect_warn="nasalising the nasal n is redundant")
@@ -134,7 +106,7 @@ check("oral consonant tilde warns", ["t\u0303"],
       expect_warn="oral consonant t nasalises with ◌ⁿ")
 
 # ------------------------------------------------------------------
-# 3. Implicit affricates (no tie)
+# 4. Implicit affricates (no tie)
 # ------------------------------------------------------------------
 for pair in ["ts", "dz", "t\u0283", "d\u0292", "t\u0255", "d\u0291",
              "\u0288\u0282", "\u0256\u0290", "t\u026c", "d\u026e",
@@ -145,7 +117,7 @@ for pair in ["ts", "dz", "t\u0283", "d\u0292", "t\u0255", "d\u0291",
 check("non-affricate pair stays 2 segs", ["gp"], expect_segs=2)
 
 # ------------------------------------------------------------------
-# 4. Regional modules
+# 5. Regional modules
 # ------------------------------------------------------------------
 for s, name in [("\u0161", "americanist \u0161"), ("\u010d", "americanist \u010d"),
                 ("\u01f0", "americanist \u01f0"), ("\u1e8b", "americanist \u1e8b"),
@@ -176,7 +148,7 @@ for s, name in [("\u0161", "americanist \u0161"), ("\u010d", "americanist \u010d
     check(f"regional {name}", [s], expect_rc=want_rc)
 
 # ------------------------------------------------------------------
-# 5. School-of-linguistics modules: --<name> enables without warning;
+# 6. School-of-linguistics modules: --<name> enables without warning;
 #    priority follows command-line order; warning lists all schools
 # ------------------------------------------------------------------
 check("school default warns", ["\u0161"],
@@ -195,13 +167,13 @@ check("sinologist ȶ warns by default", ["\u0236"],
 check("sinologist ȶ silent with flag", ["--sinologist", "\u0236"], expect_rc=0)
 
 # ------------------------------------------------------------------
-# 6. No extrapolated uppercase
+# 7. No extrapolated uppercase
 # ------------------------------------------------------------------
 for s in ["B", "I", "L", "A", "E", "U", "W", "V"]:
     check(f"no-extrapolate uppercase {s}", [s], expect_rc=1)
 
 # ------------------------------------------------------------------
-# 6. Diacritic semantics (formal readings)
+# 8. Diacritic semantics (formal readings)
 # ------------------------------------------------------------------
 check("linguolabial t\u033c", ["t\u033c"], expect_rc=0)
 check("laminal t\u033b", ["t\u033b"], expect_rc=0)
@@ -215,7 +187,7 @@ check("extIPA labiodental f\u1db9", ["f\u1db9"], expect_rc=0)
 check("extIPA sliding t\u0362", ["t\u0362"], expect_rc=0)
 
 # ------------------------------------------------------------------
-# 7. Inferences reported
+# 9. Inferences reported
 # ------------------------------------------------------------------
 check("infer tie", ["ts"], expect_note="inferred tie")
 check("infer synth affricate", ["t\u026c"], expect_note="synthesized tie")
@@ -228,10 +200,9 @@ check("warn deprecated", ["\u029e"], expect_warn="warning")
 check("warn dotless-i obsolete", ["\u0131"], expect_warn="warning")
 
 # ------------------------------------------------------------------
-# 8. Base-table round-trip fidelity (forward -> -r rebuild -> forward)
+# 10. Base-table round-trip fidelity (forward -> -r rebuild -> forward)
 # ------------------------------------------------------------------
-out = subprocess.run([VEC4IPA, "-t"], capture_output=True, text=True,
-                     encoding="utf-8", errors="replace").stdout
+out = run(VEC4IPA, ["-t"]).stdout
 # reverse search (vec2ipa) covers SEG_TABLE (132) only; extIPA EXTRA_BASE
 # entries are near-equivalent additions, so test the 132 main entries.
 segments = []
@@ -246,13 +217,12 @@ for l in out.splitlines():
 rt_fail = 0
 for ipa, v in segments:
     vec = ", ".join(f"{x:.4f}" for x in v)
-    r1 = subprocess.run([VEC2IPA, vec], capture_output=True, text=True,
-                        encoding="utf-8", errors="replace")
+    r1 = run(VEC2IPA, [vec])
     if r1.returncode != 0:
         rt_fail += 1
         continue
-    rebuilt = r1.stdout.split("->  /")[-1].rstrip("/\n")
-    r2 = run([rebuilt])
+    rebuilt = parse_rebuilt(r1.stdout)
+    r2 = run(EXE, [rebuilt])
     if r2.returncode != 0:
         rt_fail += 1
         continue
@@ -260,19 +230,19 @@ for ipa, v in segments:
     if not l:
         rt_fail += 1
         continue
-    body = l[0].split("(")[1].split(")")[0]
+    body = parse_vector(l[0])
     fv = [float(x) for x in body.split(",")]
     if max(abs(a - b) for a, b in zip(v, fv)) > 0.02:
         rt_fail += 1
-total += 1
+_common.total += 1
 if rt_fail == 0:
     print(f"round-trip: {len(segments)}/{len(segments)} base segments OK")
 else:
-    fails += 1
+    _common.fails += 1
     print(f"FAIL: round-trip {rt_fail}/{len(segments)} segments drifted")
 
 # ------------------------------------------------------------------
-# 9. Advanced combos (multi-module stacking, stress robustness)
+# 11. Advanced combos (multi-module stacking, stress robustness)
 # ------------------------------------------------------------------
 check("regional+diacritic stack: ḏʷ (indologist + labial)",
       ["\u1e0f\u02b7"], expect_rc=0)
@@ -303,10 +273,9 @@ check("unknown symbol error", ["\u00e9\u2603"], expect_rc=1)
 check("modifier-only error", ["\u02e5"], expect_rc=1)
 
 # ------------------------------------------------------------------
-# 10. --metric FILE: runtime metric override (default = compiled-in)
+# 12. --metric FILE: runtime metric override (default = compiled-in)
 # ------------------------------------------------------------------
-import tempfile, json as _json
-metric_default = _json.load(open(r"D:\2-OGP\IPA2Vector\metric.json", encoding="utf-8"))
+metric_default = _json.load(open(ROOT / "metric.json", encoding="utf-8"))
 
 alt = dict(metric_default)
 alt["weights"] = [1.0] * 16
@@ -324,47 +293,43 @@ with open(_alt, "w", encoding="utf-8") as f: _json.dump(alt, f)
 with open(_full, "w", encoding="utf-8") as f: _json.dump(full, f)
 with open(_bad, "w", encoding="utf-8") as f: f.write('{"weights": [1.0, 2.0}')
 
-def run_any(exe, args):
-    return subprocess.run([exe] + args, capture_output=True, text=True,
-                          encoding="utf-8", errors="replace")
+d_default = run(VEC2IPA, ["-d", "p", "t"]).stdout.strip()
+d_alt = run(VEC2IPA, ["--metric", _alt, "-d", "p", "t"]).stdout.strip()
+d_full = run(VEC2IPA, ["--metric", _full, "-d", "p", "t"]).stdout.strip()
 
-d_default = run_any(VEC2IPA, ["-d", "p", "t"]).stdout.strip()
-d_alt = run_any(VEC2IPA, ["--metric", _alt, "-d", "p", "t"]).stdout.strip()
-d_full = run_any(VEC2IPA, ["--metric", _full, "-d", "p", "t"]).stdout.strip()
-
-check("--metric equal file matches default", ["--metric", r"D:\2-OGP\IPA2Vector\metric.json", "ma"], expect_rc=0)
-total += 1
+check("--metric equal file matches default", ["--metric", str(ROOT / "metric.json"), "ma"], expect_rc=0)
+_common.total += 1
 if d_default == d_alt:
-    fails += 1
+    _common.fails += 1
     print("FAIL: --metric uniform weights must change p-t distance")
 elif abs(float(d_alt) - 1.25) > 1e-3:   # plain Euclidean p-t distance
-    fails += 1
+    _common.fails += 1
     print(f"FAIL: --metric uniform weights gave {d_alt}, want 1.2500")
-total += 1
+_common.total += 1
 if d_default == d_full:
-    fails += 1
+    _common.fails += 1
     print("FAIL: --metric full matrix must change p-t distance")
 elif abs(float(d_full) - float(d_alt) * (2 ** 0.5)) > 1e-3:
     # matrix = 2I over the same uniform weights -> distance * sqrt(2)
-    fails += 1
+    _common.fails += 1
     print(f"FAIL: --metric 2x matrix gave {d_full}, want {float(d_alt) * 2 ** 0.5:.4f}")
-total += 1
-r = run_any(EXE, ["--metric", _bad, "ma"])
+_common.total += 1
+r = run(EXE, ["--metric", _bad, "ma"])
 if r.returncode != 1:
-    fails += 1
+    _common.fails += 1
     print(f"FAIL: malformed --metric json must exit 1 (rc={r.returncode})")
-total += 1
-r = run_any(EXE, ["--metric", os.path.join(_tmpdir, "nope.json"), "ma"])
+_common.total += 1
+r = run(EXE, ["--metric", os.path.join(_tmpdir, "nope.json"), "ma"])
 if r.returncode != 1:
-    fails += 1
+    _common.fails += 1
     print(f"FAIL: missing --metric file must exit 1 (rc={r.returncode})")
-total += 1
-r = run_any(VEC2IPA, ["--metric"])
+_common.total += 1
+r = run(VEC2IPA, ["--metric"])
 if r.returncode != 1:
-    fails += 1
+    _common.fails += 1
     print(f"FAIL: --metric without value must exit 1 (rc={r.returncode})")
-total += 1
+_common.total += 1
 
 # ------------------------------------------------------------------
-print(f"\n{total - fails}/{total} checks passed")
-sys.exit(1 if fails else 0)
+print(f"\n{_common.total - _common.fails}/{_common.total} checks passed")
+sys.exit(1 if _common.fails else 0)

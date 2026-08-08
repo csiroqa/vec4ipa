@@ -17,26 +17,25 @@ Run:  python tools/test_metric_space.py [ipa2vec] [vec2ipa]
 """
 
 import re
-import subprocess
 import sys
 from pathlib import Path
 
-EXE = sys.argv[1] if len(sys.argv) > 1 else r"D:\2-OGP\IPA2Vector\ipa2vec.exe"
-VEC2IPA = sys.argv[2] if len(sys.argv) > 2 else r"D:\2-OGP\IPA2Vector\vec2ipa.exe"
-VECTORS_MD = r"D:\2-OGP\IPA2Vector\IPA_VECTORS.md"
+import _common
+from _common import MD_LINE_RE, parse_rebuilt, parse_vector, run
+
+ROOT = Path(__file__).resolve().parents[1]
+EXE = sys.argv[1] if len(sys.argv) > 1 else ROOT / "ipa2vec.exe"
+VEC2IPA = sys.argv[2] if len(sys.argv) > 2 else ROOT / "vec2ipa.exe"
+VECTORS_MD = ROOT / "IPA_VECTORS.md"
 
 fails = 0
 total = 0
-
-def run(exe, args):
-    return subprocess.run([exe] + args, capture_output=True, text=True,
-                          encoding="utf-8", errors="replace")
 
 def vector_of(ipa):
     r = run(EXE, [ipa])
     if r.returncode != 0:
         return None
-    return [float(x) for x in r.stdout.split("(")[1].split(")")[0].split(",")]
+    return [float(x) for x in parse_vector(r.stdout).split(",")]
 
 def nearest_base(ipa):
     v = vector_of(ipa)
@@ -58,10 +57,9 @@ def check(name, cond, detail=""):
 # ------------------------------------------------------------------
 # 1. vowel-like bases × {nasalised, long, both} must anchor to a vowel
 # ------------------------------------------------------------------
-pat = re.compile(r'^`/([^/`]*)/`(?: \([^)]*\))?: `\((.*)\)`$')
 VOWELS = []
 for line in open(VECTORS_MD, encoding="utf-8"):
-    m = pat.match(line.strip())
+    m = MD_LINE_RE.match(line.strip())
     if m:
         vals = [float(x) for x in m.group(2).split(",")]
         if vals[8] >= 0.5 and vals[14] >= 0.4 and vals[12] >= 1.0:
@@ -77,8 +75,8 @@ check("ãː anchors to a vowel (not a nasal)", nearest_base("ãː") in VOWELS,
       f"-> {nearest_base('ãː')}")
 check("ãː full rebuild = a + ◌̃ + ː",
       nearest_base("ãː") in VOWELS and
-      run(VEC2IPA, ["-r", ", ".join(f"{x:.4f}" for x in vector_of("ãː"))]
-          ).stdout.split("->  /")[-1].rstrip("/\n").strip() in
+      parse_rebuilt(run(VEC2IPA, ["-r", ", ".join(f"{x:.4f}" for x in vector_of("ãː"))]
+          ).stdout).strip() in
       ("ãː", "aː̃"), "")
 
 # ------------------------------------------------------------------
@@ -171,7 +169,7 @@ for ipa in ROUNDTRIP:
         continue
     vec = ", ".join(f"{x:.4f}" for x in v1)
     r = run(VEC2IPA, [vec])
-    rebuilt = r.stdout.split("->  /")[-1].rstrip("/\n").strip()
+    rebuilt = parse_rebuilt(r.stdout).strip()
     v2 = vector_of(rebuilt)
     if v2 is None:
         check(f"rebuild {ipa}", False, f"rebuilt {rebuilt} unparseable")
@@ -180,7 +178,7 @@ for ipa in ROUNDTRIP:
     check(f"rebuild {ipa} -> {rebuilt}", dv <= 0.02, f"max|dv|={dv:.4f}")
 
 # ------------------------------------------------------------------
-# 6. tone letters / pitch marks survive the forward-reverse rebuild
+# 5. tone letters / pitch marks survive the forward-reverse rebuild
 # ------------------------------------------------------------------
 TONE_CASES = [
     ("ma˥",         "a˥"),
@@ -213,7 +211,7 @@ for inp, want in TONE_CASES:
     check(f"tone rebuild {inp}", got == want, f"got {got}")
 
 # ------------------------------------------------------------------
-# 7. reverse uses standard IPA only (no ȶ ȡ ȵ ȴ ᴇ)
+# 6. reverse uses standard IPA only (no ȶ ȡ ȵ ȴ ᴇ)
 # ------------------------------------------------------------------
 # ᴇ (lowered e, small-cap display letter) -> standard spelling e̞
 E_VEC = "0.0, 0.0, 0.55, 0.1, 1.0, -0.2, 0.0, 0.0, 1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0"
@@ -221,7 +219,7 @@ check("ᴇ vector nearest is e", nearest_base("e̞") != "ERR" and
       run(VEC2IPA, ["-n", E_VEC]).stdout.split("  ")[0] == "/e/",
       run(VEC2IPA, ["-n", E_VEC]).stdout.splitlines()[0][:40])
 check("ᴇ vector rebuilds as e̞",
-      run(VEC2IPA, [E_VEC]).stdout.split("->  /")[-1].rstrip("/\n") == "e̞",
+      parse_rebuilt(run(VEC2IPA, [E_VEC]).stdout) == "e̞",
       run(VEC2IPA, [E_VEC]).stdout.splitlines()[0][:60])
 # Sinologist curl letters are never reverse targets by default; their
 # standard spelling is t̠ʲ/d̠ʲ/n̠ʲ/l̠ʲ, so the fallback must be t/d/n/l
@@ -261,14 +259,14 @@ check("--charset bad value rejected",
       run(VEC2IPA, ["--charset", "bogus", E_VEC]).returncode == 1, "")
 
 # ------------------------------------------------------------------
-# 8. every standard base is its own nearest base (place is primary)
+# 7. every standard base is its own nearest base (place is primary)
 # ------------------------------------------------------------------
 # Regression guard for the p̪/ɱ case: the labiodental stop/nasal were
 # base rows whose vectors coincided with p/m (lips_closed is 1.0 for
 # both bilabial and labiodental closures), so they fell back to /p//m/.
 # They are now described by the dental dimension (tt_pos 1.0, same as
 # t̪ θ ð), and the derived spellings b̪ m̪ agree with the base rows.
-VECTORS_H = Path(__file__).resolve().parents[1] / "src" / "vectors.h"
+VECTORS_H = ROOT / "src" / "vectors.h"
 for line in VECTORS_H.read_text(encoding="utf-8").splitlines():
     m = re.search(r'\{ "([^"]+)", \{', line)
     if not m:
@@ -288,7 +286,7 @@ for derived, base in (("p̪", "p\u032a"), ("m̪", "ɱ")):
           dv is not None and dv <= 0.02, f"max|dv|={dv}")
 
 # ------------------------------------------------------------------
-# 5. approximate rebuilds (semantically right, small residual by design)
+# 8. approximate rebuilds (semantically right, small residual by design)
 # ------------------------------------------------------------------
 APPROX = [
     # the voicing ring is a *partial* voicing change (keeps the base's
@@ -301,7 +299,7 @@ for ipa, tol in APPROX:
     v1 = vector_of(ipa)
     vec = ", ".join(f"{x:.4f}" for x in v1)
     r = run(VEC2IPA, [vec])
-    rebuilt = r.stdout.split("->  /")[-1].rstrip("/\n").strip()
+    rebuilt = parse_rebuilt(r.stdout).strip()
     v2 = vector_of(rebuilt)
     dv = max(abs(a - b) for a, b in zip(v1, v2))
     check(f"approx {ipa} -> {rebuilt}", dv <= tol, f"max|dv|={dv:.4f}")

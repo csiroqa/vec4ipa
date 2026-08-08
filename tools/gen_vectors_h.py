@@ -8,15 +8,14 @@ Output: a C header defining
   static const char *AIRSTREAM_LABELS[4] / AIRSTREAM_VAL[4];
 """
 
-import json, re, sys
+import json, os, re, sys
+from pathlib import Path
 
-SRC_MD = r"D:\2-OGP\IPA2Vector\IPA_VECTORS.md"
-SRC_JSON = r"D:\2-OGP\IPA2Vector\metric.json"
-SRC_NAMES = r"D:\2-OGP\IPA2Vector\src\names.tsv"
-OUT_H = r"D:\2-OGP\IPA2Vector\src\vectors.h"
-
-# airstream from section headers
-AIRSTREAM = {"pulmonic", "glottalic egressive", "glottalic ingressive", "lingual"}
+ROOT = Path(__file__).resolve().parents[1]
+SRC_MD = ROOT / "IPA_VECTORS.md"
+SRC_JSON = ROOT / "metric.json"
+SRC_NAMES = ROOT / "src" / "names.tsv"
+OUT_H = ROOT / "src" / "vectors.h"
 
 entries = []          # (ipa_str, [16 floats], airstream)
 cur_air = "pulmonic"
@@ -56,7 +55,7 @@ for ln in open(SRC_NAMES, encoding="utf-8"):
         continue
     parts = ln.split("\t")
     if len(parts) >= 2:
-        names[parts[0]] = parts[1] if len(parts) > 2 else parts[1]
+        names[parts[0]] = parts[1]
 
 # escape for C string (UTF-8 bytes preserved; only quote/backslash escaped)
 def cstr(s: str) -> str:
@@ -115,8 +114,7 @@ lines.append("")
 lines.append("#endif /* IPA2VEC_VECTORS_H */")
 lines.append("")
 
-import os
-os.makedirs(os.path.dirname(OUT_H), exist_ok=True)
+os.makedirs(OUT_H.parent, exist_ok=True)
 with open(OUT_H, "w", encoding="utf-8", newline="\n") as f:
     f.write("\n".join(lines) + "\n")
 print(f"wrote {OUT_H}: {len(entries)} segments")
