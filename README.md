@@ -27,6 +27,13 @@ make            # builds ./ipa2vec ./vec2ipa ./vec4ipa
 make gen        # regenerate src/vectors.h and src/readme_embed.h
 ```
 
+The WinUI 3 front-end (`ui/winui/`, the modern workbench) is built
+separately on Windows:
+
+```sh
+ui/winui/build.bat   # builds ipa2vec_core.dll + publishes dist\vec4ipa_ui.exe
+```
+
 The binaries embed the full table; they do not read any file at runtime.
 
 ## GUI wrapper (Windows)
@@ -220,11 +227,11 @@ those consume the vector argument that follows them.)
   creaky `̰`, breathy `̤` (U+0324), pharyngealised `ˤ/̴`, velarised `ˠ`,
   palatalised `ʲ`, labialised `ʷ`, syllabic `̩`, non‑syllabic `̯`,
   unreleased `̚`, voiceless `̥`, voiced `̬`, nasal‑click `ᵑ` (preposed),
-  ejective `ʼ` (U+02BC, sets `cg=1 sg=0 lt=0.6 voiced=0` and airstream =
+  ejective `ʼ` (U+02BC, sets `constricted_glottis=1 spread_glottis=0 laryngeal_tension=0.6 voiced=0` and airstream =
   glottalic egressive), macron `◌̄` (U+0304, level tone).
 - extIPA/clinical marks: dental `̪` (lingual: dentalise; labial: the
   labiodental stop/nasal `p̪ b̪ m̪` / `ɱ`, encoded on the dental
-  dimension `tt_pos = 1.0` like `t̪ θ ð`), linguolabial `̼`, laminal `̻`, raised
+  dimension `tongue_tip_pos = 1.0` like `t̪ θ ð`), linguolabial `̼`, laminal `̻`, raised
   `̝`/`˔`, lowered `̞`, advanced `̟`, retracted `̠`, more/less rounded
   `̹/̜`, bridged `͆`, apical `̺`, ATR `̘`, RTR `̙`, denasal `̻`,
   mid‑centralised `̽`, rhotacised `˞`, extra‑short `̆`, fortis `͈`,
@@ -370,7 +377,7 @@ precomposed accented vowels, labiodental plosives (ȹ ȸ), alveolo-palatal
 | `docs/SPEC.md` | the 16-D vector specification |
 | `IPA_VECTORS.md` | the 132-segment vector table (data for the generator) |
 | `METRIC.md` | metric derivation (weights, λ) |
-| `metric.json` | machine-readable weights + λ (v3) |
+| `metric.json` | machine-readable weights + λ (v9) |
 | `Makefile` | build all three tools (auto `-municode` on Windows) |
 
 ## License

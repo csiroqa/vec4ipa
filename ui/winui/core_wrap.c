@@ -40,7 +40,7 @@ EXPORT int ipa2v_forward(const char *str, char *err, size_t errsz,
     if (lex(str, po.layer1, &po.n1, err, errsz))
         return -1;
     canonicalise(po.layer1, po.n1, po.layer2, &po.n2);
-    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs);
+    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs, "core");
     for (int s = 0; s < po.nsegs && s < MAX_TOKS; s++) {
         for (int i = 0; i < NDIM; i++)
             out[s * NDIM + i] = po.segs[s].v[i];
@@ -64,7 +64,7 @@ EXPORT int ipa2v_forward_tone(const char *str, char *err, size_t errsz,
     if (lex(str, po.layer1, &po.n1, err, errsz))
         return -1;
     canonicalise(po.layer1, po.n1, po.layer2, &po.n2);
-    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs);
+    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs, "core");
     for (int s = 0; s < po.nsegs && s < MAX_TOKS; s++) {
         for (int i = 0; i < NDIM; i++)
             out[s * NDIM + i] = po.segs[s].v[i];
@@ -411,8 +411,8 @@ EXPORT int ipa2v_distance(const char *a, const char *b, double *out)
         return -1;
     canonicalise(pa.layer1, pa.n1, pa.layer2, &pa.n2);
     canonicalise(pb.layer1, pb.n1, pb.layer2, &pb.n2);
-    apply_layer2(pa.layer2, pa.n2, pa.segs, &pa.nsegs);
-    apply_layer2(pb.layer2, pb.n2, pb.segs, &pb.nsegs);
+    apply_layer2(pa.layer2, pa.n2, pa.segs, &pa.nsegs, "core");
+    apply_layer2(pb.layer2, pb.n2, pb.segs, &pb.nsegs, "core");
     if (pa.nsegs != 1 || pb.nsegs != 1) return -2;
     *out = seg_dist_full(&pa.segs[0], &pb.segs[0]);
     return 0;
@@ -428,7 +428,7 @@ EXPORT int ipa2v_ir(const char *str, char *out, size_t outsz)
         return -1;
     }
     canonicalise(po.layer1, po.n1, po.layer2, &po.n2);
-    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs);
+    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs, "core");
 
     size_t L = 0;
     int n;
@@ -514,7 +514,7 @@ EXPORT int ipa2v_json(const char *str, char *out, size_t outsz)
         return -1;
     }
     canonicalise(po.layer1, po.n1, po.layer2, &po.n2);
-    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs);
+    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs, "core");
 
     size_t L = 0;
     int n = snprintf(out + L, outsz - L, "{\"input\": \"%s\", \"segments\": [\n",
@@ -546,8 +546,8 @@ EXPORT int ipa2v_ir_export(const char *str, const char *base,
     if (lex(str, po.layer1, &po.n1, err, errsz))
         return -1;
     canonicalise(po.layer1, po.n1, po.layer2, &po.n2);
-    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs);
-    return export_ir(po.layer1, po.n1, po.layer2, po.n2, base);
+    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs, "core");
+    return export_ir(po.layer1, po.n1, po.layer2, po.n2, base, "core");
 }
 
 /* dimension names, one per line (for feature-name output view) */
@@ -588,8 +588,8 @@ EXPORT int ipa2v_vowel_positions(char *out, size_t outsz)
     return (int)L;
 }
 
-/* consonant place: one "sym\ttt_pos\n" line per consonant (incl. EXTRA),
- * tt_pos runs front (0, lips) to back (1, glottis) */
+/* consonant place: one "sym\ttongue_tip_pos\n" line per consonant (incl. EXTRA),
+ * tongue_tip_pos runs front (0, lips) to back (1, glottis) */
 EXPORT int ipa2v_kb_cons_pos(char *out, size_t outsz)
 {
     size_t L = 0;

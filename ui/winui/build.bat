@@ -49,6 +49,12 @@ echo [2/2] publishing WinUI 3 app ...
 "%MSBUILD%" vec4ipa_ui.csproj /restore /p:Configuration=Release /p:Platform=x64 /p:PublishSingleFile=false /t:Publish /v:m
 if errorlevel 1 exit /b 1
 
+rem The MRT PriGen output lands in bin\ but publish does not copy the
+rem application resources.pri (XAML/XBF lookup and the MRT Core app
+rem initialisation need it next to the exe) - copy it explicitly.
+copy /y "bin\x64\Release\net9.0-windows10.0.19041.0\win-x64\resources.pri" dist\resources.pri >nul 2>nul
+if errorlevel 1 exit /b 1
+
 echo.
 echo Done: dist\vec4ipa_ui.exe  (self-contained folder, no install needed)
 endlocal

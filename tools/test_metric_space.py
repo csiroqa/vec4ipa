@@ -21,38 +21,48 @@ import sys
 from pathlib import Path
 
 import _common
-from _common import MD_LINE_RE, parse_rebuilt, parse_vector, run
+from _common import (MD_LINE_RE, check_cond, fmt_vec, is_vowel_like,
+                     parse_rebuilt, parse_vector, run)
 
 ROOT = Path(__file__).resolve().parents[1]
-EXE = sys.argv[1] if len(sys.argv) > 1 else ROOT / "ipa2vec.exe"
-VEC2IPA = sys.argv[2] if len(sys.argv) > 2 else ROOT / "vec2ipa.exe"
+EXE = sys.argv[1] if len(sys.argv) > 1 else ROOT / ("ipa2vec" + _common.BIN_SUFFIX)
+VEC2IPA = sys.argv[2] if len(sys.argv) > 2 else ROOT / ("vec2ipa" + _common.BIN_SUFFIX)
 VECTORS_MD = ROOT / "IPA_VECTORS.md"
 
-fails = 0
-total = 0
-
-def vector_of(ipa):
-    r = run(EXE, [ipa])
-    if r.returncode != 0:
-        return None
-    return [float(x) for x in parse_vector(r.stdout).split(",")]
-
-def nearest_base(ipa):
-    v = vector_of(ipa)
-    if v is None:
-        return "ERR"
-    vec = ", ".join(f"{x:.4f}" for x in v)
-    r = run(VEC2IPA, ["-n", vec])
-    if r.returncode != 0:
-        return "ERR"
-    return r.stdout.split("/")[1]
-
 def check(name, cond, detail=""):
-    global fails, total
-    total += 1
-    if not cond:
-        fails += 1
-        print(f"FAIL: {name}  {detail}")
+    return check_cond(name, cond, detail)
+
+_vector_cache = {}
+def vector_of(ipa):
+    if ipa not in _vector_cache:
+        r = run(EXE, [ipa])
+        if r.returncode != 0:
+            _vector_cache[ipa] = None
+        else:
+            _vector_cache[ipa] = [float(x) for x in
+                                  parse_vector(r.stdout).split(",")]
+    return _vector_cache[ipa]
+
+_nearest_cache = {}
+def nearest_vec(v, charsets=()):
+    key = (tuple(v), tuple(charsets))
+    if key not in _nearest_cache:
+        args = [a for cs in charsets for a in ("--charset", cs)]
+        r = run(VEC2IPA, args + ["-n", fmt_vec(v)])
+        _nearest_cache[key] = (r.stdout.split("  ")[0]
+                               if r.returncode == 0 else "ERR")
+    return _nearest_cache[key]
+
+_base_cache = {}
+def nearest_base(ipa):
+    if ipa not in _base_cache:
+        v = vector_of(ipa)
+        if v is None:
+            _base_cache[ipa] = "ERR"
+        else:
+            nb = nearest_vec(v)
+            _base_cache[ipa] = nb if nb == "ERR" else nb.split("/")[1]
+    return _base_cache[ipa]
 
 # ------------------------------------------------------------------
 # 1. vowel-like bases × {nasalised, long, both} must anchor to a vowel
@@ -62,7 +72,7 @@ for line in open(VECTORS_MD, encoding="utf-8"):
     m = MD_LINE_RE.match(line.strip())
     if m:
         vals = [float(x) for x in m.group(2).split(",")]
-        if vals[8] >= 0.5 and vals[14] >= 0.4 and vals[12] >= 1.0:
+        if is_vowel_like(vals):
             VOWELS.append(m.group(1))
 
 for v in VOWELS:
@@ -75,7 +85,7 @@ check("ãː anchors to a vowel (not a nasal)", nearest_base("ãː") in VOWELS,
       f"-> {nearest_base('ãː')}")
 check("ãː full rebuild = a + ◌̃ + ː",
       nearest_base("ãː") in VOWELS and
-      parse_rebuilt(run(VEC2IPA, ["-r", ", ".join(f"{x:.4f}" for x in vector_of("ãː"))]
+      parse_rebuilt(run(VEC2IPA, ["-r", fmt_vec(vector_of("ãː"))]
           ).stdout).strip() in
       ("ãː", "aː̃"), "")
 
@@ -138,8 +148,11 @@ for ipa, want in SECONDARY:
 # 3. documented near-neighbours (semantically correct, kept on purpose)
 # ------------------------------------------------------------------
 DOC = [
-    # voiced aspirated stops have no base; the nearest plain stop wins
-    ("bʱ", "p"), ("dʱ", "t"), ("ɡʱ", "k"),
+    # voiced aspirated stops: since v9 (voicing weight raised by the
+    # corrected aggregation fix) they anchor to the VOICED base and
+    # round-trip losslessly (bʱ -> /b/ + ʱ -> "bʱ"); pre-v9 they fell
+    # on the voiceless stop
+    ("bʱ", "b"), ("dʱ", "d"), ("ɡʱ", "ɡ"),
 ]
 for ipa, want in DOC:
     check(f"documented {ipa}", nearest_base(ipa) == want,
@@ -151,9 +164,7 @@ for ipa, want in DOC:
 check("documented x̃ -> /x/ under default std charset",
       nearest_base("x̃") == "x", f"-> {nearest_base('x̃')}")
 check("documented x̃ -> /ʩ/ with --charset extipa",
-      run(VEC2IPA, ["--charset", "extipa", "-n",
-                    ", ".join(f"{x:.4f}" for x in vector_of("x̃"))]
-          ).stdout.split("  ")[0] == "/ʩ/", "")
+      nearest_vec(vector_of("x̃"), ("extipa",)) == "/ʩ/", "")
 
 # ------------------------------------------------------------------
 # 4. rebuilt spellings re-parse to the same vector
@@ -167,15 +178,15 @@ for ipa in ROUNDTRIP:
     if v1 is None:
         check(f"rebuild {ipa}", False, "parse failed")
         continue
-    vec = ", ".join(f"{x:.4f}" for x in v1)
-    r = run(VEC2IPA, [vec])
+    r = run(VEC2IPA, [fmt_vec(v1)])
     rebuilt = parse_rebuilt(r.stdout).strip()
     v2 = vector_of(rebuilt)
     if v2 is None:
         check(f"rebuild {ipa}", False, f"rebuilt {rebuilt} unparseable")
         continue
     dv = max(abs(a - b) for a, b in zip(v1, v2))
-    check(f"rebuild {ipa} -> {rebuilt}", dv <= 0.02, f"max|dv|={dv:.4f}")
+    check(f"rebuild {ipa} -> {rebuilt}", dv <= _common.TOL_REBUILD,
+          f"max|dv|={dv:.4f}")
 
 # ------------------------------------------------------------------
 # 5. tone letters / pitch marks survive the forward-reverse rebuild
@@ -207,56 +218,44 @@ def rebuilt_of(s):
 
 for inp, want in TONE_CASES:
     rb = rebuilt_of(inp)
-    got = rb[1] if rb and len(rb) == 2 else rb
-    check(f"tone rebuild {inp}", got == want, f"got {got}")
+    if not rb or len(rb) != 2:
+        check(f"tone rebuild {inp}", False, f"unexpected -i output: {rb!r}")
+        continue
+    check(f"tone rebuild {inp}", rb[1] == want, f"got {rb[1]}")
 
 # ------------------------------------------------------------------
 # 6. reverse uses standard IPA only (no ȶ ȡ ȵ ȴ ᴇ)
 # ------------------------------------------------------------------
 # ᴇ (lowered e, small-cap display letter) -> standard spelling e̞
-E_VEC = "0.0, 0.0, 0.55, 0.1, 1.0, -0.2, 0.0, 0.0, 1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0"
+E_VEC = [0.0, 0.0, 0.55, 0.1, 1.0, -0.2, 0.0, 0.0, 1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0]
 check("ᴇ vector nearest is e", nearest_base("e̞") != "ERR" and
-      run(VEC2IPA, ["-n", E_VEC]).stdout.split("  ")[0] == "/e/",
-      run(VEC2IPA, ["-n", E_VEC]).stdout.splitlines()[0][:40])
+      nearest_vec(E_VEC) == "/e/",
+      run(VEC2IPA, ["-n", fmt_vec(E_VEC)]).stdout.splitlines()[0][:40])
 check("ᴇ vector rebuilds as e̞",
-      parse_rebuilt(run(VEC2IPA, [E_VEC]).stdout) == "e̞",
-      run(VEC2IPA, [E_VEC]).stdout.splitlines()[0][:60])
+      parse_rebuilt(run(VEC2IPA, [fmt_vec(E_VEC)]).stdout) == "e̞",
+      run(VEC2IPA, [fmt_vec(E_VEC)]).stdout.splitlines()[0][:60])
 # Sinologist curl letters are never reverse targets by default; their
 # standard spelling is t̠ʲ/d̠ʲ/n̠ʲ/l̠ʲ, so the fallback must be t/d/n/l
 for curl, fallback in (("ȶ", "/t/"), ("ȡ", "/d/"), ("ȵ", "/n/"), ("ȴ", "/l/")):
-    v = vector_of(curl)
-    vec = ", ".join(f"{x:.4f}" for x in v)
-    nb = run(VEC2IPA, ["-n", vec]).stdout.split("  ")[0]
+    nb = nearest_vec(vector_of(curl))
     check(f"{curl} vector not rebuilt as {curl} by default", nb != f"/{curl}/", nb)
     check(f"{curl} vector falls back to {fallback}", nb == fallback, nb)
 # --charset is repeatable and accumulates; any combination is allowed
 check("--charset sinologist allows ȶ",
-      run(VEC2IPA, ["--charset", "sinologist", "-n",
-                    ", ".join(f"{x:.4f}" for x in vector_of("ȶ"))]
-          ).stdout.split("  ")[0] == "/ȶ/", "")
+      nearest_vec(vector_of("ȶ"), ("sinologist",)) == "/ȶ/", "")
 check("--charset sinologist allows ᴇ (small-cap is Sinologist)",
-      run(VEC2IPA, ["--charset", "sinologist", "-n", E_VEC]
-          ).stdout.split("  ")[0] == "/ᴇ/", "")
+      nearest_vec(E_VEC, ("sinologist",)) == "/ᴇ/", "")
 check("standard rhotacised ɝ kept under any charset",
-      run(VEC2IPA, ["-n", ", ".join(f"{x:.4f}" for x in vector_of("ɝ"))]
-          ).stdout.split("  ")[0] == "/ɝ/"
-      and run(VEC2IPA, ["--charset", "std", "-n",
-                        ", ".join(f"{x:.4f}" for x in vector_of("ɝ"))]
-              ).stdout.split("  ")[0] == "/ɝ/", "")
+      nearest_vec(vector_of("ɝ")) == "/ɝ/"
+      and nearest_vec(vector_of("ɝ"), ("std",)) == "/ɝ/", "")
 check("extIPA ʬ gated by default (std), enabled by --charset extipa",
-      run(VEC2IPA, ["-n", ", ".join(f"{x:.4f}" for x in vector_of("ʬ"))]
-          ).stdout.split("  ")[0] != "/ʬ/"
-      and run(VEC2IPA, ["--charset", "extipa", "-n",
-                        ", ".join(f"{x:.4f}" for x in vector_of("ʬ"))]
-              ).stdout.split("  ")[0] == "/ʬ/", "")
+      nearest_vec(vector_of("ʬ")) != "/ʬ/"
+      and nearest_vec(vector_of("ʬ"), ("extipa",)) == "/ʬ/", "")
 check("--charset std + sinologist: combo without extIPA",
-      run(VEC2IPA, ["--charset", "std", "--charset", "sinologist", "-n", E_VEC]
-          ).stdout.split("  ")[0] == "/ᴇ/"
-      and run(VEC2IPA, ["--charset", "std", "--charset", "sinologist", "-n",
-                        ", ".join(f"{x:.4f}" for x in vector_of("ʬ"))]
-              ).stdout.split("  ")[0] != "/ʬ/", "")
+      nearest_vec(E_VEC, ("std", "sinologist")) == "/ᴇ/"
+      and nearest_vec(vector_of("ʬ"), ("std", "sinologist")) != "/ʬ/", "")
 check("--charset bad value rejected",
-      run(VEC2IPA, ["--charset", "bogus", E_VEC]).returncode == 1, "")
+      run(VEC2IPA, ["--charset", "bogus", fmt_vec(E_VEC)]).returncode == 1, "")
 
 # ------------------------------------------------------------------
 # 7. every standard base is its own nearest base (place is primary)
@@ -264,7 +263,7 @@ check("--charset bad value rejected",
 # Regression guard for the p̪/ɱ case: the labiodental stop/nasal were
 # base rows whose vectors coincided with p/m (lips_closed is 1.0 for
 # both bilabial and labiodental closures), so they fell back to /p//m/.
-# They are now described by the dental dimension (tt_pos 1.0, same as
+# They are now described by the dental dimension (tongue_tip_pos 1.0, same as
 # t̪ θ ð), and the derived spellings b̪ m̪ agree with the base rows.
 VECTORS_H = ROOT / "src" / "vectors.h"
 for line in VECTORS_H.read_text(encoding="utf-8").splitlines():
@@ -276,14 +275,13 @@ for line in VECTORS_H.read_text(encoding="utf-8").splitlines():
     if v is None:
         check(f"base {ipa} parses", False, "parse failed")
         continue
-    vec = ", ".join(f"{x:.4f}" for x in v)
-    got = run(VEC2IPA, ["-n", vec]).stdout.split("  ")[0]
+    got = nearest_vec(v)
     check(f"base {ipa} is its own nearest base", got == f"/{ipa}/", got)
 for derived, base in (("p̪", "p\u032a"), ("m̪", "ɱ")):
     v1, v2 = vector_of(derived), vector_of(base)
     dv = max(abs(a - b) for a, b in zip(v1, v2)) if v1 and v2 else None
     check(f"{derived} agrees with {'base row' if base == '\u0271' else 'p+\u032a'}",
-          dv is not None and dv <= 0.02, f"max|dv|={dv}")
+          dv is not None and dv <= _common.TOL_REBUILD, f"max|dv|={dv}")
 
 # ------------------------------------------------------------------
 # 8. approximate rebuilds (semantically right, small residual by design)
@@ -297,13 +295,12 @@ APPROX = [
 ]
 for ipa, tol in APPROX:
     v1 = vector_of(ipa)
-    vec = ", ".join(f"{x:.4f}" for x in v1)
-    r = run(VEC2IPA, [vec])
+    r = run(VEC2IPA, [fmt_vec(v1)])
     rebuilt = parse_rebuilt(r.stdout).strip()
     v2 = vector_of(rebuilt)
     dv = max(abs(a - b) for a, b in zip(v1, v2))
     check(f"approx {ipa} -> {rebuilt}", dv <= tol, f"max|dv|={dv:.4f}")
 
 # ------------------------------------------------------------------
-print(f"\n{total - fails}/{total} checks passed")
-sys.exit(1 if fails else 0)
+print(f"\n{_common.total - _common.fails}/{_common.total} checks passed")
+sys.exit(1 if _common.fails else 0)

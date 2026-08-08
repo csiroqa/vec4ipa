@@ -18,16 +18,19 @@ Run:  python tools/fuzz_metric_space.py [n] [seed] [ipa2vec] [vec2ipa]
 
 import random
 import sys
+import time
 from pathlib import Path
 
 import _common
-from _common import MD_LINE_RE, parse_rebuilt, parse_vector, run
+from _common import MD_LINE_RE, fmt_vec, parse_rebuilt, parse_vector, run
 
 ROOT = Path(__file__).resolve().parents[1]
 EXE = sys.argv[3] if len(sys.argv) > 3 else ROOT / "ipa2vec.exe"
 VEC2IPA = sys.argv[4] if len(sys.argv) > 4 else ROOT / "vec2ipa.exe"
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 500
-SEED = int(sys.argv[2]) if len(sys.argv) > 2 else 0
+SEED = int(sys.argv[2]) if len(sys.argv) > 2 else time.time_ns()
+
+BUCKETS = (0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0)
 
 # base segments from the table
 BASES = []
@@ -52,14 +55,14 @@ def segs_and_vecs(ipa):
     return vecs, None
 
 def rebuild(v):
-    vec = ", ".join(f"{x:.4f}" for x in v)
+    vec = fmt_vec(v)
     r = run(VEC2IPA, [vec])
     if r.returncode != 0:
         return None, r.stderr.strip()
     return parse_rebuilt(r.stdout).strip(), None
 
 def bucket(dv):
-    for b in (0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0):
+    for b in BUCKETS:
         if dv <= b:
             return b
     return None   # > 1.0
@@ -87,6 +90,7 @@ def main():
             continue
         if len(vecs) != 1:
             count_mismatch += 1
+            bad.append((s, f"SEG-COUNT {s}", 9.9))
         for v in vecs:
             n_segs += 1
             rebuilt, rerr = rebuild(v)
@@ -102,6 +106,10 @@ def main():
             if len(vecs2) != 1:
                 count_mismatch += 1
                 bad.append((s, f"SEG-COUNT {rebuilt}", 9.9))
+                continue
+            if len(v) != len(vecs2[0]):
+                count_mismatch += 1
+                bad.append((s, f"VEC-LEN {rebuilt}", 9.9))
                 continue
             dv = max(abs(a - b) for a, b in zip(v, vecs2[0]))
             maxdv_all = max(maxdv_all, dv)
@@ -123,7 +131,7 @@ def main():
     print(f"fraction |dv| <= 0.2 : {frac_02:.3f}")
     print(f"fraction |dv| <= 0.5 : {frac_05:.3f}")
     print("|dv| histogram (exact buckets):")
-    for b in (0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0):
+    for b in BUCKETS:
         print(f"  <= {b:<5}: {hist.get(b, 0)}")
     print(f"  >  1.0  : {hist.get(None, 0)}")
     print("cases with |dv| > 0.2 or errors:")

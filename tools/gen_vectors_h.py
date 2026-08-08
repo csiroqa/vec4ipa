@@ -5,11 +5,13 @@ Output: a C header defining
   typedef struct { const char *ipa; double v[16]; } SegEntry;
   static const SegEntry SEG_TABLE[] = { ... };
   static const double METRIC_W[16];  and  METRIC_LAMBDA;
-  static const char *AIRSTREAM_LABELS[4] / AIRSTREAM_VAL[4];
+  static const char *AIRSTREAM_LABELS[5];
 """
 
 import json, os, re, sys
 from pathlib import Path
+
+from _common import MD_LINE_RE, fmt_vec_c
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC_MD = ROOT / "IPA_VECTORS.md"
@@ -17,19 +19,30 @@ SRC_JSON = ROOT / "metric.json"
 SRC_NAMES = ROOT / "src" / "names.tsv"
 OUT_H = ROOT / "src" / "vectors.h"
 
+AIRSTREAM_INDEX = {"pulmonic": 0, "glottalic egressive": 1,
+                   "glottalic ingressive": 2, "lingual": 3}
+
 entries = []          # (ipa_str, [16 floats], airstream)
 cur_air = "pulmonic"
+unset_sec = None      # a `## ` header with no airstream: warn only if it holds entries
 for line in open(SRC_MD, encoding="utf-8"):
     t = line.strip()
     m = re.search(r"\((pulmonic|glottalic egressive|glottalic ingressive|lingual)", t)
     if t.startswith("## ") or t.startswith("### "):
         if m:
             cur_air = m.group(1)
+            unset_sec = None
+        elif t.startswith("## ") and unset_sec is None:
+            unset_sec = t[:60]
         continue
     # `...`: `(...)` — an optional parenthesised annotation may sit
     # between the closing backtick and the colon (e.g. `/lˠ/` (dark))
-    mm = re.match(r'^`/([^/`]*)/`(?: \([^)]*\))?: `\((.*)\)`$', t)
+    mm = MD_LINE_RE.match(t)
     if mm:
+        if unset_sec is not None:
+            print(f"WARN: no airstream in section header {unset_sec!r}, "
+                  f"keeping {cur_air!r}", file=sys.stderr)
+            unset_sec = None
         ipa = mm.group(1).strip()
         vals = [x.strip() for x in mm.group(2).split(",")]
         if len(vals) != 16:
@@ -69,9 +82,6 @@ def cstr(s: str) -> str:
             out.append(ch)
     return ''.join(out)
 
-def fmt_vec(v):
-    return "{" + ", ".join(f"{x:.4f}" for x in v) + "}"
-
 lines = []
 lines.append("/* Auto-generated from IPA_VECTORS.md + metric.json — do not edit. */")
 lines.append("#ifndef IPA2VEC_VECTORS_H")
@@ -90,7 +100,7 @@ lines.append("static const char *AIRSTREAM_LABELS[5] = {")
 lines.append('    "pulmonic", "glottalic egressive", "glottalic ingressive", "lingual", "percussive"')
 lines.append("};")
 lines.append("")
-lines.append("static const double METRIC_W[NDIM] = " + fmt_vec(w) + ";")
+lines.append("static const double METRIC_W[NDIM] = " + fmt_vec_c(w) + ";")
 lines.append("static const double METRIC_LAMBDA = %.4f;" % lam)
 lines.append("")
 lines.append("static const char *DIM_NAMES[NDIM] = {")
@@ -99,15 +109,23 @@ for d in dims:
 lines.append("};")
 lines.append("")
 lines.append("static const SegEntry SEG_TABLE[NSEG] = {")
-for ipa, fvals, air in sorted(entries, key=lambda e: e[0]):
-    idx = ["pulmonic", "glottalic egressive", "glottalic ingressive", "lingual"].index(air)
-    lines.append(f'    {{ "{cstr(ipa)}", {fmt_vec(fvals)}, {idx} }},')
+sorted_entries = sorted(entries, key=lambda e: e[0])
+for ipa, fvals, air in sorted_entries:
+    idx = AIRSTREAM_INDEX.get(air)
+    if idx is None:
+        print(f"WARN {ipa}: unknown airstream {air!r}, defaulting to pulmonic",
+              file=sys.stderr)
+        idx = 0
+    lines.append(f'    {{ "{cstr(ipa)}", {fmt_vec_c(fvals)}, {idx} }},')
 lines.append("};")
 lines.append("")
 lines.append("/* latin transliteration of each base segment (same order as SEG_TABLE) */")
 lines.append("static const char *NAME_TABLE[NSEG] = {")
-for ipa, fvals, air in sorted(entries, key=lambda e: e[0]):
-    lat = names.get(ipa, "<U+XXXX>")
+for ipa, fvals, air in sorted_entries:
+    lat = names.get(ipa)
+    if lat is None:
+        print(f"WARN {ipa}: no latin name in names.tsv", file=sys.stderr)
+        lat = "<U+XXXX>"
     lines.append(f'    "{cstr(lat)}",')
 lines.append("};")
 lines.append("")

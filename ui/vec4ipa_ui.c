@@ -98,7 +98,7 @@ static int   g_kb_w[KB_GROUPS][KB_MAX_BTNS];
 static int   g_kb_h[KB_GROUPS][KB_MAX_BTNS];
 static int   g_kb_sel = 0;
 
-static const wchar_t *g_btn_sym[IDB_LAST - IDB_BASE + 1]; /* symbol per button id */
+static wchar_t g_btn_sym[IDB_LAST - IDB_BASE + 1][8]; /* symbol per button id */
 static wchar_t g_ipa_buf[4096];
 
 static wchar_t *utf8_to_wide(const char *s, wchar_t *buf, size_t cap)
@@ -140,7 +140,7 @@ static int kb_add(HWND parent, int group, int id, const wchar_t *sym,
     g_kb_h[group][g_kb_n[group]] = h;
     g_kb_n[group]++;
     if (id >= IDB_BASE && id <= IDB_LAST)
-        g_btn_sym[id - IDB_BASE] = sym;
+        wcscpy(g_btn_sym[id - IDB_BASE], sym);
     return id;
 }
 
@@ -242,9 +242,23 @@ static void kb_layout(int bx, int by)
 
 static void out_append(HWND out, const char *utf8)
 {
-    wchar_t buf[8192];
-    /* cap 8190 so the possible L"\r\n" suffix always fits */
-    utf8_to_wide(utf8, buf, 8190);
+    wchar_t sbuf[8192];
+    wchar_t *buf = sbuf;
+    size_t cap = 8190;
+    int need = utf8 ? MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0) : 0;
+    if (need > (int)cap) {
+        /* larger than the stack buffer (e.g. the embedded README):
+         * size first, then allocate */
+        cap = (size_t)need + 2;
+        buf = (wchar_t *)malloc(cap * sizeof(wchar_t));
+        if (!buf) return;
+    }
+    if (utf8) {
+        if (MultiByteToWideChar(CP_UTF8, 0, utf8, -1, buf, (int)cap) <= 0)
+            buf[0] = L'\0';
+    } else {
+        buf[0] = L'\0';
+    }
     size_t len = wcslen(buf);
     if (len && buf[len - 1] != L'\n')
         wcscat(buf, L"\r\n");
@@ -254,6 +268,7 @@ static void out_append(HWND out, const char *utf8)
     SendMessageW(out, EM_SETSEL, n, n);
     SendMessageW(out, EM_REPLACESEL, FALSE, (LPARAM)buf);
     SendMessageW(out, EM_SETREADONLY, TRUE, 0);
+    if (buf != sbuf) free(buf);
 }
 
 /* wide_to_utf8() (malloc'd UTF-8 copy of a wide string) comes from
@@ -282,7 +297,7 @@ static void do_forward(HWND out, const char *str)
         return;
     }
     canonicalise(po.layer1, po.n1, po.layer2, &po.n2);
-    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs);
+    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs, "vec4ipa_ui");
 
     for (int s = 0; s < po.nsegs; s++) {
         char line[512];
@@ -303,7 +318,7 @@ static void do_forward(HWND out, const char *str)
 
 static void do_reverse(HWND out, const char *vecstr)
 {
-    char buf[512];
+    char buf[4096];
     snprintf(buf, sizeof(buf), "%s", vecstr);
     double v[NDIM];
     char *tok = strtok(buf, ", \t");
@@ -450,7 +465,8 @@ static void copy_to_clipboard(HWND owner, const wchar_t *text)
         wchar_t *dst = (wchar_t *)GlobalLock(h);
         wcscpy_s(dst, n / sizeof(wchar_t), text);
         GlobalUnlock(h);
-        SetClipboardData(CF_UNICODETEXT, h);
+        if (!SetClipboardData(CF_UNICODETEXT, h))
+            GlobalFree(h);
     }
     CloseClipboard();
 }
@@ -469,15 +485,24 @@ static void save_bat_dialog(HWND owner, const wchar_t *text)
     ofn.Flags = OFN_OVERWRITEPROMPT;
     if (!GetSaveFileNameW(&ofn)) return;
 
-    FILE *f = _wfopen(path, L"w, ccs=UTF-8");
+    /* no BOM: cmd.exe would misread UTF-8 IPA symbols under the OEM
+     * code page, so force chcp 65001 inside the script instead */
+    FILE *f = _wfopen(path, L"wb");
     if (!f) {
         MessageBoxW(owner, L"Could not write the file.", APP_NAME, MB_ICONERROR);
         return;
     }
-    fwprintf(f, L"@echo off\r\n");
-    fwprintf(f, L"%s\r\n", text);
+    wchar_t full[4096 + 64];
+    swprintf(full, 4096 + 64, L"@echo off\r\nchcp 65001 >nul\r\n%s\r\n", text);
+    char *bytes = wide_to_utf8(full);
+    if (bytes) {
+        fwrite(bytes, 1, strlen(bytes), f);
+        free(bytes);
+    }
     fclose(f);
-    MessageBoxW(owner, path, L"Saved", MB_ICONINFORMATION);
+    wchar_t msg[MAX_PATH + 32];
+    swprintf(msg, MAX_PATH + 32, L"Saved to:\n%s", path);
+    MessageBoxW(owner, msg, L"Saved", MB_ICONINFORMATION);
 }
 
 static void export_embedded_tool(HINSTANCE hInst, const wchar_t *dir,
@@ -544,8 +569,8 @@ static LRESULT CALLBACK export_wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
 {
     switch (msg) {
     case WM_CREATE: {
-        wchar_t text[2048];
-        build_export_text(text, 2048);
+        wchar_t text[4096];
+        build_export_text(text, 4096);
 
         CreateWindowW(L"BUTTON", L"&Copy to clipboard",
             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
@@ -578,14 +603,14 @@ static LRESULT CALLBACK export_wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
     case WM_COMMAND:
         switch (LOWORD(wp)) {
         case IDC_EXPORT_COPY: {
-            wchar_t text[2048];
-            GetDlgItemTextW(hwnd, IDC_EXPORT_TEXT, text, 2048);
+            wchar_t text[4096];
+            GetDlgItemTextW(hwnd, IDC_EXPORT_TEXT, text, 4096);
             copy_to_clipboard(hwnd, text);
             break;
         }
         case IDC_EXPORT_SAVE: {
-            wchar_t text[2048];
-            GetDlgItemTextW(hwnd, IDC_EXPORT_TEXT, text, 2048);
+            wchar_t text[4096];
+            GetDlgItemTextW(hwnd, IDC_EXPORT_TEXT, text, 4096);
             save_bat_dialog(hwnd, text);
             break;
         }
@@ -874,7 +899,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             break;
         }
         default:
-            if (id >= IDB_BASE && id <= IDB_LAST && g_btn_sym[id - IDB_BASE]) {
+            if (id >= IDB_BASE && id <= IDB_LAST && g_btn_sym[id - IDB_BASE][0]) {
                 /* keyboard button: append symbol to IPA input */
                 GetDlgItemTextW(hwnd, IDC_IPA_IN, g_ipa_buf, 4096);
                 size_t len = wcslen(g_ipa_buf);

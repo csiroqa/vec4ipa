@@ -7,12 +7,15 @@
     <Platforms>x64</Platforms>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <Nullable>enable</Nullable>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <DefaultResourceLanguage>en-US</DefaultResourceLanguage>
+    <ProjectPriFileName>resources.pri</ProjectPriFileName>
     <PublishDir>$(MSBuildProjectDirectory)\dist\</PublishDir>
     <RootNamespace>Vec4ipaUI</RootNamespace>
     <AssemblyName>vec4ipa_ui</AssemblyName>
     <ApplicationIcon>..\vec_ipa.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <Authors>vec4ipa contributors</Authors>
     <Description>WinUI 3 workbench for the vec4ipa tool suite (IPA &lt;-&gt; 16-D vectors).</Description>
     <Copyright>MIT</Copyright>

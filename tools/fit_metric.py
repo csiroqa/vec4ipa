@@ -19,7 +19,7 @@ Post-processing documented in METRIC.md §2:
   * no-signal dimensions stay at tier defaults (tongue_root 1.0,
     lateral_ratio 2.0, laryngeal_tension 8.0, airflow_direction 4.0);
   * lips_rounded is capped at 8.0;
-  * the voiced/cg/sg voicing triplet is rescaled so the stop voicing
+  * the voiced/constricted_glottis/spread_glottis voicing triplet is rescaled so the stop voicing
     distance equals the stop place distance (p–b = p–t);
   * λ is not part of this fit and stays at 5.0.
 
@@ -34,12 +34,16 @@ import sys
 import numpy as np
 from scipy.optimize import minimize
 
+from _common import is_vowel_like
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'tools', 'data', 'phatak08_cm.json')
 VECTORS_MD = os.path.join(ROOT, 'IPA_VECTORS.md')
 METRIC_JSON = os.path.join(ROOT, 'metric.json')
 
 RHO = 0.1   # log-space regulariser strength (see METRIC.md §2 discussion)
+NASALISED_VEL = 0.6   # nasalised vowels are clearly weaker than
+                      # full nasals (SPEC §2: 0.6 vs 1.0)
 
 DIMS = ['lips_closed', 'lips_rounded', 'tongue_tip_pos', 'tongue_tip_height', 'tongue_body_pos',
         'tongue_root', 'vel_open', 'lateral_ratio', 'voiced', 'constricted_glottis', 'spread_glottis',
@@ -84,14 +88,14 @@ def nll_weights(counts, D, loga):
     """NLL of the counts given distance matrix D and per-condition log scales."""
     tot = 0.0
     for c in range(counts.shape[0]):
-        P = np.exp(-np.exp(loga[c]) * D)
-        P /= P.sum(axis=1, keepdims=True)
-        P = np.clip(P, 1e-300, None)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            P = np.exp(-np.exp(loga[c]) * D)
+            P = np.clip(P, 1e-300, None)
+            P /= P.sum(axis=1, keepdims=True)
+        if not np.isfinite(P).all():
+            raise ValueError(f'nll_weights: non-finite probabilities at condition {c}')
         tot -= np.sum(counts[c] * np.log(P))
     return tot
-
-NASALISED_VEL = 0.6   # nasalised vowels are clearly weaker than
-                            # full nasals (SPEC §2: 0.6 vs 1.0)
 
 def vowel_consonant_penalty(X_all, weights, margin=0.2):
     """Vowel-consonant separation anchors.
@@ -114,8 +118,7 @@ def vowel_consonant_penalty(X_all, weights, margin=0.2):
     Hinge penalty added to the objective."""
     hinge = 0.0
     n = len(X_all)
-    is_vowel = [X_all[i][8] >= 0.5 and X_all[i][14] >= 0.4
-                and X_all[i][12] >= 1.0 for i in range(n)]
+    is_vowel = [is_vowel_like(X_all[i]) for i in range(n)]
     v_idx = [i for i in range(n) if is_vowel[i]]
     c_idx = [i for i in range(n) if not is_vowel[i]]
     for i in v_idx:
@@ -136,7 +139,6 @@ def vowel_consonant_penalty(X_all, weights, margin=0.2):
 def objective(x, X, counts, rho, X_all=None, rho_anchor=0.0, margin=0.2,
               free=None, fixed=None):
     """x = [log w (free dims), log a (n_cond)]; free/fixed: dim indices."""
-    n_cond = counts.shape[0]
     u = np.zeros(16)
     if fixed is not None:
         u[list(fixed)] = np.log(np.clip(np.array(TIER_INIT)[list(fixed)], 1e-9, None))
@@ -168,34 +170,39 @@ def fit_weights(X, counts, rho=RHO, x0=None, X_all=None, rho_anchor=0.0, margin=
     u[free] = res.x[:len(free)]
     return np.exp(u), np.exp(res.x[len(free):]), res
 
-def postprocess(w, X):
+CONS_ORDER = ['p', 't', 'b', 'g', 'v', 'ð', 'z', 'ʒ']
+
+def postprocess(w, X, cons=CONS_ORDER):
+    """Pin no-signal dims, cap lips_rounded, and rescale the voicing
+    triplet (voiced, constricted_glottis, spread_glottis) so the stop voicing distance equals the
+    stop place distance (p-b == p-t; METRIC.md §2 aggregation fix).
+
+    cons is the consonant order of X's rows (the Phatak data order).
+    Distances are always computed by NAME so the row lookup is
+    independent of the data ordering."""
     w = w.copy()
-    w[5] = 1.0    # tongue_root — no signal, tier default
-    w[7] = 2.0    # lateral_ratio
-    w[11] = 8.0   # laryngeal_tension
-    w[15] = 4.0   # airflow_direction
+    w[list(FIXED_DIMS)] = TIER_INIT[list(FIXED_DIMS)]
     w[1] = min(w[1], 8.0)          # lips_rounded cap
-    i = {c: k for k, c in enumerate(['p', 't', 'b', 'g', 'v', 'ð', 'z', 'ʒ'])}
+    i = {c: k for k, c in enumerate(cons)}
     def dist(a, b):
-        return np.sqrt(np.sum(w * (X[a] - X[b]) ** 2))
-    dpb, dpt = dist(i['p'], i['b']), dist(i['p'], i['t'])
-    if dpb > 0 and dpb != dpt:
+        return np.sqrt(np.sum(w * (X[i[a]] - X[i[b]]) ** 2))
+    dpb, dpt = dist('p', 'b'), dist('p', 't')
+    if dpb > 0 and abs(dpb - dpt) > 1e-9:
         s = dpt / dpb
-        for k in (8, 9, 10):        # voiced, cg, sg
+        for k in (8, 9, 10):        # voiced, constricted_glottis, spread_glottis
             w[k] *= s * s
     return w
 
 def loco(X, counts, weights):
     """leave-one-condition-out held-out NLL for a FIXED weight vector:
-    per fold, fit the condition scales on the training conditions, then
-    the held-out scale on the held-out condition."""
-    n_cond = counts.shape[0]
+    per fold, refit the held-out condition scale on the held-out condition
+    (the training-condition scales are not used by this metric — no
+    training-condition refit is needed).  Fitting the held-out scale on the
+    held-out data itself is optimistic; it reports per-fold condition-scale
+    sensitivity, not a strict cross-validation of the scale parameters."""
     D = distance_matrix(X, weights)
     held = 0.0
-    for c in range(n_cond):
-        tr = np.delete(counts, c, axis=0)
-        sc = minimize(lambda loga: nll_weights(tr, D, loga),
-                      np.zeros(n_cond - 1), method='L-BFGS-B')
+    for c in range(counts.shape[0]):
         sc2 = minimize(lambda loga: nll_weights(counts[c:c + 1], D, loga),
                        [0.0], method='L-BFGS-B')
         held += nll_weights(counts[c:c + 1], D, sc2.x)
@@ -209,13 +216,17 @@ def main():
             rho_anchor = float(a.split('=', 1)[1])
     cons, counts = load_counts()
     vecs = load_vectors()
+    missing = [c for c in cons if ('ɡ' if c == 'g' else c) not in vecs]
+    if missing:
+        sys.exit(f'fit_metric: no vector rows for: {", ".join(missing)}')
     X = np.array([vecs['ɡ' if c == 'g' else c] for c in cons])
     X_all = np.array(list(vecs.values()))
 
     w_raw, a, res = fit_weights(X, counts, X_all=X_all, rho_anchor=rho_anchor)
-    w = postprocess(w_raw, X)
+    w = postprocess(w_raw, X, cons)
 
-    published = np.array(json.load(open(METRIC_JSON, encoding='utf-8'))['weights'])
+    pub = json.load(open(METRIC_JSON, encoding='utf-8'))
+    published = np.array(pub['weights'])
     loco_fit = loco(X, counts, w)
     loco_tier = loco(X, counts, TIER_INIT)
     loco_pub = loco(X, counts, published)
@@ -230,10 +241,9 @@ def main():
           f'| published {loco_pub:,.0f}')
 
     if write:
-        m = json.load(open(METRIC_JSON, encoding='utf-8'))
-        m['weights'] = [round(float(v), 4) for v in w]
-        m['version'] = 4
-        json.dump(m, open(METRIC_JSON, 'w', encoding='utf-8'), indent=2)
+        pub['weights'] = [round(float(v), 4) for v in w]
+        pub['version'] = pub.get('version', 0) + 1
+        json.dump(pub, open(METRIC_JSON, 'w', encoding='utf-8'), indent=2)
         print(f'\nwrote {METRIC_JSON}')
 
 if __name__ == '__main__':

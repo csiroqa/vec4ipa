@@ -232,7 +232,7 @@ namespace Vec4ipaUI
             return rows;
         }
 
-        /// <summary>Named-feature rendering: tt_pos=0.55, ...</summary>
+        /// <summary>Named-feature rendering: tongue_tip_pos=0.55, ...</summary>
         public static string? ForwardNamed(string ipa)
         {
             var rows = ForwardRaw(ipa);
@@ -267,7 +267,7 @@ namespace Vec4ipaUI
             return map;
         }
 
-        /// <summary>Consonant place of articulation: sym -> tt_pos (0 front .. 1 back).</summary>
+        /// <summary>Consonant place of articulation: sym -> tongue_tip_pos (0 front .. 1 back).</summary>
         public static Dictionary<string, double> ConsPositions()
         {
             var sb = new StringBuilder(8192);
@@ -364,6 +364,18 @@ namespace Vec4ipaUI
             return sb.ToString();
         }
 
+        /// <summary>Example vector repeated in the error hints.</summary>
+        private const string VectorExample =
+            "0,0,0.55,1,0,0,0,0,0,0,0.9,0,0,0,0,1 (4,5)";
+
+        /// <summary>Warning suffix in Chinese (UI display language for
+        /// these messages is zh; do not localise into English).</summary>
+        private const string ToneWarnPrefix = "  （警告：";
+        private const string ToneWarnSuffix = "）";
+
+        /// <summary>Chinese warning body (see ToneWarnPrefix).</summary>
+        private const string NegativeToneWarn = "存在负数，忽略处理";
+
         public static string? Reverse(string vectorText, int width)
         {
             /* 1) "?" stands for an empty vector - normalise to () */
@@ -389,7 +401,7 @@ namespace Vec4ipaUI
                 if (bareNums.Length != NDIM)
                     return $"I need 16 comma-separated numbers (I found " +
                            $"{bareNums.Length} outside the groups).\n" +
-                           "Example: 0,0,0.55,1,0,0,0,0,0,0,0.9,0,0,0,0,1 (4,5)";
+                           "Example: " + VectorExample;
                 groups.Insert(0, string.Join(",", bareNums));
             }
 
@@ -427,13 +439,13 @@ namespace Vec4ipaUI
             {
                 if (groups.All(string.IsNullOrEmpty))
                     return "No vector given - type 16 comma-separated numbers, " +
-                           "e.g. 0,0,0.55,1,0,0,0,0,0,0,0.9,0,0,0,0,1 (4,5)";
+                           "e.g. " + VectorExample;
                 /* no main vector, but tone groups exist: echo the tones */
                 if (toneStr.Length > 0)
                     return toneStr + (toneWarn.Length > 0
-                        ? "  （警告：" + toneWarn + "）" : "");
+                        ? ToneWarnPrefix + toneWarn + ToneWarnSuffix : "");
                 return "I need 16 comma-separated numbers.\n" +
-                       "Example: 0,0,0.55,1,0,0,0,0,0,0,0.9,0,0,0,0,1 (4,5)";
+                       "Example: " + VectorExample;
             }
             for (int i = 0; i < NDIM; i++)
                 if (!double.IsFinite(v[i]))
@@ -452,7 +464,7 @@ namespace Vec4ipaUI
                     result += "  tone: " + toneStr;
             }
             if (toneWarn.Length > 0)
-                result += "  （警告：" + toneWarn + "）";
+                result += ToneWarnPrefix + toneWarn + ToneWarnSuffix;
             return result;
         }
 
@@ -466,33 +478,39 @@ namespace Vec4ipaUI
             var sb = new StringBuilder();
             string warn = "";
 
-            /* slot 0/1: values in 1..5 -> letters; any value outside
-             * 1..5 (0 or >5) -> round and use superscript digits for the
-             * whole group; values below -0.5 warn and skip the group */
-            for (int g = 0; g < 2; g++)
+            /* slot 0/1: any non-1..5 value (0 or >5) turns BOTH groups
+             * into superscript digits joined with ⁻ (no ⁻ when the second
+             * group is absent or skipped); values below -0.5 warn and
+             * skip that group */
+            double[]? g0 = slots.Length > 0 ? slots[0] : null;
+            double[]? g1 = slots.Length > 1 ? slots[1] : null;
+            bool neg0 = g0 != null && g0.Any(d => d < -0.5);
+            bool neg1 = g1 != null && g1.Any(d => d < -0.5);
+            if (neg0 || neg1) warn = NegativeToneWarn;
+            List<int>? r0 = neg0 || g0 == null
+                ? null : g0.Select(d => (int)Math.Round(d)).ToList();
+            List<int>? r1 = neg1 || g1 == null
+                ? null : g1.Select(d => (int)Math.Round(d)).ToList();
+            bool sup = (r0 != null && r0.Any(v => v < 1 || v > 5)) ||
+                       (r1 != null && r1.Any(v => v < 1 || v > 5));
+            if (sup)
             {
-                if (slots.Length <= g || slots[g] == null) continue;
-                bool negative = slots[g].Any(d => d < -0.5);
-                if (negative)
+                if (r0 != null)
+                    foreach (var v in r0)
+                        if (v >= 0 && v <= 9) sb.Append(D0[v]);
+                if (r1 != null)
                 {
-                    warn = "存在负数，忽略处理";
-                    continue;
+                    sb.Append('\u207B');   /* ⁻ joins the two groups */
+                    foreach (var v in r1)
+                        if (v >= 0 && v <= 9) sb.Append(D0[v]);
                 }
-                var rounded = slots[g].Select(d => (int)Math.Round(d)).ToList();
-                bool allLetters = rounded.All(v => v >= 1 && v <= 5);
-                foreach (var v in rounded)
-                {
-                    if (g == 0)
-                    {
-                        if (allLetters) sb.Append(L5[v - 1]);
-                        else if (v >= 0 && v <= 9) sb.Append(D0[v]);
-                    }
-                    else
-                    {
-                        if (allLetters) sb.Append(S5[v - 1]);
-                        else if (v >= 0 && v <= 9) sb.Append(D0[v]);
-                    }
-                }
+            }
+            else
+            {
+                if (r0 != null)
+                    foreach (var v in r0) sb.Append(L5[v - 1]);
+                if (r1 != null)
+                    foreach (var v in r1) sb.Append(S5[v - 1]);
             }
 
             /* slot 2: 3-D vector - negative values are legal (upstep,

@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
-"""Shared helpers for the tools/ test & generator scripts.
+"""Shared helpers for the tools/ test, generator & fit scripts.
 
-Imported by test_suite.py, test_standard_chinese.py, test_metric_space.py
-and fuzz_metric_space.py; run from the repo root as `python tools/foo.py`
-so that `import _common` resolves to this file.
+Imported by test_suite.py, test_standard_chinese.py, test_metric_space.py,
+fuzz_metric_space.py, fit_metric.py and gen_vectors_h.py; run from the repo
+root as `python tools/foo.py` so that `import _common` resolves to this file.
 
 Scripts using `check()` must assign their primary binary to
 `_common.EXE` first (check() runs argv against that exe); the shared
 `run(exe, args)` wrapper handles the rest.
 """
 
+import os
 import re
 import subprocess
 
 MD_LINE_RE = re.compile(r'^`/([^/`]*)/`(?: \([^)]*\))?: `\((.*)\)`$')
 
+BIN_SUFFIX = ".exe" if os.name == "nt" else ""
+TOL_REBUILD = 0.02
 EXE = None          # primary binary for check(); set by the importing script
 total = 0
 fails = 0
@@ -33,6 +36,27 @@ def parse_rebuilt(out):
 def parse_vector(s):
     """The 16 values of a vector line, between the first ( and )."""
     return s.split("(")[1].split(")")[0]
+
+
+def fmt_vec(v):
+    return ", ".join(f"{x:.4f}" for x in v)
+
+
+def fmt_vec_c(v):
+    return "{" + ", ".join(f"{x:.4f}" for x in v) + "}"
+
+
+def is_vowel_like(v):
+    return v[8] >= 0.5 and v[14] >= 0.4 and v[12] >= 1.0
+
+
+def check_cond(name, cond, detail=""):
+    global total, fails
+    total += 1
+    if not cond:
+        fails += 1
+        print(f"FAIL: {name}" + (f"  {detail}" if detail else ""))
+    return cond
 
 
 def check(name, argv, expect_rc=0, expect_segs=None, expect_tone=None,

@@ -33,8 +33,8 @@ import _common
 from _common import check, run
 
 ROOT = Path(__file__).resolve().parents[1]
-EXE = sys.argv[1] if len(sys.argv) > 1 else ROOT / "ipa2vec.exe"
-VEC2IPA = sys.argv[2] if len(sys.argv) > 2 else ROOT / "vec2ipa.exe"
+EXE = sys.argv[1] if len(sys.argv) > 1 else ROOT / ("ipa2vec" + _common.BIN_SUFFIX)
+VEC2IPA = sys.argv[2] if len(sys.argv) > 2 else ROOT / ("vec2ipa" + _common.BIN_SUFFIX)
 _common.EXE = EXE
 
 def check_forms(name, forms, **kw):

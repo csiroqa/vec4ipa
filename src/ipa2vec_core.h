@@ -14,13 +14,14 @@
 #define IPA2VEC_CORE_H
 
 /* tool-suite version (single source of truth) */
-#define IPA2VEC_VERSION "1.0.0"
+#define IPA2VEC_VERSION "1.1.0"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <stdint.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -38,6 +39,26 @@
 #endif
 
 #include "vectors.h"
+
+/* dimension indices — order must match DIM_NAMES in vectors.h */
+enum {
+    DIM_LIPS_CLOSED = 0,
+    DIM_LIPS_ROUNDED,
+    DIM_TONGUE_TIP_POS,
+    DIM_TONGUE_TIP_HEIGHT,
+    DIM_TONGUE_BODY_POS,
+    DIM_TONGUE_ROOT,
+    DIM_VEL_OPEN,
+    DIM_LATERAL_RATIO,
+    DIM_VOICED,
+    DIM_CONSTRICTED_GLOTTIS,
+    DIM_SPREAD_GLOTTIS,
+    DIM_LARYNGEAL_TENSION,
+    DIM_DURATION,
+    DIM_JET_FOCUS,
+    DIM_EFFECTIVE_ORAL_AREA,
+    DIM_AIRFLOW_DIRECTION,
+};
 
 /*
  * ipa2vec — IPA/extIPA ⇄ 16-D articulatory vector converter.
@@ -66,8 +87,6 @@
 /* ------------------------------------------------------------------ */
 
 #ifdef _WIN32
-static char **g_argv_utf8;
-
 static char *wide_to_utf8(const wchar_t *w)
 {
     if (!w) return NULL;
@@ -80,10 +99,17 @@ static char *wide_to_utf8(const wchar_t *w)
 
 static char **argv_utf8_from_wide(int argc, wchar_t **wargv)
 {
-    g_argv_utf8 = (char **)calloc((size_t)argc, sizeof(char *));
-    for (int i = 0; i < argc; i++)
-        g_argv_utf8[i] = wide_to_utf8(wargv[i]);
-    return g_argv_utf8;
+    char **argv = (char **)calloc((size_t)argc, sizeof(char *));
+    if (!argv) return NULL;
+    for (int i = 0; i < argc; i++) {
+        argv[i] = wide_to_utf8(wargv[i]);
+        if (!argv[i]) {
+            for (int j = 0; j < i; j++) free(argv[j]);
+            free(argv);
+            return NULL;
+        }
+    }
+    return argv;
 }
 #endif
 
@@ -91,6 +117,9 @@ static char **argv_utf8_from_wide(int argc, wchar_t **wargv)
 /* UTF-8                                                               */
 /* ------------------------------------------------------------------ */
 
+/* NUL-terminated input: a truncated multibyte sequence fails the
+ * continuation-byte checks against the terminating NUL.  Callers that
+ * hold an explicit end pointer should use utf8_decode_n instead. */
 static IPA2VEC_MAYBE_UNUSED int utf8_decode (const unsigned char *s, unsigned long *cp)
 {
     if (s[0] < 0x80) { *cp = s[0]; return 1; }
@@ -114,8 +143,38 @@ static IPA2VEC_MAYBE_UNUSED int utf8_decode (const unsigned char *s, unsigned lo
     return 0;
 }
 
+/* bounded decode: like utf8_decode but never reads past end */
+static IPA2VEC_MAYBE_UNUSED int utf8_decode_n (const unsigned char *s,
+                                               const unsigned char *end,
+                                               unsigned long *cp)
+{
+    if (s >= end) { *cp = (unsigned char)s[0]; return 0; }
+    if (s[0] < 0x80) { *cp = s[0]; return 1; }
+    if ((s[0] & 0xE0) == 0xC0 && end - s >= 2 && (s[1] & 0xC0) == 0x80) {
+        *cp = ((s[0] & 0x1F) << 6) | (s[1] & 0x3F);
+        if (*cp < 0x80) { *cp = (unsigned char)s[0]; return 0; }
+        return 2;
+    }
+    if ((s[0] & 0xF0) == 0xE0 && end - s >= 3 && (s[1] & 0xC0) == 0x80 &&
+        (s[2] & 0xC0) == 0x80) {
+        *cp = ((s[0] & 0x0F) << 12) | ((s[1] & 0x3F) << 6) | (s[2] & 0x3F);
+        if (*cp < 0x800) { *cp = (unsigned char)s[0]; return 0; }
+        return 3;
+    }
+    if ((s[0] & 0xF8) == 0xF0 && end - s >= 4 && (s[1] & 0xC0) == 0x80 &&
+        (s[2] & 0xC0) == 0x80 && (s[3] & 0xC0) == 0x80) {
+        *cp = ((s[0] & 0x07) << 18) | ((s[1] & 0x3F) << 12) |
+              ((s[2] & 0x3F) << 6) | (s[3] & 0x3F);
+        if (*cp < 0x10000) { *cp = (unsigned char)s[0]; return 0; }
+        return 4;
+    }
+    *cp = (unsigned char)s[0];
+    return 0;
+}
+
 static IPA2VEC_MAYBE_UNUSED int cp_to_utf8 (unsigned long cp, char out[5])
 {
+    if (cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) return 0;
     if (cp < 0x80) { out[0] = (char)cp; return 1; }
     if (cp < 0x800) {
         out[0] = (char)(0xC0 | (cp >> 6));
@@ -337,14 +396,30 @@ static const char *EXTRA_NAMES[N_EXTRA] = {
  * (or -1 = always available).  The Sinologist curl letters ȶ ȡ ȵ ȴ
  * follow the school's place split (cf. ɕ ʑ), so they are gated on
  * --sinologist like the alias symbols. */
+#define ALIAS_MOD_SINOLOGIST 4   /* must match ALIAS_MODULES order below */
 static const int EXTRA_SCHOOL[N_EXTRA] = {
     -1, -1, -1, -1, -1, -1, -1, -1, -1,
-    4, 4, 4, 4,        /* sinologist (module index 4) */
+    ALIAS_MOD_SINOLOGIST, ALIAS_MOD_SINOLOGIST, ALIAS_MOD_SINOLOGIST,
+    ALIAS_MOD_SINOLOGIST,
 };
 
-/* longest-prefix base lookup against the 132-entry table */
-static IPA2VEC_MAYBE_UNUSED void mod_nasal (double v[NDIM], const void *m) { (void)m; v[6]  = 0.6; }
-static IPA2VEC_MAYBE_UNUSED void mod_long (double v[NDIM], const void *m) { (void)m; v[12] = 2.0; }
+static IPA2VEC_MAYBE_UNUSED void mod_nasal (double v[NDIM], const void *m) { (void)m; v[DIM_VEL_OPEN] = 0.6; }
+/* Duration modifiers must stay INSIDE the segment's own duration band.
+ * Absolute values (2.0 for :, 0.5 for ̆) throw stops/fricatives into the
+ * affricate band (pː → /k͡x/, p̩ → /f/): the affricate band 1.2-1.5 is the
+ * only place long consonants can land, a stop at duration 0.5 is nearly
+ * identical to the labiodental fricative rows, and a stop at 0.2 falls
+ * into the tap band (0.3, dː → /ɾ/).  Segments with inherent duration
+ * >= 1.0 (vowels, sonorants) keep the full length step (short V 1.0 →
+ * long V 2.0); short-constriction segments (stops, taps, fricatives,
+ * affricates) lengthen by a small in-band amount. */
+static IPA2VEC_MAYBE_UNUSED void mod_long (double v[NDIM], const void *m) { (void)m;
+    v[DIM_DURATION] = (v[DIM_DURATION] >= 1.0 && v[DIM_DURATION] < 1.2) ? 2.0
+                      : v[DIM_DURATION] + 0.1; }
+static IPA2VEC_MAYBE_UNUSED void mod_syl (double v[NDIM], const void *m) { (void)m;
+    v[DIM_DURATION] += (v[DIM_DURATION] >= 1.0 && v[DIM_DURATION] < 1.2) ? 0.5 : 0.1; }
+static IPA2VEC_MAYBE_UNUSED void mod_extra_short (double v[NDIM], const void *m){ (void)m;
+    v[DIM_DURATION] *= 0.5; }
 /* contrast-aware setter: set v[dim] to full_val unless the result would
  * exactly equal a DIFFERENTLY-spelled base segment (e.g. p + ◌̚ would
  * become ʬ, whose only difference from p is duration) — in that case take
@@ -378,24 +453,23 @@ static IPA2VEC_MAYBE_UNUSED void set_avoid_collision(double v[NDIM], int dim,
 static IPA2VEC_MAYBE_UNUSED void mod_half (double v[NDIM], const void *m)
 {
     (void)m;
-    set_avoid_collision(v, 12, 1.5);
+    set_avoid_collision(v, DIM_DURATION, 1.5);
 }
 
 /* unreleased with contrast awareness (p + ◌̚ would become ʬ) */
 static IPA2VEC_MAYBE_UNUSED void mod_unrel (double v[NDIM], const void *m)
 {
     (void)m;
-    set_avoid_collision(v, 12, 0.1);
+    set_avoid_collision(v, DIM_DURATION, 0.1);
 }
-static IPA2VEC_MAYBE_UNUSED void mod_asp (double v[NDIM], const void *m) { (void)m; v[10] = 0.9; v[9] = 0.0; }
-static IPA2VEC_MAYBE_UNUSED void mod_creaky (double v[NDIM], const void *m) { (void)m; v[9] = 0.7; v[10] = 0.0; v[11] = 0.7; }
-static IPA2VEC_MAYBE_UNUSED void mod_breathy (double v[NDIM], const void *m) { (void)m; v[10] = 0.55; v[9] = 0.2; v[11] = -0.6; }
-static IPA2VEC_MAYBE_UNUSED void mod_phar (double v[NDIM], const void *m) { (void)m; v[5] = 0.7; v[4] = -0.2; }
-static IPA2VEC_MAYBE_UNUSED void mod_velar (double v[NDIM], const void *m) { (void)m; v[4] = -0.3; v[5] = 0.3; }
-static IPA2VEC_MAYBE_UNUSED void mod_pal (double v[NDIM], const void *m) { (void)m; v[4] = 0.6; }
-static IPA2VEC_MAYBE_UNUSED void mod_lab (double v[NDIM], const void *m) { (void)m; if (v[1] < 0.5) v[1] = 0.5; }
-static IPA2VEC_MAYBE_UNUSED void mod_syl (double v[NDIM], const void *m) { (void)m; v[12] += 0.5; }
-static IPA2VEC_MAYBE_UNUSED void mod_nosyl (double v[NDIM], const void *m) { (void)m; v[12] -= 0.5; }
+static IPA2VEC_MAYBE_UNUSED void mod_asp (double v[NDIM], const void *m) { (void)m; v[DIM_SPREAD_GLOTTIS] = 0.9; v[DIM_CONSTRICTED_GLOTTIS] = 0.0; }
+static IPA2VEC_MAYBE_UNUSED void mod_creaky (double v[NDIM], const void *m) { (void)m; v[DIM_CONSTRICTED_GLOTTIS] = 0.7; v[DIM_SPREAD_GLOTTIS] = 0.0; v[DIM_LARYNGEAL_TENSION] = 0.7; }
+static IPA2VEC_MAYBE_UNUSED void mod_breathy (double v[NDIM], const void *m) { (void)m; v[DIM_SPREAD_GLOTTIS] = 0.55; v[DIM_CONSTRICTED_GLOTTIS] = 0.2; v[DIM_LARYNGEAL_TENSION] = -0.6; }
+static IPA2VEC_MAYBE_UNUSED void mod_phar (double v[NDIM], const void *m) { (void)m; v[DIM_TONGUE_ROOT] = 0.7; v[DIM_TONGUE_BODY_POS] = -0.2; }
+static IPA2VEC_MAYBE_UNUSED void mod_velar (double v[NDIM], const void *m) { (void)m; v[DIM_TONGUE_BODY_POS] = -0.3; v[DIM_TONGUE_ROOT] = 0.3; }
+static IPA2VEC_MAYBE_UNUSED void mod_pal (double v[NDIM], const void *m) { (void)m; v[DIM_TONGUE_BODY_POS] = 0.6; }
+static IPA2VEC_MAYBE_UNUSED void mod_lab (double v[NDIM], const void *m) { (void)m; if (v[DIM_LIPS_ROUNDED] < 0.5) v[DIM_LIPS_ROUNDED] = 0.5; }
+static IPA2VEC_MAYBE_UNUSED void mod_nosyl (double v[NDIM], const void *m) { (void)m; v[DIM_DURATION] -= 0.5; }
 /* Voicing / devoicing is *contrast-aware*:
  *
  *   ◌̬ / ◌̥ on a segment that HAS a voicing counterpart (t ↔ d, s ↔ z …)
@@ -407,10 +481,10 @@ static IPA2VEC_MAYBE_UNUSED void mod_nosyl (double v[NDIM], const void *m) { (vo
  *     (ǃ̬ fully voiced).
  *
  * Absolute values make the modifiers idempotent (t̬̬ = t̬). */
-static IPA2VEC_MAYBE_UNUSED void mod_voiceless_part (double v[NDIM], const void *m) { (void)m; v[8] = 0.4; v[9] = 0.1; v[10] = 0.2; }
-static IPA2VEC_MAYBE_UNUSED void mod_voiced_part    (double v[NDIM], const void *m) { (void)m; v[8] = 0.6; v[9] = 0.1; v[10] = 0.2; }
-static IPA2VEC_MAYBE_UNUSED void mod_voiceless_full (double v[NDIM], const void *m) { (void)m; v[8] = 0.0; v[9] = 0.0; v[10] = 0.4; }
-static IPA2VEC_MAYBE_UNUSED void mod_voiced_full    (double v[NDIM], const void *m) { (void)m; v[8] = 1.0; v[9] = 0.2; v[10] = 0.0; }
+static IPA2VEC_MAYBE_UNUSED void mod_voiceless_part (double v[NDIM], const void *m) { (void)m; v[DIM_VOICED] = 0.4; v[DIM_CONSTRICTED_GLOTTIS] = 0.1; v[DIM_SPREAD_GLOTTIS] = 0.2; }
+static IPA2VEC_MAYBE_UNUSED void mod_voiced_part    (double v[NDIM], const void *m) { (void)m; v[DIM_VOICED] = 0.6; v[DIM_CONSTRICTED_GLOTTIS] = 0.1; v[DIM_SPREAD_GLOTTIS] = 0.2; }
+static IPA2VEC_MAYBE_UNUSED void mod_voiceless_full (double v[NDIM], const void *m) { (void)m; v[DIM_VOICED] = 0.0; v[DIM_CONSTRICTED_GLOTTIS] = 0.0; v[DIM_SPREAD_GLOTTIS] = 0.4; }
+static IPA2VEC_MAYBE_UNUSED void mod_voiced_full    (double v[NDIM], const void *m) { (void)m; v[DIM_VOICED] = 1.0; v[DIM_CONSTRICTED_GLOTTIS] = 0.2; v[DIM_SPREAD_GLOTTIS] = 0.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_voiceless (double v[NDIM], const void *m) { mod_voiceless_part(v, m); }
 static IPA2VEC_MAYBE_UNUSED void mod_voiced    (double v[NDIM], const void *m) { mod_voiced_part(v, m); }
 
@@ -418,9 +492,19 @@ static IPA2VEC_MAYBE_UNUSED void mod_voiced    (double v[NDIM], const void *m) {
 static IPA2VEC_MAYBE_UNUSED int g_voice_counter[NSEG];
 static IPA2VEC_MAYBE_UNUSED int g_voice_counter_ready = 0;
 
+/* SEG_TABLE membership test.  Relational comparisons between pointers
+ * into different arrays are undefined, so compare integer addresses. */
+static IPA2VEC_MAYBE_UNUSED int seg_in_table(const SegEntry *b)
+{
+    uintptr_t x = (uintptr_t)(const void *)b;
+    return x >= (uintptr_t)(const void *)SEG_TABLE &&
+           x < (uintptr_t)(const void *)SEG_TABLE +
+               sizeof(SegEntry) * (uintptr_t)NSEG;
+}
+
 static IPA2VEC_MAYBE_UNUSED int has_voicing_counterpart(const SegEntry *base)
 {
-    if (base < SEG_TABLE || base >= SEG_TABLE + NSEG)
+    if (!seg_in_table(base))
         return 0;   /* EXTRA_BASE entries: assume no counterpart */
     if (!g_voice_counter_ready) {
         for (int i = 0; i < NSEG; i++)
@@ -430,9 +514,10 @@ static IPA2VEC_MAYBE_UNUSED int has_voicing_counterpart(const SegEntry *base)
                 const double *a = SEG_TABLE[i].v, *b = SEG_TABLE[j].v;
                 int same = 1, vdiff = 0;
                 for (int k = 0; k < NDIM; k++) {
-                    if (k == 8 || k == 9 || k == 10) {
+                    if (k == DIM_VOICED || k == DIM_CONSTRICTED_GLOTTIS ||
+                        k == DIM_SPREAD_GLOTTIS) {
                         if (a[k] != b[k]) vdiff = 1;
-                    } else if (k == 12 || k == 13) {
+                    } else if (k == DIM_DURATION || k == DIM_JET_FOCUS) {
                         /* voiced fricatives are systematically slightly
                          * shorter/lower in the table (z vs s: dur 0.7/0.8,
                          * jet 0.85/0.95) — allow that accompanying
@@ -465,55 +550,54 @@ static IPA2VEC_MAYBE_UNUSED void apply_voicing_mod(double v[NDIM],
     else
         m->apply(v, NULL);
 }
-static IPA2VEC_MAYBE_UNUSED void mod_nasal_click (double v[NDIM], const void *m){ (void)m; v[6] = 1.0; v[8] = 1.0; v[9] = 0.2; v[10] = 0.0; v[12] = 1.0; }
+static IPA2VEC_MAYBE_UNUSED void mod_nasal_click (double v[NDIM], const void *m){ (void)m; v[DIM_VEL_OPEN] = 1.0; v[DIM_VOICED] = 1.0; v[DIM_CONSTRICTED_GLOTTIS] = 0.2; v[DIM_SPREAD_GLOTTIS] = 0.0; v[DIM_DURATION] = 1.0; }
 /* dental (U+032A): on labials this is the labiodental plosive/nasal
  * (b̪ = vd labiodental plosive, p̪ = vl, m̪ = labiodental nasal — IPA
  * writes labiodental stops as p̪ b̪); on lingual segments it dentalises
  * the tip (t̪ d̪ n̪ …).  Labiodentals are described by the DENTAL
- * dimension (tt_pos 1.0, the same "at the teeth" value as t̪ θ ð), so
+ * dimension (tongue_tip_pos 1.0, the same "at the teeth" value as t̪ θ ð), so
  * the derived spellings b̪ m̪ match the base rows /p̪/ /ɱ/. */
 static IPA2VEC_MAYBE_UNUSED void mod_dental (double v[NDIM], const void *m) {
     (void)m;
-    if (v[0] > 0.5)          /* bilabial -> labiodental: contact at the teeth */
-        v[2] = 1.0;
-    else { v[2] = 1.0; if (v[3] < 0.5) v[3] = 0.5; }
+    if (v[DIM_LIPS_CLOSED] > 0.5)  /* bilabial -> labiodental: contact at the teeth */
+        v[DIM_TONGUE_TIP_POS] = 1.0;
+    else { v[DIM_TONGUE_TIP_POS] = 1.0; if (v[DIM_TONGUE_TIP_HEIGHT] < 0.5) v[DIM_TONGUE_TIP_HEIGHT] = 0.5; }
 }
-static IPA2VEC_MAYBE_UNUSED void mod_raised (double v[NDIM], const void *m) { (void)m; v[3] += 0.15; }
-static IPA2VEC_MAYBE_UNUSED void mod_lowered (double v[NDIM], const void *m) { (void)m; v[3] -= 0.15; }
-static IPA2VEC_MAYBE_UNUSED void mod_advanced (double v[NDIM], const void *m) { (void)m; v[2] += 0.15; }
-static IPA2VEC_MAYBE_UNUSED void mod_retracted (double v[NDIM], const void *m) { (void)m; v[2] -= 0.15; }
-static IPA2VEC_MAYBE_UNUSED void mod_more_round (double v[NDIM], const void *m) { (void)m; if (v[1] < 0.7) v[1] += 0.25; }
-static IPA2VEC_MAYBE_UNUSED void mod_less_round (double v[NDIM], const void *m) { (void)m; if (v[1] > -0.7) v[1] -= 0.25; }
-static IPA2VEC_MAYBE_UNUSED void mod_laminal (double v[NDIM], const void *m) { (void)m; if (v[3] < 0.6) v[3] = 0.6; }
-static IPA2VEC_MAYBE_UNUSED void mod_apical (double v[NDIM], const void *m) { (void)m; if (v[3] < 0.65) v[3] = 0.65; }
-static IPA2VEC_MAYBE_UNUSED void mod_midcent (double v[NDIM], const void *m) { (void)m; v[3] = 0.5; }
-static IPA2VEC_MAYBE_UNUSED void mod_rhot (double v[NDIM], const void *m) { (void)m; v[11] += 0.5; v[3] += 0.1; }
-static IPA2VEC_MAYBE_UNUSED void mod_extra_short (double v[NDIM], const void *m){ (void)m; v[12] = 0.5; }
-static IPA2VEC_MAYBE_UNUSED void mod_ejective (double v[NDIM], const void *m) { (void)m; v[9] = 1.0; v[10] = 0.0; v[11] = 0.6; v[8] = 0.0; }
-static IPA2VEC_MAYBE_UNUSED void mod_glottal_onset (double v[NDIM], const void *m){ (void)m; v[9] = 1.0; v[10] = 0.0; }
-static IPA2VEC_MAYBE_UNUSED void mod_breathy_asp (double v[NDIM], const void *m){ (void)m; v[10] = 0.7; v[9] = 0.2; v[8] = 1.0; }
-static IPA2VEC_MAYBE_UNUSED void mod_lat_release (double v[NDIM], const void *m){ (void)m; v[7] = 1.0; }
-static IPA2VEC_MAYBE_UNUSED void mod_nasal_rel (double v[NDIM], const void *m){ (void)m; v[6] = 0.8; v[12] += 0.3; }
-static IPA2VEC_MAYBE_UNUSED void mod_schwa_rel (double v[NDIM], const void *m){ (void)m; v[14] = 0.7; }
-static IPA2VEC_MAYBE_UNUSED void mod_fric_release (double v[NDIM], const void *m){ (void)m; v[14] = 0.08; v[12] += 0.2; }
-static IPA2VEC_MAYBE_UNUSED void mod_offglide_lab (double v[NDIM], const void *m){ (void)m; mod_lab(v, m); v[4] = -0.3; }
-static IPA2VEC_MAYBE_UNUSED void mod_centralized (double v[NDIM], const void *m){ (void)m; v[4] *= 0.5; }
+static IPA2VEC_MAYBE_UNUSED void mod_raised (double v[NDIM], const void *m) { (void)m; v[DIM_TONGUE_TIP_HEIGHT] += 0.15; }
+static IPA2VEC_MAYBE_UNUSED void mod_lowered (double v[NDIM], const void *m) { (void)m; v[DIM_TONGUE_TIP_HEIGHT] -= 0.15; }
+static IPA2VEC_MAYBE_UNUSED void mod_advanced (double v[NDIM], const void *m) { (void)m; v[DIM_TONGUE_TIP_POS] += 0.15; }
+static IPA2VEC_MAYBE_UNUSED void mod_retracted (double v[NDIM], const void *m) { (void)m; v[DIM_TONGUE_TIP_POS] -= 0.15; }
+static IPA2VEC_MAYBE_UNUSED void mod_more_round (double v[NDIM], const void *m) { (void)m; if (v[DIM_LIPS_ROUNDED] < 0.7) v[DIM_LIPS_ROUNDED] += 0.25; }
+static IPA2VEC_MAYBE_UNUSED void mod_less_round (double v[NDIM], const void *m) { (void)m; if (v[DIM_LIPS_ROUNDED] > -0.7) v[DIM_LIPS_ROUNDED] -= 0.25; }
+static IPA2VEC_MAYBE_UNUSED void mod_laminal (double v[NDIM], const void *m) { (void)m; if (v[DIM_TONGUE_TIP_HEIGHT] < 0.6) v[DIM_TONGUE_TIP_HEIGHT] = 0.6; }
+static IPA2VEC_MAYBE_UNUSED void mod_apical (double v[NDIM], const void *m) { (void)m; if (v[DIM_TONGUE_TIP_HEIGHT] < 0.65) v[DIM_TONGUE_TIP_HEIGHT] = 0.65; }
+static IPA2VEC_MAYBE_UNUSED void mod_midcent (double v[NDIM], const void *m) { (void)m; v[DIM_TONGUE_TIP_HEIGHT] = 0.5; }
+static IPA2VEC_MAYBE_UNUSED void mod_rhot (double v[NDIM], const void *m) { (void)m; v[DIM_LARYNGEAL_TENSION] += 0.5; v[DIM_TONGUE_TIP_HEIGHT] += 0.1; }
+static IPA2VEC_MAYBE_UNUSED void mod_ejective (double v[NDIM], const void *m) { (void)m; v[DIM_CONSTRICTED_GLOTTIS] = 1.0; v[DIM_SPREAD_GLOTTIS] = 0.0; v[DIM_LARYNGEAL_TENSION] = 0.6; v[DIM_VOICED] = 0.0; }
+static IPA2VEC_MAYBE_UNUSED void mod_glottal_onset (double v[NDIM], const void *m){ (void)m; v[DIM_CONSTRICTED_GLOTTIS] = 1.0; v[DIM_SPREAD_GLOTTIS] = 0.0; }
+static IPA2VEC_MAYBE_UNUSED void mod_breathy_asp (double v[NDIM], const void *m){ (void)m; v[DIM_SPREAD_GLOTTIS] = 0.7; v[DIM_CONSTRICTED_GLOTTIS] = 0.2; v[DIM_VOICED] = 1.0; }
+static IPA2VEC_MAYBE_UNUSED void mod_lat_release (double v[NDIM], const void *m){ (void)m; v[DIM_LATERAL_RATIO] = 1.0; }
+static IPA2VEC_MAYBE_UNUSED void mod_nasal_rel (double v[NDIM], const void *m){ (void)m; v[DIM_VEL_OPEN] = 0.8; v[DIM_DURATION] += 0.3; }
+static IPA2VEC_MAYBE_UNUSED void mod_schwa_rel (double v[NDIM], const void *m){ (void)m; v[DIM_EFFECTIVE_ORAL_AREA] = 0.7; }
+static IPA2VEC_MAYBE_UNUSED void mod_fric_release (double v[NDIM], const void *m){ (void)m; v[DIM_EFFECTIVE_ORAL_AREA] = 0.08; v[DIM_DURATION] += 0.2; }
+static IPA2VEC_MAYBE_UNUSED void mod_offglide_lab (double v[NDIM], const void *m){ (void)m; mod_lab(v, m); v[DIM_TONGUE_BODY_POS] = -0.3; }
+static IPA2VEC_MAYBE_UNUSED void mod_centralized (double v[NDIM], const void *m){ (void)m; v[DIM_TONGUE_BODY_POS] *= 0.5; }
 /* superscript-letter modifiers (IPA letters used as diacritics) */
-static IPA2VEC_MAYBE_UNUSED void mod_sup_front (double v[NDIM], const void *m){ (void)m; v[4] = 1.0; }
-static IPA2VEC_MAYBE_UNUSED void mod_sup_back (double v[NDIM], const void *m){ (void)m; v[4] = -0.5; }
-static IPA2VEC_MAYBE_UNUSED void mod_sup_mid (double v[NDIM], const void *m){ (void)m; v[4] *= 0.5; v[14] = 0.7; }
-static IPA2VEC_MAYBE_UNUSED void mod_sup_open (double v[NDIM], const void *m){ (void)m; v[14] = 1.0; }
-static IPA2VEC_MAYBE_UNUSED void mod_sup_stop (double v[NDIM], const void *m){ (void)m; v[14] = 0.0; v[12] = 0.1; }
-static IPA2VEC_MAYBE_UNUSED void mod_linguolabial (double v[NDIM], const void *m){ (void)m; v[2] = 1.0; v[3] = 0.6; v[0] = 0.5; }
-static IPA2VEC_MAYBE_UNUSED void mod_atr (double v[NDIM], const void *m){ (void)m; v[5] -= 0.3; }
-static IPA2VEC_MAYBE_UNUSED void mod_rtr (double v[NDIM], const void *m){ (void)m; v[5] += 0.3; }
-static IPA2VEC_MAYBE_UNUSED void mod_weak_asp (double v[NDIM], const void *m){ (void)m; v[10] = 0.6; v[9] = 0.1; }
-static IPA2VEC_MAYBE_UNUSED void mod_fortis (double v[NDIM], const void *m){ (void)m; v[11] += 0.3; }
-static IPA2VEC_MAYBE_UNUSED void mod_lenis (double v[NDIM], const void *m){ (void)m; v[11] -= 0.3; }
-static IPA2VEC_MAYBE_UNUSED void mod_alveolar_mark (double v[NDIM], const void *m){ (void)m; v[2] = 0.55; v[3] = 0.6; }
-static IPA2VEC_MAYBE_UNUSED void mod_whistled (double v[NDIM], const void *m){ (void)m; v[13] += 0.3; v[1] = 0.6; }
-static IPA2VEC_MAYBE_UNUSED void mod_lbd_mark (double v[NDIM], const void *m){ (void)m; v[0] = 0.5; }
-static IPA2VEC_MAYBE_UNUSED void mod_sliding (double v[NDIM], const void *m){ (void)m; v[12] += 0.3; }
+static IPA2VEC_MAYBE_UNUSED void mod_sup_front (double v[NDIM], const void *m){ (void)m; v[DIM_TONGUE_BODY_POS] = 1.0; }
+static IPA2VEC_MAYBE_UNUSED void mod_sup_back (double v[NDIM], const void *m){ (void)m; v[DIM_TONGUE_BODY_POS] = -0.5; }
+static IPA2VEC_MAYBE_UNUSED void mod_sup_mid (double v[NDIM], const void *m){ (void)m; v[DIM_TONGUE_BODY_POS] *= 0.5; v[DIM_EFFECTIVE_ORAL_AREA] = 0.7; }
+static IPA2VEC_MAYBE_UNUSED void mod_sup_open (double v[NDIM], const void *m){ (void)m; v[DIM_EFFECTIVE_ORAL_AREA] = 1.0; }
+static IPA2VEC_MAYBE_UNUSED void mod_sup_stop (double v[NDIM], const void *m){ (void)m; v[DIM_EFFECTIVE_ORAL_AREA] = 0.0; v[DIM_DURATION] = 0.1; }
+static IPA2VEC_MAYBE_UNUSED void mod_linguolabial (double v[NDIM], const void *m){ (void)m; v[DIM_TONGUE_TIP_POS] = 1.0; v[DIM_TONGUE_TIP_HEIGHT] = 0.6; v[DIM_LIPS_CLOSED] = 0.5; }
+static IPA2VEC_MAYBE_UNUSED void mod_atr (double v[NDIM], const void *m){ (void)m; v[DIM_TONGUE_ROOT] -= 0.3; }
+static IPA2VEC_MAYBE_UNUSED void mod_rtr (double v[NDIM], const void *m){ (void)m; v[DIM_TONGUE_ROOT] += 0.3; }
+static IPA2VEC_MAYBE_UNUSED void mod_weak_asp (double v[NDIM], const void *m){ (void)m; v[DIM_SPREAD_GLOTTIS] = 0.6; v[DIM_CONSTRICTED_GLOTTIS] = 0.1; }
+static IPA2VEC_MAYBE_UNUSED void mod_fortis (double v[NDIM], const void *m){ (void)m; v[DIM_LARYNGEAL_TENSION] += 0.3; }
+static IPA2VEC_MAYBE_UNUSED void mod_lenis (double v[NDIM], const void *m){ (void)m; v[DIM_LARYNGEAL_TENSION] -= 0.3; }
+static IPA2VEC_MAYBE_UNUSED void mod_alveolar_mark (double v[NDIM], const void *m){ (void)m; v[DIM_TONGUE_TIP_POS] = 0.55; v[DIM_TONGUE_TIP_HEIGHT] = 0.6; }
+static IPA2VEC_MAYBE_UNUSED void mod_whistled (double v[NDIM], const void *m){ (void)m; v[DIM_JET_FOCUS] += 0.3; v[DIM_LIPS_ROUNDED] = 0.6; }
+static IPA2VEC_MAYBE_UNUSED void mod_lbd_mark (double v[NDIM], const void *m){ (void)m; v[DIM_LIPS_CLOSED] = 0.5; }
+static IPA2VEC_MAYBE_UNUSED void mod_sliding (double v[NDIM], const void *m){ (void)m; v[DIM_DURATION] += 0.3; }
 
 static const ModRec MODS[] = {
     /* --- postposed combining marks --- */
@@ -642,6 +726,7 @@ static const ModRec MODS[] = {
     { 0x2077, "⁷", "pitch_7",  TIER_COUNT, -1, NULL, 1, {7,0}, NULL, 1  },
     { 0x2078, "⁸", "pitch_8",  TIER_COUNT, -1, NULL, 1, {8,0}, NULL, 1  },
     { 0x2079, "⁹", "pitch_9",  TIER_COUNT, -1, NULL, 1, {9,0}, NULL, 1  },
+    /* superscript digits ¹²³⁴⁵⁶⁷⁸⁹ */
     /* --- tone sandhi letters (꜖꜕꜔꜓꜒) -> extra vector 2 --- */
     { 0xA712, "꜒", "sandhi_5", TIER_COUNT, -1, NULL, 5, {5,0}, NULL, 1  },
     { 0xA713, "꜓", "sandhi_4", TIER_COUNT, -1, NULL, 5, {4,0}, NULL, 1  },
@@ -674,11 +759,33 @@ static const ModRec MODS[] = {
 };
 #define NMODS ((int)(sizeof(MODS) / sizeof(MODS[0])))
 
+/* sorted index over MODS by code point (lazy): binary search instead of
+ * a linear scan per lookup.  MODS has no duplicate code points, so the
+ * first-match semantics of a linear scan are preserved. */
+static const ModRec *g_mod_sorted[NMODS];
+static int g_mod_sorted_ready = 0;
+
+static int mod_cp_cmp(const void *pa, const void *pb)
+{
+    const ModRec *a = *(const ModRec *const *)pa;
+    const ModRec *b = *(const ModRec *const *)pb;
+    return (a->cp > b->cp) - (a->cp < b->cp);
+}
+
 static const ModRec *find_mod(unsigned long cp)
 {
-    for (int i = 0; i < NMODS; i++)
-        if (MODS[i].cp == cp)
-            return &MODS[i];
+    if (!g_mod_sorted_ready) {
+        for (int i = 0; i < NMODS; i++) g_mod_sorted[i] = &MODS[i];
+        qsort(g_mod_sorted, (size_t)NMODS, sizeof(g_mod_sorted[0]), mod_cp_cmp);
+        g_mod_sorted_ready = 1;
+    }
+    int lo = 0, hi = NMODS - 1;
+    while (lo <= hi) {
+        int mid = lo + (hi - lo) / 2;
+        unsigned long c = g_mod_sorted[mid]->cp;
+        if (c == cp) return g_mod_sorted[mid];
+        if (c < cp) lo = mid + 1; else hi = mid - 1;
+    }
     return NULL;
 }
 
@@ -720,8 +827,6 @@ static const PrecompEntry PRECOMPOSED[] = {
     { 0x014D, 0x006F, { 0x0304 }, 1 },   /* ō = o + ◌̄ */
     { 0x012B, 0x0069, { 0x0304 }, 1 },   /* ī = i + ◌̄ */
     { 0x016B, 0x0075, { 0x0304 }, 1 },   /* ū = u + ◌̄ */
-    { 0x0101, 0x0061, { 0 }, 0 },        /* ā = a + macron */
-    { 0x014D, 0x006F, { 0 }, 0 },        /* ō = o + macron */
 };
 #define NPRECOMP ((int)(sizeof(PRECOMPOSED) / sizeof(PRECOMPOSED[0])))
 
@@ -755,6 +860,8 @@ typedef struct {
 
 #define MAX_TOKS 256
 #define MAX_SEGS 128
+#define MAX_PREPOSED_BYTES 16   /* byte cap on preposed marks per segment */
+#define TONE_BUF_MAX 8          /* tone / sandhi letter slots per segment */
 
 typedef struct {
     IrTok layer1[MAX_TOKS];   /* character-composition order */
@@ -1169,7 +1276,8 @@ static const AliasModule ALIAS_MODULES[] = {
 static int g_alias_on[N_ALIAS_MODULES];
 static int g_alias_pri_max = 0;
 /* warned-once bookkeeping: warn per symbol, not per occurrence */
-static const char *g_alias_warned[256];
+#define ALIAS_WARNED_MAX 256
+static const char *g_alias_warned[ALIAS_WARNED_MAX];
 static int g_alias_n_warned = 0;
 
 static IPA2VEC_MAYBE_UNUSED void enable_alias_module(const char *name)
@@ -1204,10 +1312,10 @@ static IPA2VEC_MAYBE_UNUSED void warn_school_symbol(const char *sym)
 {
     for (int w = 0; w < g_alias_n_warned; w++)
         if (g_alias_warned[w] == sym) return;
-    if (g_alias_n_warned >= 256) return;
+    if (g_alias_n_warned >= ALIAS_WARNED_MAX) return;
     char mods[256] = "";
     char flags[256] = "";
-    int first = 1, n = 0;
+    int first = 1;
     for (int m = 0; m < N_ALIAS_MODULES; m++) {
         if (!ALIAS_MODULES[m].school || g_alias_on[m] != 0) continue;
         const Alias *a = match_module_alias(m, sym, 0);
@@ -1216,9 +1324,8 @@ static IPA2VEC_MAYBE_UNUSED void warn_school_symbol(const char *sym)
         strncat(mods, ALIAS_MODULES[m].name, sizeof(mods) - strlen(mods) - 1);
         strncat(flags, " --", sizeof(flags) - strlen(flags) - 1);
         strncat(flags, ALIAS_MODULES[m].name, sizeof(flags) - strlen(flags) - 1);
-        first = 0; n++;
+        first = 0;
     }
-    if (n == 0) return;
     g_alias_warned[g_alias_n_warned++] = sym;
     fprintf(stderr,
             "ipa2vec: warning: using symbol '%s' from %s — enable with%s\n",
@@ -1287,14 +1394,46 @@ static const Nolig NOLIG[] = {
 /*  articulatory description)                                          */
 /* ------------------------------------------------------------------ */
 
+/* first-byte index over SEG_TABLE (lazy): match_base only scans the
+ * entries sharing the input's first byte instead of the whole table */
+static int g_base_bucket_start[256], g_base_bucket_end[256];
+static int g_base_bucket_idx[NSEG];
+static int g_base_bucket_ready = 0;
+
+static void base_bucket_build(void)
+{
+    int cnt[256] = { 0 };
+    for (int i = 0; i < NSEG; i++)
+        cnt[(unsigned char)SEG_TABLE[i].ipa[0]]++;
+    int acc = 0;
+    for (int b = 0; b < 256; b++) {
+        g_base_bucket_start[b] = acc;
+        acc += cnt[b];
+        g_base_bucket_end[b] = acc;
+    }
+    int cur[256];
+    for (int b = 0; b < 256; b++) cur[b] = g_base_bucket_start[b];
+    for (int i = 0; i < NSEG; i++) {
+        int b = (unsigned char)SEG_TABLE[i].ipa[0];
+        g_base_bucket_idx[cur[b]++] = i;
+    }
+}
+
+/* longest-prefix base lookup against the 133-entry table */
 static const SegEntry *match_base(const char *s, int *consumed)
 {
+    if (!g_base_bucket_ready) {
+        base_bucket_build();
+        g_base_bucket_ready = 1;
+    }
+    int b = (unsigned char)s[0];
     int best = -1;
     const SegEntry *be = NULL;
-    for (int i = 0; i < NSEG; i++) {
-        size_t L = strlen(SEG_TABLE[i].ipa);
-        if (strncmp(s, SEG_TABLE[i].ipa, L) == 0) {
-            if ((int)L > best) { best = (int)L; be = &SEG_TABLE[i]; }
+    for (int k = g_base_bucket_start[b]; k < g_base_bucket_end[b]; k++) {
+        const SegEntry *e = &SEG_TABLE[g_base_bucket_idx[k]];
+        size_t L = strlen(e->ipa);
+        if (strncmp(s, e->ipa, L) == 0) {
+            if ((int)L > best) { best = (int)L; be = e; }
         }
     }
     if (consumed) *consumed = best;
@@ -1318,7 +1457,7 @@ static const SegEntry *match_base_ex(const char *s, int *consumed)
                 int seen = 0;
                 for (int w = 0; w < g_alias_n_warned; w++)
                     if (g_alias_warned[w] == EXTRA_BASE[i].ipa) { seen = 1; break; }
-                if (!seen && g_alias_n_warned < 256) {
+                if (!seen && g_alias_n_warned < ALIAS_WARNED_MAX) {
                     g_alias_warned[g_alias_n_warned++] = EXTRA_BASE[i].ipa;
                     fprintf(stderr,
                             "ipa2vec: warning: using %s symbol '%s' — enable with --%s\n",
@@ -1334,9 +1473,23 @@ static const SegEntry *match_base_ex(const char *s, int *consumed)
 /* feature name of any base (SEG_TABLE or EXTRA_BASE) */
 static IPA2VEC_MAYBE_UNUSED const char *base_name(const SegEntry *b)
 {
-    if (b >= SEG_TABLE && b < SEG_TABLE + NSEG)
+    if (seg_in_table(b))
         return NAME_TABLE[b - SEG_TABLE];
     return EXTRA_NAMES[b - EXTRA_BASE];
+}
+
+/* byte length of the first alias-symbol prefix of s across all modules
+ * (0 if none).  Shared by the lexer's has_mods probes. */
+static IPA2VEC_MAYBE_UNUSED size_t alias_prefix_len(const char *s)
+{
+    for (int m = 0; m < N_ALIAS_MODULES; m++)
+        for (int i = 0; i < ALIAS_MODULES[m].n; i++) {
+            const Alias *a = &ALIAS_MODULES[m].tab[i];
+            if (!a->repl) continue;
+            size_t L = strlen(a->sym);
+            if (strncmp(s, a->sym, L) == 0) return L;
+        }
+    return 0;
 }
 
 static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS], int *nout, char *err, size_t errsz);
@@ -1358,8 +1511,9 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
 
     while (p < end) {
         /* whitespace, syllable break '.', minor break '|', major break '‖',
-         * and the undertie '‿' are all non-segmental separators */
-        if (isspace(*p) || *p == '.' || *p == '|' ||
+         * phonemic slashes '/', and the undertie '‿' are all
+         * non-segmental separators */
+        if (isspace(*p) || *p == '.' || *p == '|' || *p == '/' ||
             (p + 2 < end && p[0] == 0xE2 && p[1] == 0x80 && p[2] == 0x96)) {
             p += (*p == 0xE2) ? 3 : 1;   /* ‖ is 3 bytes */
             continue;
@@ -1377,9 +1531,9 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
         double pre_vec3[3] = { 0, 0, 0 };
         int pre_vec3_set = 0;
         int pre_consumed = 0;   /* bytes consumed by preposed marks */
-        while (p < end && pre_consumed < 16) {
+        while (p < end && pre_consumed < MAX_PREPOSED_BYTES) {
             unsigned long cp;
-            int k = utf8_decode(p, &cp);
+            int k = utf8_decode_n(p, end, &cp);
             if (!k) break;
             const ModRec *m = find_mod(cp);
             if (!m) break;
@@ -1431,18 +1585,20 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
         int n_precomp = 0;
         if (!base) {
             unsigned long cp;
-            int k = utf8_decode(p, &cp);
+            int k = utf8_decode_n(p, end, &cp);
             if (k) {
                 const PrecompEntry *pe = lookup_precomposed(cp);
                 if (pe) {
                     char buf[8];
                     int nb = cp_to_utf8(pe->base, buf);
-                    buf[nb] = 0;
-                    base = match_base_ex(buf, &cons);
-                    if (base) {
-                        for (int i = 0; i < pe->nmods && i < 4; i++)
-                            precomp_mods[n_precomp++] = pe->mods[i];
-                        cons = k;   /* consume the whole precomposed char */
+                    if (nb > 0) {
+                        buf[nb] = 0;
+                        base = match_base_ex(buf, &cons);
+                        if (base) {
+                            for (int i = 0; i < pe->nmods && i < 4; i++)
+                                precomp_mods[n_precomp++] = pe->mods[i];
+                            cons = k;   /* consume the whole precomposed char */
+                        }
                     }
                 }
             }
@@ -1450,25 +1606,12 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
         if (!base) {
             /* deprecated / non-standard symbol: parse its modern-IPA
              * replacement together with any following combining marks */
-             size_t probe_len = 0;
-            {
-                const Alias *probe = NULL;
-                for (int m = 0; m < N_ALIAS_MODULES && !probe; m++) {
-                    for (int i = 0; i < ALIAS_MODULES[m].n; i++) {
-                        const Alias *a = &ALIAS_MODULES[m].tab[i];
-                        size_t L = strlen(a->sym);
-                        if (a->repl && strncmp((const char*)p, a->sym, L) == 0) {
-                            probe = a; probe_len = L; break;
-                        }
-                    }
-                }
-                (void)probe;
-            }
+            size_t probe_len = alias_prefix_len((const char *)p);
             int has_mods = 0;
             {
                 unsigned long cp;
                 const unsigned char *q = p + probe_len;
-                if (utf8_decode(q, &cp)) {
+                if (utf8_decode_n(q, end, &cp)) {
                     const ModRec *m = find_mod(cp);
                     has_mods = (m != NULL);
                 }
@@ -1484,7 +1627,7 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                 const unsigned char *q = p + alen;
                 while (q < end && blen + 8 < sizeof(buf)) {
                     unsigned long cp;
-                    int k = utf8_decode(q, &cp);
+                    int k = utf8_decode_n(q, end, &cp);
                     if (!k) break;
                     const ModRec *m = find_mod(cp);
                     /* skip preposed airstream modifiers (ˀ glottal onset,
@@ -1505,7 +1648,20 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                     fprintf(stderr, "ipa2vec: %s: '%s' -> %s (%s)\n",
                             al->warn ? "warning" : "note",
                             al->sym, al->repl, al->note);
-                    if (n + tn >= MAX_TOKS) goto full;
+                    /* preposed modifiers collected before the alias (e.g.
+                     * "ᵑ?") attach to the alias's base token */
+                    if (n + npre + tn >= MAX_TOKS) goto full;
+                    for (int i = 0; i < npre; i++) {
+                        IrTok t;
+                        t.kind = TK_MOD;
+                        t.ipa = MODS[pre_idx[i]].ipa;
+                        t.latin = MODS[pre_idx[i]].latin;
+                        t.tier = MODS[pre_idx[i]].tier;
+                        t.mod = &MODS[pre_idx[i]];
+                        t.seg = NULL;
+                        t.preposed = 1;
+                        out[n++] = t;
+                    }
                     for (int j = 0; j < tn; j++)
                         out[n++] = tmp[j];
                     p = q;   /* consume alias + appended combining marks */
@@ -1524,26 +1680,13 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                 }
             }
             unsigned long cp = 0;
-            utf8_decode(p, &cp);
+            utf8_decode_n(p, end, &cp);
             if (pre_consumed > 0) {
                 /* consumed only modifiers/tone marks with no base following:
                  * some of them double as standalone letters (superscript
                  * forms like ᵋ = ɛ, ᵑ = ŋ); try the alias path first */
                 const unsigned char *pre_p = p - pre_consumed;
-                size_t probe_len = 0;
-                {
-                    const Alias *probe = NULL;
-                    for (int m = 0; m < N_ALIAS_MODULES && !probe; m++) {
-                        for (int i = 0; i < ALIAS_MODULES[m].n; i++) {
-                            const Alias *a = &ALIAS_MODULES[m].tab[i];
-                            size_t L = strlen(a->sym);
-                            if (a->repl && strncmp((const char*)pre_p, a->sym, L) == 0) {
-                                probe = a; probe_len = L; break;
-                            }
-                        }
-                    }
-                    (void)probe;
-                }
+                size_t probe_len = alias_prefix_len((const char *)pre_p);
                 const Alias *fal = lookup_alias((const char *)pre_p, 0);
                 if (fal) {
                     char buf[256];
@@ -1584,7 +1727,7 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                     continue;
                 }
                 p -= pre_consumed;
-                utf8_decode(p, &cp);
+                utf8_decode_n(p, end, &cp);
                 snprintf(err, errsz,
                          "modifier-only at offset %d (U+%04lX): a base segment is required first",
                          (int)(p - (const unsigned char*)input), cp);
@@ -1636,7 +1779,6 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
             if (n >= MAX_TOKS) goto full;
             IrTok t;
             t.kind = TK_MOD;
-            t.preposed = 0;
             t.ipa = MODS[pre_idx[i]].ipa;
             t.latin = MODS[pre_idx[i]].latin;
             t.tier = MODS[pre_idx[i]].tier;
@@ -1650,7 +1792,7 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
         t.kind = TK_BASE;
         t.preposed = 0;
         t.ipa = base->ipa;
-        t.latin = (base >= SEG_TABLE && base < SEG_TABLE + NSEG)
+        t.latin = seg_in_table(base)
                   ? NAME_TABLE[base - SEG_TABLE]
                   : EXTRA_NAMES[base - EXTRA_BASE];
         t.tier = TIER_COUNT;
@@ -1669,21 +1811,22 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
             if (rel) {
                 fprintf(stderr, "ipa2vec: note: inferred affricate with synthesized tie (closure + release)\n");
                 if (n >= MAX_TOKS) goto full;
-                IrTok lt;
-                lt.kind = TK_LIG;
-                lt.preposed = 0;
-                lt.ipa = "◌͡";
-                lt.latin = "tie";
-                lt.tier = TIER_COUNT;
-                lt.mod = NULL;
-                lt.seg = NULL;
-                out[n++] = lt;
+                IrTok laryngeal_tension;
+                laryngeal_tension.kind = TK_LIG;
+                laryngeal_tension.preposed = 0;
+                laryngeal_tension.ipa = "◌͡";
+                laryngeal_tension.latin = "tie";
+                laryngeal_tension.tier = TIER_COUNT;
+                laryngeal_tension.mod = NULL;
+                laryngeal_tension.seg = NULL;
+                for (int g = 0; g < 3; g++) { laryngeal_tension.tkind[g] = 0; laryngeal_tension.tone[g][0] = laryngeal_tension.tone[g][1] = laryngeal_tension.tone[g][2] = NAN; }
+                out[n++] = laryngeal_tension;
                 if (n >= MAX_TOKS) goto full;
                 IrTok rt;
                 rt.kind = TK_BASE;
                 rt.preposed = 0;
                 rt.ipa = rel->ipa;
-                rt.latin = (rel >= SEG_TABLE && rel < SEG_TABLE + NSEG)
+                rt.latin = seg_in_table(rel)
                            ? NAME_TABLE[rel - SEG_TABLE]
                            : EXTRA_NAMES[rel - EXTRA_BASE];
                 rt.tier = TIER_COUNT;
@@ -1697,8 +1840,8 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
 
         /* tone bookkeeping for this segment: 5-level letters collected here,
          * then grouped on segment end. */
-        int tonebuf[8], ntone = 0;
-        int sandhibuf[8], nsandhi = 0;
+        int tonebuf[TONE_BUF_MAX], ntone = 0;
+        int sandhibuf[TONE_BUF_MAX], nsandhi = 0;
         int tone_digit = pre_tone_digit;   /* superscript-digit pitch seen */
         int tone_letter = pre_tone_letter; /* 5-level letter seen */
         for (int i = 0; i < npre_tone; i++) tonebuf[ntone++] = pre_tone[i];
@@ -1730,16 +1873,24 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
         /* postposed modifiers & ligatures */
         while (p < end) {
             unsigned long cp;
-            int k = utf8_decode(p, &cp);
+            int k = utf8_decode_n(p, end, &cp);
             if (!k) break;
             const ModRec *m = find_mod(cp);
             if (!m) break;
             /* airstream-prefix modifiers (ˀ glottal onset, ᵑ nasal click
              * release) are preposed by convention: if they appear after a
              * base, stop and let the next segment collect them.  Ejective
-             * ʼ (air >= 0) stays postposed. */
-            if (m->tier == TIER_AIRSTREAM && m->air < 0 && !is_ligature_cp(cp))
-                break;
+             * ʼ (air >= 0) stays postposed.  Exception: a base is already
+             * present in THIS segment (e.g. toˀ, iɛˀ) - then the mark
+             * glottalises it postposed instead of ending the segment,
+             * which would leave a modifier-only tail (U+02C0). */
+            if (m->tier == TIER_AIRSTREAM && m->air < 0 && !is_ligature_cp(cp)) {
+                if (n > 0 && out[n - 1].kind == TK_BASE) {
+                    /* postposed glottalisation: keep processing below */
+                } else {
+                    break;
+                }
+            }
             if (m->tone_kind != 0) {
                 /* tone mark: store into segment tone state.
                  * Three extra vectors:
@@ -1747,7 +1898,7 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                  *   tone[1] sandhi (kind 5)
                  *   tone[2] 3-D (kind 2 class, 3 step, 4 global) */
                 if (m->tone_kind == 1) {           /* 5-level letter -> vec 1 */
-                    if (ntone < 8) {
+                    if (ntone < TONE_BUF_MAX) {
                         tonebuf[ntone++] = (int)m->val[0];
                         if (m->latin && strncmp(m->latin, "pitch_", 6) == 0)
                             tone_digit = 1;
@@ -1755,7 +1906,7 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                             tone_letter = 1;
                     }
                 } else if (m->tone_kind == 5) {    /* sandhi letter -> vec 2 */
-                    if (nsandhi < 8) sandhibuf[nsandhi++] = (int)m->val[0];
+                    if (nsandhi < TONE_BUF_MAX) sandhibuf[nsandhi++] = (int)m->val[0];
                 } else {
                     /* 3-D vector (tone[2]), default (0,0,0):
                      *   dim 0: upstep/downstep (kind 3, ±1)
@@ -1807,7 +1958,7 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                              * token in place, preserving its tone state */
                             out[n-1].seg = t2;
                             out[n-1].ipa = t2->ipa;
-                            out[n-1].latin = (t2 >= SEG_TABLE && t2 < SEG_TABLE + NSEG)
+                            out[n-1].latin = seg_in_table(t2)
                                       ? NAME_TABLE[t2 - SEG_TABLE]
                                       : EXTRA_NAMES[t2 - EXTRA_BASE];
                             p += rel_len;
@@ -1818,22 +1969,27 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                 }
                 IrTok l;
                 l.kind = TK_LIG;
+                l.preposed = 0;
                 l.ipa = "◌͡";
                 l.latin = "tie";
                 l.tier = TIER_COUNT;
                 l.mod = m;
                 l.seg = NULL;
+                for (int g = 0; g < 3; g++) { l.tkind[g] = 0; l.tone[g][0] = l.tone[g][1] = l.tone[g][2] = NAN; }
+                if (n >= MAX_TOKS) goto full;
                 out[n++] = l;      /* Layer1 keeps the tie for round-trip */
                 IrTok r;
                 r.kind = TK_BASE;
                 r.preposed = 0;
                 r.ipa = release->ipa;
-                r.latin = (release >= SEG_TABLE && release < SEG_TABLE + NSEG)
+                r.latin = seg_in_table(release)
                           ? NAME_TABLE[release - SEG_TABLE]
                           : EXTRA_NAMES[release - EXTRA_BASE];
                 r.tier = TIER_COUNT;
                 r.mod = NULL;
                 r.seg = release;
+                for (int g = 0; g < 3; g++) { r.tkind[g] = 0; r.tone[g][0] = r.tone[g][1] = r.tone[g][2] = NAN; }
+                if (n >= MAX_TOKS) goto full;
                 out[n++] = r;
                 p += rel_len;
                 continue;
@@ -1857,36 +2013,34 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
          *   vec 1 (tone[0]) single tone: 1..3 letters
          *   vec 2 (tone[1]) tone sandhi: 4+ letters overflow here (and ꜖꜕꜔꜓꜒)
          *   vec 3 (tone[2]) 3-D: (upstep, global, class), default (0,0,0) */
-        if (out[seg_base_idx].kind == TK_BASE) {
-            if (ntone >= 1) {
-                out[seg_base_idx].tkind[0] = 1;
-                int c = ntone < 3 ? ntone : 3;
-                for (int k = 0; k < c; k++)
-                    out[seg_base_idx].tone[0][k] = tonebuf[k];
-                if (ntone == 1)
-                    out[seg_base_idx].tone[0][1] = tonebuf[0];   /* level tone */
-                if (tone_digit && tone_letter)
-                    fprintf(stderr,
-                            "ipa2vec: warning: mixing superscript digits (¹²³⁴⁵) and tone letters (˩˨˧˦˥) for the same segment\n");
-                /* 4+ letters: remainder becomes tone sandhi (vec 2) */
-                if (ntone > 3) {
-                    out[seg_base_idx].tkind[1] = 1;
-                    int r = ntone - 3;
-                    int rc = r < 3 ? r : 3;
-                    for (int k = 0; k < rc; k++)
-                        out[seg_base_idx].tone[1][k] = tonebuf[3 + k];
-                    if (r == 1)
-                        out[seg_base_idx].tone[1][1] = tonebuf[3];
-                }
-            }
-            if (nsandhi >= 1) {
+        if (ntone >= 1) {
+            out[seg_base_idx].tkind[0] = 1;
+            int c = ntone < 3 ? ntone : 3;
+            for (int k = 0; k < c; k++)
+                out[seg_base_idx].tone[0][k] = tonebuf[k];
+            if (ntone == 1)
+                out[seg_base_idx].tone[0][1] = tonebuf[0];   /* level tone */
+            if (tone_digit && tone_letter)
+                fprintf(stderr,
+                        "ipa2vec: warning: mixing superscript digits (¹²³⁴⁵) and tone letters (˩˨˧˦˥) for the same segment\n");
+            /* 4+ letters: remainder becomes tone sandhi (vec 2) */
+            if (ntone > 3) {
                 out[seg_base_idx].tkind[1] = 1;
-                int c = nsandhi < 3 ? nsandhi : 3;
-                for (int k = 0; k < c; k++)
-                    out[seg_base_idx].tone[1][k] = sandhibuf[k];
-                if (nsandhi == 1)
-                    out[seg_base_idx].tone[1][1] = sandhibuf[0];
+                int r = ntone - 3;
+                int rc = r < 3 ? r : 3;
+                for (int k = 0; k < rc; k++)
+                    out[seg_base_idx].tone[1][k] = tonebuf[3 + k];
+                if (r == 1)
+                    out[seg_base_idx].tone[1][1] = tonebuf[3];
             }
+        }
+        if (nsandhi >= 1) {
+            out[seg_base_idx].tkind[1] = 1;
+            int c = nsandhi < 3 ? nsandhi : 3;
+            for (int k = 0; k < c; k++)
+                out[seg_base_idx].tone[1][k] = sandhibuf[k];
+            if (nsandhi == 1)
+                out[seg_base_idx].tone[1][1] = sandhibuf[0];
         }
     }
     *nout = n;
@@ -1956,7 +2110,10 @@ static IPA2VEC_MAYBE_UNUSED void canonicalise (IrTok *l1, int n1, IrTok *l2, int
 /* ligature pair); modifiers are applied sequentially.                 */
 /* ------------------------------------------------------------------ */
 
-static IPA2VEC_MAYBE_UNUSED void apply_layer2 (IrTok *l2, int n2, SegVec *segs, int *nsegs)
+/* apply Layer2 in order -> per-segment vectors.  Returns 0 on success,
+ * -1 when the segment count exceeds MAX_SEGS (message printed). */
+static IPA2VEC_MAYBE_UNUSED int apply_layer2 (IrTok *l2, int n2, SegVec *segs, int *nsegs,
+                                              const char *toolname)
 {
     *nsegs = 0;
     int i = 0;
@@ -1996,8 +2153,8 @@ static IPA2VEC_MAYBE_UNUSED void apply_layer2 (IrTok *l2, int n2, SegVec *segs, 
                          *    and lowers its nasality (usually a place
                          *    shift: ñ -> ɲ)
                          *  - vowels take ◌̃, oral consonants take ⁿ */
-                        int base_nasal = base && base->v[6] >= 0.5;
-                        int base_vowel = base && base->v[14] >= 0.5;
+                        int base_nasal = base && base->v[DIM_VEL_OPEN] >= 0.5;
+                        int base_vowel = base && base->v[DIM_EFFECTIVE_ORAL_AREA] >= 0.5;
                         if (l2[i].mod->apply == mod_nasal && !out.note[0]) {
                             if (base_nasal) {
                                 const char *guess = NULL;
@@ -2038,15 +2195,24 @@ static IPA2VEC_MAYBE_UNUSED void apply_layer2 (IrTok *l2, int n2, SegVec *segs, 
                     int j = i + 1;
                     if (j < n2 && l2[j].kind == TK_BASE) {
                         const SegEntry *rel = l2[j].seg;
-                        out.v[12] = rel->v[12] + 0.5;
-                        out.v[13] = rel->v[13];
-                        out.v[14] = rel->v[14];
+                        out.v[DIM_DURATION] = rel->v[DIM_DURATION] + 0.5;
+                        out.v[DIM_JET_FOCUS] = rel->v[DIM_JET_FOCUS];
+                        out.v[DIM_EFFECTIVE_ORAL_AREA] = rel->v[DIM_EFFECTIVE_ORAL_AREA];
+                        /* laterality is carried if EITHER phase is
+                         * lateral (tɬ from the ɬ release; ʪ=ɬ͡s from
+                         * the ɬ closure) — dropping it would make the
+                         * vector the plain central affricate and
+                         * anchor to the retroflex pair instead of any
+                         * lateral base */
+                        out.v[DIM_LATERAL_RATIO] =
+                            ((base && base->v[DIM_LATERAL_RATIO] > 0.0) ||
+                             rel->v[DIM_LATERAL_RATIO] > 0.0) ? 1.0 : 0.0;
                         if (rel->airstream != base->airstream) {
                             out.airstream = rel->airstream;
-                            out.v[15] = rel->v[15];
-                            out.v[9]  = rel->v[9];
-                            out.v[10] = rel->v[10];
-                            out.v[11] = rel->v[11];
+                            out.v[DIM_AIRFLOW_DIRECTION] = rel->v[DIM_AIRFLOW_DIRECTION];
+                            out.v[DIM_CONSTRICTED_GLOTTIS] = rel->v[DIM_CONSTRICTED_GLOTTIS];
+                            out.v[DIM_SPREAD_GLOTTIS] = rel->v[DIM_SPREAD_GLOTTIS];
+                            out.v[DIM_LARYNGEAL_TENSION] = rel->v[DIM_LARYNGEAL_TENSION];
                         }
                         note_append(out.note, sizeof(out.note), "tie");
                         j++;
@@ -2064,12 +2230,16 @@ static IPA2VEC_MAYBE_UNUSED void apply_layer2 (IrTok *l2, int n2, SegVec *segs, 
                     }
                 }
             }
-            if (*nsegs < MAX_SEGS)
-                segs[(*nsegs)++] = out;
+            if (*nsegs >= MAX_SEGS) {
+                fprintf(stderr, "%s: too many segments (max %d)\n", toolname, MAX_SEGS);
+                return -1;
+            }
+            segs[(*nsegs)++] = out;
         } else {
             i++;   /* stray modifier or tie without base: skip */
         }
     }
+    return 0;
 }
 
 /* ------------------------------------------------------------------ */
@@ -2218,9 +2388,9 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
         }
     }
     int n = 0;
-    int base_nasal = (eval_base->v[6] >= 0.5);
-    int base_is_vowel = (eval_base->v[8] >= 0.5 && eval_base->v[14] >= 0.3
-                         && eval_base->v[12] >= 0.9);
+    int base_nasal = (eval_base->v[DIM_VEL_OPEN] >= 0.5);
+    int base_is_vowel = (eval_base->v[DIM_VOICED] >= 0.5 && eval_base->v[DIM_EFFECTIVE_ORAL_AREA] >= 0.3
+                         && eval_base->v[DIM_DURATION] >= 0.9);
     int maxmods = g_fit_max_mods < IPA2VEC_FIT_MAX_MODS
                   ? g_fit_max_mods : IPA2VEC_FIT_MAX_MODS;
     for (int round = 0; round < maxmods; round++) {
@@ -3000,16 +3170,39 @@ static IPA2VEC_MAYBE_UNUSED int opt_metric(const char *arg, int argc, char **arg
 
 #define STDIN_MAX 65536
 
-/* read all of stdin (used when no positional argument is given) */
-static IPA2VEC_MAYBE_UNUSED char *read_stdin(void)
+/* read all of stdin (used when no positional argument is given).
+ * Returns NULL on error or empty input (a message is printed on error). */
+static IPA2VEC_MAYBE_UNUSED char *read_stdin(const char *toolname)
 {
     char *buf = (char *)malloc(STDIN_MAX);
     if (!buf) return NULL;
     size_t n = 0;
-    int c;
-    while (n + 1 < STDIN_MAX && (c = getchar()) != EOF)
-        buf[n++] = (char)c;
+    while (n + 1 < STDIN_MAX) {
+        size_t got = fread(buf + n, 1, STDIN_MAX - 1 - n, stdin);
+        if (got == 0) {
+            if (ferror(stdin)) {
+                free(buf);
+                fprintf(stderr, "%s: read error on stdin\n", toolname);
+                return NULL;
+            }
+            break;
+        }
+        n += got;
+    }
     buf[n] = 0;
+    if (n + 1 >= STDIN_MAX) {
+        /* buffer filled: distinguish "exactly the limit" from truncation
+         * by probing for more content (trailing whitespace is trimmed
+         * anyway, so it does not count) */
+        int c = getchar();
+        while (c != EOF && (c == '\n' || c == '\r' || c == ' ' || c == '\t'))
+            c = getchar();
+        if (c != EOF) {
+            free(buf);
+            fprintf(stderr, "%s: input too long (max %d bytes)\n", toolname, STDIN_MAX - 1);
+            return NULL;
+        }
+    }
     if (n == 0) { free(buf); return NULL; }
     /* trim trailing whitespace/newline */
     while (n > 0 && (buf[n-1] == '\n' || buf[n-1] == '\r' || buf[n-1] == ' ' ||
@@ -3019,17 +3212,17 @@ static IPA2VEC_MAYBE_UNUSED char *read_stdin(void)
 }
 
 /* redirect stdout to a file if -o FILE was given; returns 0 on success */
-static IPA2VEC_MAYBE_UNUSED int redirect_output(const char *file)
+static IPA2VEC_MAYBE_UNUSED int redirect_output(const char *file, const char *toolname)
 {
     FILE *f = fopen(file, "w");
-    if (!f) { fprintf(stderr, "ipa2vec: cannot open %s for writing\n", file); return -1; }
+    if (!f) { fprintf(stderr, "%s: cannot open %s for writing\n", toolname, file); return -1; }
 #ifdef _WIN32
     if (_dup2(_fileno(f), _fileno(stdout)) != 0)
 #else
     if (dup2(fileno(f), fileno(stdout)) != 0)
 #endif
     {
-        fprintf(stderr, "ipa2vec: cannot redirect to %s\n", file);
+        fprintf(stderr, "%s: cannot redirect to %s\n", toolname, file);
         fclose(f);
         return -1;
     }
@@ -3040,14 +3233,20 @@ static IPA2VEC_MAYBE_UNUSED int redirect_output(const char *file)
 /* write the two-layer IR of a parse to <base>.layer1 and <base>.layer2 */
 static IPA2VEC_MAYBE_UNUSED int export_ir(const IrTok *l1, int n1,
                                           const IrTok *l2, int n2,
-                                          const char *base)
+                                          const char *base,
+                                          const char *toolname)
 {
     char path[512];
     FILE *f;
+    int pl;
 
-    snprintf(path, sizeof(path), "%s.layer1", base);
+    pl = snprintf(path, sizeof(path), "%s.layer1", base);
+    if (pl < 0 || (size_t)pl >= sizeof(path)) {
+        fprintf(stderr, "%s: output base name too long\n", toolname);
+        return -1;
+    }
     f = fopen(path, "w");
-    if (!f) { fprintf(stderr, "ipa2vec: cannot open %s\n", path); return -1; }
+    if (!f) { fprintf(stderr, "%s: cannot open %s\n", toolname, path); return -1; }
     for (int i = 0; i < n1; i++) {
         const IrTok *t = &l1[i];
         switch (t->kind) {
@@ -3065,9 +3264,13 @@ static IPA2VEC_MAYBE_UNUSED int export_ir(const IrTok *l1, int n1,
     }
     fclose(f);
 
-    snprintf(path, sizeof(path), "%s.layer2", base);
+    pl = snprintf(path, sizeof(path), "%s.layer2", base);
+    if (pl < 0 || (size_t)pl >= sizeof(path)) {
+        fprintf(stderr, "%s: output base name too long\n", toolname);
+        return -1;
+    }
     f = fopen(path, "w");
-    if (!f) { fprintf(stderr, "ipa2vec: cannot open %s\n", path); return -1; }
+    if (!f) { fprintf(stderr, "%s: cannot open %s\n", toolname, path); return -1; }
     for (int i = 0; i < n2; i++) {
         const IrTok *t = &l2[i];
         switch (t->kind) {
@@ -3095,21 +3298,58 @@ static IPA2VEC_MAYBE_UNUSED int export_ir(const IrTok *l1, int n1,
 static IPA2VEC_MAYBE_UNUSED int parse_vector_arg(const char *s, double out[NDIM])
 {
     char buf[512];
-    snprintf(buf, sizeof(buf), "%s", s);
+    int bl = snprintf(buf, sizeof(buf), "%s", s);
+    if (bl < 0 || (size_t)bl >= sizeof(buf)) return -1;
     char *tok = strtok(buf, ", \t");
     int i = 0;
     while (tok && i < NDIM) {
         char *endp = NULL;
         double x = strtod(tok, &endp);
-        if (endp == tok) return -1;
+        if (endp == tok || isnan(x) || isinf(x)) return -1;
         out[i++] = x;
         tok = strtok(NULL, ", \t");
     }
-    return (i == NDIM) ? 0 : -1;
+    return (i == NDIM && tok == NULL) ? 0 : -1;
+}
+
+/* parse trailing tone groups like "(3)(0)" or "(4,5)(1,3)" into the
+ * segment's extra vectors (first group -> vec 0, second -> vec 1,
+ * third -> 3-D vec 2) */
+static IPA2VEC_MAYBE_UNUSED void parse_tone_groups(const char *s, SegVec *sv)
+{
+    for (int g = 0; g < 3; g++) {
+        sv->tkind[g] = 0;
+        sv->tone[g][0] = sv->tone[g][1] = sv->tone[g][2] = NAN;
+    }
+    const char *p = s;
+    while ((p = strchr(p, '(')) != NULL) {
+        p++;
+        double vals[3] = { 0, 0, 0 };
+        int n = 0;
+        while (*p && *p != ')') {
+            char *endp = NULL;
+            double x = strtod(p, &endp);
+            if (endp == p) break;
+            if (n < 3) vals[n] = x;
+            n++;
+            p = endp;
+            while (*p == ',' || *p == ' ' || *p == '\t') p++;
+        }
+        if (*p == ')') p++;
+        if (n < 1 || n > 3) continue;
+        int slot = -1;
+        for (int g2 = 0; g2 < 3; g2++)
+            if (sv->tkind[g2] == 0) { slot = g2; break; }
+        if (slot < 0) break;
+        sv->tkind[slot] = slot == 2 ? 2 : 1;
+        for (int k = 0; k < n; k++) sv->tone[slot][k] = vals[k];
+        if (n == 1) sv->tone[slot][1] = vals[0];
+    }
 }
 
 /* -d A B: weighted distance between two parsed IPA strings */
-static IPA2VEC_MAYBE_UNUSED int run_distance(const char *seg_a, const char *seg_b)
+static IPA2VEC_MAYBE_UNUSED int run_distance(const char *seg_a, const char *seg_b,
+                                             const char *toolname)
 {
     ParseOut a, b;
     char err[256];
@@ -3120,8 +3360,9 @@ static IPA2VEC_MAYBE_UNUSED int run_distance(const char *seg_a, const char *seg_
     }
     canonicalise(a.layer1, a.n1, a.layer2, &a.n2);
     canonicalise(b.layer1, b.n1, b.layer2, &b.n2);
-    apply_layer2(a.layer2, a.n2, a.segs, &a.nsegs);
-    apply_layer2(b.layer2, b.n2, b.segs, &b.nsegs);
+    if (apply_layer2(a.layer2, a.n2, a.segs, &a.nsegs, toolname) ||
+        apply_layer2(b.layer2, b.n2, b.segs, &b.nsegs, toolname))
+        return 1;
     if (a.nsegs != 1 || b.nsegs != 1) {
         fprintf(stderr, "need exactly one segment per argument\n");
         return 1;
@@ -3133,27 +3374,61 @@ static IPA2VEC_MAYBE_UNUSED int run_distance(const char *seg_a, const char *seg_
 /* -r/-n VEC: nearest segment (+ modifier fit) for a vector */
 static IPA2VEC_MAYBE_UNUSED int run_reverse(const char *vecstr, int nearest_only)
 {
-    double v[NDIM];
-    if (parse_vector_arg(vecstr, v) != 0) {
+    SegVec sv;
+    memset(&sv, 0, sizeof(sv));
+    if (parse_vector_arg(vecstr, sv.v) != 0) {
         fprintf(stderr, "bad vector: need %d comma-separated values\n", NDIM);
         return 1;
     }
+    parse_tone_groups(vecstr, &sv);
     const SegEntry *b; double d;
-    nearest_base(v, &b, &d);
+    nearest_base(sv.v, &b, &d);
     if (nearest_only) {
         printf("/%s/  %s  d=%.4f  (%s)\n", b->ipa, base_name(b),
                d, AIRSTREAM_LABELS[b->airstream]);
         return 0;
     }
     const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
-    int nm = fit_modifiers(v, b, mods);
+    int nm = fit_modifiers(sv.v, b, mods);
     order_mods(mods, nm);   /* canonical order — same as the rebuilt IPA */
     char ipa[128];
     build_ipa(b, mods, nm, ipa, sizeof(ipa));
+    char tb[48];
+    tone_rebuild(&sv, tb, sizeof(tb));
     printf("/%s/  (%s", b->ipa, base_name(b));
     for (int j = 0; j < nm; j++) printf(" +%s", mods[j]->latin);
-    printf(")  d=%.4f  ->  /%s/\n", d, ipa);
+    printf(")  d=%.4f  ->  /%s%s/\n", d, ipa, tb);
     return 0;
+}
+
+/* JSON-escape a string (quotes, backslash, control chars) into a
+ * malloc'd buffer; NULL on allocation failure. */
+static IPA2VEC_MAYBE_UNUSED char *json_escape(const char *s)
+{
+    size_t n = strlen(s);
+    char *out = (char *)malloc(n * 6 + 1);
+    if (!out) return NULL;
+    size_t k = 0;
+    for (size_t i = 0; i < n; i++) {
+        unsigned char c = (unsigned char)s[i];
+        switch (c) {
+        case '"':  out[k++] = '\\'; out[k++] = '"'; break;
+        case '\\': out[k++] = '\\'; out[k++] = '\\'; break;
+        case '\b': out[k++] = '\\'; out[k++] = 'b'; break;
+        case '\f': out[k++] = '\\'; out[k++] = 'f'; break;
+        case '\n': out[k++] = '\\'; out[k++] = 'n'; break;
+        case '\r': out[k++] = '\\'; out[k++] = 'r'; break;
+        case '\t': out[k++] = '\\'; out[k++] = 't'; break;
+        default:
+            if (c < 0x20) {
+                k += (size_t)snprintf(out + k, 7, "\\u%04x", c);
+            } else {
+                out[k++] = (char)c;
+            }
+        }
+    }
+    out[k] = 0;
+    return out;
 }
 
 /* forward: IPA -> vectors (text / IR / JSON), shared by ipa2vec & vec4ipa */
@@ -3167,10 +3442,11 @@ static IPA2VEC_MAYBE_UNUSED int run_forward(const char *str, int ir, int json,
         return 1;
     }
     canonicalise(po.layer1, po.n1, po.layer2, &po.n2);
-    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs);
+    if (apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs, toolname))
+        return 1;
 
     if (irbase)
-        export_ir(po.layer1, po.n1, po.layer2, po.n2, irbase);
+        export_ir(po.layer1, po.n1, po.layer2, po.n2, irbase, toolname);
 
     if (ir) {
         printf("input: /%s/\n", str);
@@ -3195,7 +3471,13 @@ static IPA2VEC_MAYBE_UNUSED int run_forward(const char *str, int ir, int json,
         return 0;
     }
     if (json) {
-        printf("{\"input\": \"%s\", \"segments\": [\n", str);
+        char *esc = json_escape(str);
+        if (!esc) {
+            fprintf(stderr, "%s: out of memory\n", toolname);
+            return 1;
+        }
+        printf("{\"input\": \"%s\", \"segments\": [\n", esc);
+        free(esc);
         int first = 1;
         for (int s = 0; s < po.nsegs; s++) {
             if (!first) printf(",\n");

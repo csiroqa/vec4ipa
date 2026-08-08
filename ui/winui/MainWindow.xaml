@@ -8,17 +8,6 @@
     <Grid>
         <Grid.Resources>
             <ResourceDictionary>
-                <ResourceDictionary.ThemeDictionaries>
-                    <ResourceDictionary x:Key="Light">
-                        <!-- Fluent title-bar hover/pressed fills -->
-                        <SolidColorBrush x:Key="WinBtnHover" Color="#1F000000"/>
-                        <SolidColorBrush x:Key="WinBtnPressed" Color="#33000000"/>
-                    </ResourceDictionary>
-                    <ResourceDictionary x:Key="Dark">
-                        <SolidColorBrush x:Key="WinBtnHover" Color="#33FFFFFF"/>
-                        <SolidColorBrush x:Key="WinBtnPressed" Color="#4DFFFFFF"/>
-                    </ResourceDictionary>
-                </ResourceDictionary.ThemeDictionaries>
                 <!-- title-bar button: Fluent hover/pressed fills that follow
                      the theme; the system buttons stay untouched -->
                 <Style x:Key="WinBtn" TargetType="Button">
@@ -43,7 +32,7 @@
                                                         <ObjectAnimationUsingKeyFrames Storyboard.TargetName="Fx"
                                                             Storyboard.TargetProperty="Fill">
                                                             <DiscreteObjectKeyFrame KeyTime="0"
-                                                                Value="{ThemeResource WinBtnHover}"/>
+                                                                Value="#33888888"/>
                                                         </ObjectAnimationUsingKeyFrames>
                                                     </Storyboard>
                                                 </VisualState>
@@ -52,7 +41,7 @@
                                                         <ObjectAnimationUsingKeyFrames Storyboard.TargetName="Fx"
                                                             Storyboard.TargetProperty="Fill">
                                                             <DiscreteObjectKeyFrame KeyTime="0"
-                                                                Value="{ThemeResource WinBtnPressed}"/>
+                                                                Value="#4D888888"/>
                                                         </ObjectAnimationUsingKeyFrames>
                                                     </Storyboard>
                                                 </VisualState>
@@ -90,7 +79,7 @@
              min/max/close buttons stay native (snap layouts, Win+arrows,
              maximize over the taskbar are all system-driven) and the
              always-on-top button sits right next to them -->
-        <Grid x:Name="TitleBar" Grid.Row="0" Height="28"
+        <Grid Grid.Row="0" Height="28"
               Background="Transparent">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
                         Margin="12,0,0,0" Spacing="8">
@@ -106,7 +95,7 @@
         <Grid Grid.Row="1">
         <Grid.ColumnDefinitions>
             <ColumnDefinition x:Name="LeftCol" Width="560"/>
-            <ColumnDefinition x:Name="SplitCol" Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
             <ColumnDefinition x:Name="RightCol" Width="*"/>
         </Grid.ColumnDefinitions>
         <!-- left column: inputs / output (output stretches with window) -->
@@ -135,12 +124,12 @@
                     <Button.Flyout>
                         <MenuFlyout>
                             <MenuFlyoutSubItem x:Name="MExamples" Text="Examples">
-                                <MenuFlyoutItem Text="English: tʰa (aspirated t + a)" Click="Example_Click"/>
-                                <MenuFlyoutItem Text="Mandarin: ma˥˩ (falling tone)" Click="Example_Click"/>
-                                <MenuFlyoutItem Text="Nasalised: ɛ̃ (nasalised vowel)" Click="Example_Click"/>
-                                <MenuFlyoutItem Text="Affricate: t͡ʃa (ch + a)" Click="Example_Click"/>
-                                <MenuFlyoutItem Text="Ejective: kʼa (ejective k)" Click="Example_Click"/>
-                                <MenuFlyoutItem Text="Click: ǃ̃o (nasal click)" Click="Example_Click"/>
+                                <MenuFlyoutItem Text="English: tʰa (aspirated t + a)" Tag="tʰa" Click="Example_Click"/>
+                                <MenuFlyoutItem Text="Mandarin: ma˥˩ (falling tone)" Tag="ma˥˩" Click="Example_Click"/>
+                                <MenuFlyoutItem Text="Nasalised: ɛ̃ (nasalised vowel)" Tag="ɛ̃" Click="Example_Click"/>
+                                <MenuFlyoutItem Text="Affricate: t͡ʃa (ch + a)" Tag="t͡ʃa" Click="Example_Click"/>
+                                <MenuFlyoutItem Text="Ejective: kʼa (ejective k)" Tag="kʼa" Click="Example_Click"/>
+                                <MenuFlyoutItem Text="Click: ǃ̃o (nasal click)" Tag="ǃ̃o" Click="Example_Click"/>
                             </MenuFlyoutSubItem>
                             <MenuFlyoutItem x:Name="MOpen" Text="Open file and convert..." Click="OpenFileConvert_Click"/>
                             <MenuFlyoutSeparator/>
@@ -184,7 +173,7 @@
                 <Button x:Name="LoopBtn" MinHeight="34" Grid.Column="4" Content="Loop" Padding="10,4"
                         Click="Loop_Click"/>
                 <ComboBox x:Name="FormatCombo" Grid.Column="5" SelectedIndex="0" Width="96" MinHeight="34">
-                    <ComboBoxItem Content="vectors"/>
+                    <ComboBoxItem x:Name="FmtVectors" Content="vectors"/>
                     <ComboBoxItem Content="IR"/>
                     <ComboBoxItem Content="JSON"/>
                 </ComboBox>
@@ -244,9 +233,9 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="LblOut" Text="Output:" FontSize="15"/>
-                <Button Grid.Column="1" Content="Copy" FontSize="12"
+                <Button x:Name="CopyBtn" Grid.Column="1" Content="Copy" FontSize="12"
                         Padding="8,2" Margin="0,0,6,0" Click="CopyOutput_Click"/>
-                <Button Grid.Column="2" Content="Clear" FontSize="12"
+                <Button x:Name="ClearBtn" Grid.Column="2" Content="Clear" FontSize="12"
                         Padding="8,2" Click="ClearOutput_Click"/>
             </Grid>
             <RichEditBox x:Name="OutputBox" Grid.Row="7" FontSize="15"
@@ -339,7 +328,8 @@
         </Grid>
 
         <!-- status bar -->
-        <Grid Grid.Row="2" Padding="12,4" Background="{ThemeResource LayerFillColorDefaultBrush}">            <TextBlock x:Name="StatusText" FontSize="12"
+        <Grid Grid.Row="2" Padding="12,4" Background="{ThemeResource LayerFillColorDefaultBrush}">
+            <TextBlock x:Name="StatusText" FontSize="12"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
         </Grid>
     </Grid>

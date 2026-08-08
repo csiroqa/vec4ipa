@@ -30,7 +30,7 @@
 static void print_table(void)
 {
     printf("# ipa\tlatin\tlips_closed lips_rounded tongue_tip_pos tongue_tip_height tongue_body_pos "
-           "tongue_root vel_open lateral_ratio voiced cg sg laryngeal_tension "
+           "tongue_root vel_open lateral_ratio voiced constricted_glottis spread_glottis laryngeal_tension "
            "duration jet_focus effective_oral_area airflow_direction\tairstream\n");
     for (int i = 0; i < NSEG; i++) {
         printf("%s\t%s\t", SEG_TABLE[i].ipa, NAME_TABLE[i]);
@@ -49,7 +49,8 @@ static void print_table(void)
 
 static void print_modules(void)
 {
-    printf("# regional / tradition modules (all active)\n");
+    printf("# regional / tradition modules (always on: generic, equiv, withdrawn,\n");
+    printf("# uppercase; school modules are off unless enabled with --<name>)\n");
     for (int m = 0; m < N_ALIAS_MODULES; m++) {
         printf("[%s] %d symbols\n", ALIAS_MODULES[m].name, ALIAS_MODULES[m].n);
         for (int i = 0; i < ALIAS_MODULES[m].n; i++) {
@@ -147,7 +148,7 @@ static void usage(void)
     printf("  -h, --help             this help\n");
     printf("  --width <0-4>          transcription narrowness (default 3)\n");
     printf("  --metric FILE          load metric.json weights/lambda at runtime\n");
-    printf("  --charset CLASS        enable reverse charset class (std|extipa|sinologist|all; default std)\n");
+    printf("  --charset CLASS        enable reverse charset class (std|extipa|sinologist|all; default std; aliases ext, school, sino)\n");
     printf("  -t, --table            full base table\n");
     printf("  -m, --modules          regional modules\n");
     printf("  -q, --query SYM        query a symbol\n");
@@ -164,16 +165,21 @@ static void usage(void)
     printf("\nwith no input string, forward direction reads from stdin\n");
 }
 
-/* forward: IPA -> vectors */
-static int run_forward_v4(const char *str, int ir, int json, const char *irbase)
+/* -i/-t/-m/-s/-w/-q return immediately, silently dropping any input
+ * options parsed before them; say so on stderr when that happens */
+static void note_ignored_inputs(const char *opt, int dist_mode,
+                                const char *vecstr, int json, int ir,
+                                const char *query)
 {
-    return run_forward(str, ir, json, irbase, "vec4ipa");
+    if (dist_mode || vecstr || json || ir || query)
+        fprintf(stderr, "vec4ipa: note: %s ignores the input options given before it\n", opt);
 }
 
 #ifdef _WIN32
 int wmain(int argc, wchar_t **wargv)
 {
     char **argv = argv_utf8_from_wide(argc, wargv);
+    if (!argv) { fprintf(stderr, "vec4ipa: out of memory\n"); return 1; }
 #else
 int main(int argc, char **argv)
 {
@@ -184,7 +190,7 @@ int main(int argc, char **argv)
     const char *vecstr = NULL;       /* reverse vector */
     const char *seg_a = NULL, *seg_b = NULL;
     const char *query = NULL;
-    int json = 0, ir = 0, nearest_only = 0, dist_mode = 0;
+    int json = 0, ir = 0, nearest_only = 0, dist_mode = 0, reverse_given = 0;
     int no_more_opts = 0;
 
     for (int i = 1; i < argc; i++) {
@@ -202,22 +208,22 @@ int main(int argc, char **argv)
         int cs = opt_charset(argv[i], argc, argv, &i);
         if (cs == 1) continue;
         if (cs == -1) { fprintf(stderr, "vec4ipa: --charset needs std|extipa|sinologist|all\n"); return 1; }
-        if (opt_match(argv[i], "-i", "--information")) { printf("%s", EMBEDDED_README); return 0; }
+        if (opt_match(argv[i], "-i", "--information")) { note_ignored_inputs(argv[i], dist_mode, vecstr, json, ir, query); printf("%s", EMBEDDED_README); return 0; }
         if (opt_match(argv[i], "-v", "--version")) {
             printf("vec4ipa %s (%d base segments + %d extIPA bases, %d modifiers)\n",
                    IPA2VEC_VERSION, NSEG, N_EXTRA, NMODS);
             return 0;
         }
-        if (opt_match(argv[i], "-t", "--table")) { print_table(); return 0; }
-        if (opt_match(argv[i], "-m", "--modules")) { print_modules(); return 0; }
-        if (opt_match(argv[i], "-s", "--stats")) { print_stats(); return 0; }
-        if (opt_match(argv[i], "-w", "--weights")) { print_weights(); return 0; }
+        if (opt_match(argv[i], "-t", "--table")) { note_ignored_inputs(argv[i], dist_mode, vecstr, json, ir, query); print_table(); return 0; }
+        if (opt_match(argv[i], "-m", "--modules")) { note_ignored_inputs(argv[i], dist_mode, vecstr, json, ir, query); print_modules(); return 0; }
+        if (opt_match(argv[i], "-s", "--stats")) { note_ignored_inputs(argv[i], dist_mode, vecstr, json, ir, query); print_stats(); return 0; }
+        if (opt_match(argv[i], "-w", "--weights")) { note_ignored_inputs(argv[i], dist_mode, vecstr, json, ir, query); print_weights(); return 0; }
         if (opt_match(argv[i], "-j", "--json")) { json = 1; if (i + 1 < argc) str = argv[++i]; else { fprintf(stderr, "vec4ipa: -j/--json needs a string\n"); return 1; } continue; }
         if (opt_match(argv[i], "-e", "--ir")) { ir = 1; if (i + 1 < argc) str = argv[++i]; else { fprintf(stderr, "vec4ipa: -e/--ir needs a string\n"); return 1; } continue; }
         if (opt_match(argv[i], "-n", "--nearest")) { nearest_only = 1; if (i + 1 < argc) vecstr = argv[++i]; else { fprintf(stderr, "vec4ipa: -n/--nearest needs a vector\n"); return 1; } continue; }
-        if (opt_match(argv[i], "-r", "--reverse")) { if (i + 1 < argc) vecstr = argv[++i]; else { fprintf(stderr, "vec4ipa: -r/--reverse needs a vector\n"); return 1; } continue; }
+        if (opt_match(argv[i], "-r", "--reverse")) { reverse_given = 1; if (i + 1 < argc) vecstr = argv[++i]; else { fprintf(stderr, "vec4ipa: -r/--reverse needs a vector\n"); return 1; } continue; }
         if (opt_match(argv[i], "-d", "--distance")) { dist_mode = 1; if (i + 2 < argc) { seg_a = argv[++i]; seg_b = argv[++i]; } else { fprintf(stderr, "vec4ipa: -d/--distance needs two segments\n"); return 1; } continue; }
-        if (opt_match(argv[i], "-q", "--query")) { if (i + 1 < argc) query = argv[++i]; else { fprintf(stderr, "vec4ipa: -q/--query needs a symbol\n"); return 1; } continue; }
+        if (opt_match(argv[i], "-q", "--query")) { note_ignored_inputs(argv[i], dist_mode, vecstr, json, ir, query); if (i + 1 < argc) query = argv[++i]; else { fprintf(stderr, "vec4ipa: -q/--query needs a symbol\n"); return 1; } continue; }
         int r = opt_match_val(argv[i], "-o", "--output", &val, argc, argv, &i);
         if (r == 1) { outfile = val; continue; }
         if (r == -1) { fprintf(stderr, "vec4ipa: %s needs a file\n", argv[i]); return 1; }
@@ -231,21 +237,37 @@ int main(int argc, char **argv)
     }
 
     if (query) { query_symbol(query); return 0; }
-    if (outfile && redirect_output(outfile) != 0)
+    if (json && ir) {
+        fprintf(stderr, "vec4ipa: -j/--json and -e/--ir are mutually exclusive\n");
+        return 1;
+    }
+    if (vecstr && (json || ir)) {
+        fprintf(stderr, "vec4ipa: -r/--reverse conflicts with -j/--json or -e/--ir\n");
+        return 1;
+    }
+    if (nearest_only && reverse_given) {
+        fprintf(stderr, "vec4ipa: -r/--reverse and -n/--nearest are mutually exclusive\n");
+        return 1;
+    }
+    if (dist_mode && (vecstr || json || ir)) {
+        fprintf(stderr, "vec4ipa: -d/--distance conflicts with -r/--reverse, -n/--nearest, -j/--json or -e/--ir\n");
+        return 1;
+    }
+    if (outfile && redirect_output(outfile, "vec4ipa") != 0)
         return 1;
 
     if (dist_mode) {
         if (!seg_a || !seg_b) { usage(); return 1; }
-        return run_distance(seg_a, seg_b);
+        return run_distance(seg_a, seg_b, "vec4ipa");
     }
 
     if (vecstr)
         return run_reverse(vecstr, nearest_only);
 
     if (!str || strcmp(str, "-") == 0) {
-        char *in = read_stdin();
+        char *in = read_stdin("vec4ipa");
         if (!in) { usage(); return 1; }
         str = in;
     }
-    return run_forward_v4(str, ir, json, irbase);
+    return run_forward(str, ir, json, irbase, "vec4ipa");
 }

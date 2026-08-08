@@ -23,7 +23,50 @@ namespace Vec4ipaUI
                 Environment.SpecialFolder.ApplicationData),
                 "vec4ipa", "window.ini");
 
-        public MainWindow() : this(Array.Empty<string>()) { }
+        /* ---- layout / thresholds / Win32 constants ---- */
+        private const int DefaultWinWidth = 1180;
+        private const int DefaultWinHeight = 760;
+        private const double DefaultSplitWidth = 560;
+        private const double RestoreMinSplit = 360;
+        private const double MinLeftWidth = 480;
+        private const double MaxLeftWidth = 1400;
+        private const double DragRectTop = 30;
+        private const double DragRectRightGap = 200;
+        private const double MagnetRadius = 6;
+        private const int MinVisibleLeft = 200;
+        private const int MinVisibleTop = 100;
+
+        /* ---- keyboard / UI thresholds ---- */
+        private const int KeyMinWidth = 44;
+        private const int KeyMinHeight = 34;
+        private const int MaxFavorites = 200;
+        private const int MaxRecent = 60;
+        private const int MaxHistory = 200;
+        private const double HoverGlyphLarge = 30;
+        private const double HoverGlyph = 24;
+
+        /* ---- Win32 constants ---- */
+        private const int GWL_EXSTYLE = -20;
+        private const int WS_EX_TOPMOST = 0x8;
+        private const int HwndNotopmost = -2;
+        private const int HwndTopmost = -1;
+        private const uint SwpNoSize = 0x0001;
+        private const uint SwpNoMove = 0x0002;
+        private const uint SwpNoActivate = 0x0010;
+        private const int WhMouseLl = 14;
+        private const int WmLButtonDown = 0x0201;
+        private const uint InputKeyboard = 1;
+        private const uint KeyeventfUnicode = 4;
+        private const int SmXvirtualscreen = 76;
+        private const int SmYvirtualscreen = 77;
+        private const int SmCxvirtualscreen = 78;
+        private const int SmCyvirtualscreen = 79;
+        private const int GcsCompstr = 0x0008;
+
+        /* the IPA glyph font (system-installed; also declared as a XAML
+         * resource for the soft-keyboard input box) */
+        private static readonly Microsoft.UI.Xaml.Media.FontFamily IpaFont =
+            new("Gentium Book Plus");
 
         public MainWindow(string[] args)
         {
@@ -34,7 +77,11 @@ namespace Vec4ipaUI
             RestoreState();
             WireSplitGrip();
             WireCursorMagnet();
-            BindEnterToButton(IpaInputRight, ConvertBtn_Click);
+            /* the magnet caches hwnd/DPI; a move onto a monitor with a
+             * different scale invalidates it (SizeChanged fires on the
+             * resulting rescale) */
+            SizeChanged += (s, e) => _cursorDpiCached = false;
+            BindEnterToButton(IpaInputRight, ConvertBtn, ConvertBtn_Click);
             IpaInputRight.TextChanged += (s, e) =>
             {
                 /* keep it a single line: strip pasted newlines */
@@ -69,26 +116,30 @@ namespace Vec4ipaUI
             LblLet.Tapped += (s, e) => ScrollToSection(LblLet);
             LblTone.Tapped += (s, e) => ScrollToSection(LblTone);
             LblRec.Tapped += (s, e) => ScrollToSection(LblRec);
-            BindEnterToButton(VecInput, ReverseBtn_Click);
-            BindEnterToButton(DistA, DistBtn_Click);
-            BindEnterToButton(DistB, DistBtn_Click);
+            BindEnterToButton(VecInput, ReverseBtn, ReverseBtn_Click);
+            BindEnterToButton(DistA, DistBtn, DistBtn_Click);
+            BindEnterToButton(DistB, DistBtn, DistBtn_Click);
             SetStatus("Ready - click keyboard buttons or type IPA");
             Closed += (s, e) =>
             {
+                UninstallLLHook();
                 SaveState();
                 FlushExtLog();
             };
-            InitStatus();
             ShowWelcome();
             UpdateButtons();
             /* force the selection-highlight layer to rebuild on every
-             * change (the compositor otherwise keeps the old paint) */
+             * change (the compositor otherwise keeps the old paint);
+             * only the latest change is applied (drag-select bursts
+             * would otherwise queue one rebuild per event) */
             OutputBox.SelectionChanged += (s, e) =>
             {
                 try
                 {
+                    int token = ++_selRebuildToken;
                     DispatcherQueue.TryEnqueue(() =>
                     {
+                        if (token != _selRebuildToken) return;
                         var c = OutputBox.SelectionHighlightColor;
                         OutputBox.SelectionHighlightColor =
                             new Microsoft.UI.Xaml.Media.SolidColorBrush(
@@ -96,7 +147,7 @@ namespace Vec4ipaUI
                         OutputBox.SelectionHighlightColor = c;
                     });
                 }
-                catch { }
+                catch (Exception ex) { LogExt("selection rebuild err " + ex.Message); }
             };
             if (!InitCore())
                 return;
@@ -113,19 +164,63 @@ namespace Vec4ipaUI
             };
         }
 
-        /* Enter in a text box triggers the button next to it */
-        private static void BindEnterToButton(UIElement box,
+        /* Enter in a text box triggers the button next to it (only when
+         * the button is enabled and no IME composition is in progress -
+         * Enter commits candidate text and must not fire the button) */
+        private void BindEnterToButton(UIElement box, Button btn,
             RoutedEventHandler handler)
         {
             box.KeyDown += (s, e) =>
             {
-                if (e.Key == Windows.System.VirtualKey.Enter)
+                if (e.Key == Windows.System.VirtualKey.Enter &&
+                    btn.IsEnabled && !ImeComposing())
                 {
                     handler(box, e);
                     e.Handled = true;
                 }
             };
         }
+
+        /* true while an IME is composing text in the focused control
+         * (Enter would otherwise commit the candidate and hit the
+         * button at the same time) */
+        private bool ImeComposing()
+        {
+            try
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                IntPtr imc = ImmGetContext(hwnd);
+                if (imc == IntPtr.Zero) return false;
+                try
+                {
+                    /* ImmGetContext on a WinUI 3 window returns the
+                     * thread's default IMC, which is unreliable under
+                     * TSF; an IME that is not open cannot compose, so
+                     * the open status is the cheapest extra guard */
+                    if (!ImmGetOpenStatus(imc)) return false;
+                    return ImmGetCompositionString(imc, GcsCompstr,
+                        IntPtr.Zero, 0) > 0;
+                }
+                finally { ImmReleaseContext(hwnd, imc); }
+            }
+            catch { return false; }
+        }
+
+        [System.Runtime.InteropServices.DllImport("imm32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(
+            System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static extern bool ImmGetOpenStatus(IntPtr hIMC);
+
+        [System.Runtime.InteropServices.DllImport("imm32.dll")]
+        private static extern IntPtr ImmGetContext(IntPtr hWnd);
+
+        [System.Runtime.InteropServices.DllImport("imm32.dll")]
+        private static extern bool ImmReleaseContext(IntPtr hWnd,
+            IntPtr hIMC);
+
+        [System.Runtime.InteropServices.DllImport("imm32.dll")]
+        private static extern int ImmGetCompositionString(IntPtr hIMC,
+            int dwIndex, IntPtr lpBuf, int dwBufLen);
 
         /* pickers need an owner HWND or they fail on WinUI 3 desktop */
         private void InitializePicker(object picker)
@@ -134,61 +229,119 @@ namespace Vec4ipaUI
             WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
         }
 
+        private async System.Threading.Tasks.Task<Windows.Storage.StorageFile?>
+            PickFileAsync(params string[] fileTypes)
+        {
+            var picker = new Windows.Storage.Pickers.FileOpenPicker();
+            InitializePicker(picker);
+            foreach (var t in fileTypes) picker.FileTypeFilter.Add(t);
+            return await picker.PickSingleFileAsync();
+        }
+
+        private async System.Threading.Tasks.Task<Windows.Storage.StorageFile?>
+            PickSaveFileAsync(string suggestedName, string label,
+                params string[] fileTypes)
+        {
+            var picker = new Windows.Storage.Pickers.FileSavePicker();
+            InitializePicker(picker);
+            picker.SuggestedFileName = suggestedName;
+            picker.FileTypeChoices.Add(label, new List<string>(fileTypes));
+            return await picker.PickSaveFileAsync();
+        }
+
+        private async System.Threading.Tasks.Task<Windows.Storage.StorageFolder?>
+            PickFolderAsync()
+        {
+            var picker = new Windows.Storage.Pickers.FolderPicker();
+            InitializePicker(picker);
+            picker.FileTypeFilter.Add("*");
+            return await picker.PickSingleFolderAsync();
+        }
+
+        /* shared clipboard helper: true on success */
+        private static bool CopyToClipboard(string text)
+        {
+            try
+            {
+                var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
+                dp.SetText(text);
+                Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
+                return true;
+            }
+            catch { return false; }
+        }
+
         /* returns false when ipa2vec_core.dll is missing (UI stays up
-         * with a clear status message instead of crashing) */
+         * with a clear status message and the core-dependent controls
+         * disabled instead of crashing on the first P/Invoke) */
         private bool InitCore()
         {
             try
             {
-                _ = Core.Version;
+                string ver = Core.Version;
                 BuildKeyboard();
+                _coreOk = true;
+                UpdateButtons();
                 _argsPending = true;
+                StatusText.Text = $"core {ver} - width {WidthCombo.SelectedIndex}";
                 return true;
             }
             catch (System.DllNotFoundException)
             {
+                DisableCoreMenus();
                 StatusText.Text = "ipa2vec_core.dll not found next to the app - " +
                                   "features are disabled";
                 return false;
             }
             catch (System.EntryPointNotFoundException)
             {
+                DisableCoreMenus();
                 StatusText.Text = "ipa2vec_core.dll is outdated or damaged - " +
                                   "features are disabled";
                 return false;
             }
         }
 
-        private void InitStatus()
+        /* everything that ends up calling into the core is disabled */
+        private void DisableCoreMenus()
         {
-            string core = "core dll missing";
-            try { core = "core " + Core.Version; } catch { }
-            StatusText.Text = $"{core} - width {WidthCombo.SelectedIndex}";
-            if (core == "core dll missing")
-                StatusText.Text = "ipa2vec_core.dll not found next to the app - " +
-                                  "features will not work";
+            FileBtn.IsEnabled = false;
+            ViewBtn.IsEnabled = false;
+            HelpBtn.IsEnabled = false;
+            LoopBtn.IsEnabled = false;
+            ExtToggle.IsEnabled = false;
         }
 
         private void UpdateButtons()
         {
-            ConvertBtn.IsEnabled = IpaInputRight.Text.Length > 0;
-            ReverseBtn.IsEnabled = VecInput.Text.Trim().Length > 0;
-            DistBtn.IsEnabled = DistA.Text.Length > 0 && DistB.Text.Length > 0;
+            ConvertBtn.IsEnabled = _coreOk && IpaInputRight.Text.Length > 0;
+            ReverseBtn.IsEnabled = _coreOk && VecInput.Text.Trim().Length > 0;
+            DistBtn.IsEnabled = _coreOk && DistA.Text.Length > 0 &&
+                                 DistB.Text.Length > 0;
         }
 
         private void ShowWelcome()
         {
-            string welcome =
-                "Welcome to vec4ipa Workbench\n" +
-                "---------------------------------\n\n" +
-                "1. Type or click an IPA string below (or pick an example\n" +
-                "   from File > Examples).\n" +
-                "2. Press Convert - each segment becomes a 16-D vector.\n" +
-                "3. Paste a vector and press Reverse to fit IPA back,\n" +
-                "   choosing the transcription width (0-4).\n\n" +
-                "Tip: hover a keyboard key for its name, double-click for\n" +
-                "details; symbols you use are collected on the Recent tab.\n\n" +
-                "Example to try:  t\u02b0a  (aspirated stop + open vowel)";
+            string welcome = _zh
+                ? "欢迎使用 vec4ipa 工作台\n" +
+                  "---------------------------------\n\n" +
+                  "1. 在下方输入或点击 IPA 字符串（或在 文件 > 示例 中选择）。\n" +
+                  "2. 点击 转换 - 每个音段变成 16 维向量。\n" +
+                  "3. 粘贴向量并按 反向 拟合回 IPA，\n" +
+                  "   选择转录宽度（0-4）。\n\n" +
+                  "提示：悬停键盘按键可查看名称，双击查看详情；\n" +
+                  "用过的符号会收集在 最近使用 页。\n\n" +
+                   "示例：t\u02b0a（送气塞音 + 开元音）\n"
+                : "Welcome to vec4ipa Workbench\n" +
+                  "---------------------------------\n\n" +
+                  "1. Type or click an IPA string below (or pick an example\n" +
+                  "   from File > Examples).\n" +
+                  "2. Press Convert - each segment becomes a 16-D vector.\n" +
+                  "3. Paste a vector and press Reverse to fit IPA back,\n" +
+                  "   choosing the transcription width (0-4).\n\n" +
+                  "Tip: hover a keyboard key for its name, double-click for\n" +
+                  "details; symbols you use are collected on the Recent tab.\n\n" +
+                   "Example to try:  t\u02b0a  (aspirated stop + open vowel)\n";
             OutputSet(welcome);
             _programmatic = true;
             IpaInputRight.Text = "t\u02b0a";
@@ -205,7 +358,7 @@ namespace Vec4ipaUI
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(_statePath)!);
-                int x = 0, y = 0, w = 1180, h = 760;
+                int x = 0, y = 0, w = DefaultWinWidth, h = DefaultWinHeight;
                 if (_appWindow != null)
                 {
                     var pos = _appWindow.Position;
@@ -213,10 +366,18 @@ namespace Vec4ipaUI
                     x = pos.X; y = pos.Y;
                     w = size.Width; h = size.Height;
                 }
+                /* invariant formatting: the file may be read on a machine
+                 * with a different number format; UTF-8 without BOM */
+                string split = LeftCol.Width.Value.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture);
                 File.WriteAllText(_statePath,
-                    $"x={x}\ny={y}\nw={w}\nh={h}\nsplit={LeftCol.Width.Value}\n");
+                    $"x={x}\ny={y}\nw={w}\nh={h}\nsplit={split}\n",
+                    new System.Text.UTF8Encoding(false));
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LogExt("save state err " + ex.Message);
+            }
         }
 
         private void RestoreState()
@@ -224,8 +385,9 @@ namespace Vec4ipaUI
             try
             {
                 if (!File.Exists(_statePath)) { Resize(); return; }
-                int x = 0, y = 0, w = 1180, h = 760;
-                double split = 560;
+                int x = 0, y = 0, w = DefaultWinWidth, h = DefaultWinHeight;
+                double split = DefaultSplitWidth;
+                var inv = System.Globalization.CultureInfo.InvariantCulture;
                 foreach (var line in File.ReadAllLines(_statePath))
                 {
                     var p = line.Split('=');
@@ -234,51 +396,76 @@ namespace Vec4ipaUI
                     else if (p[0] == "y" && int.TryParse(p[1], out v)) y = v;
                     else if (p[0] == "w" && int.TryParse(p[1], out v)) w = v;
                     else if (p[0] == "h" && int.TryParse(p[1], out v)) h = v;
-                    else if (p[0] == "split" && double.TryParse(p[1], out var d))
+                    else if (p[0] == "split" && double.TryParse(p[1],
+                        System.Globalization.NumberStyles.Float, inv,
+                        out var d))
                         split = d;
                 }
-                if (split < 360) split = 360;
-                if (split > 1400) split = 1400;
+                if (split < RestoreMinSplit) split = RestoreMinSplit;
+                if (split > MaxLeftWidth) split = MaxLeftWidth;
                 LeftCol.Width = new GridLength(split);
-                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-                var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
-                _appWindow = AppWindow.GetFromWindowId(windowId);
+                /* the saved position may be from a different monitor
+                 * layout; clamp so the title bar stays reachable */
+                int vx = GetSystemMetrics(SmXvirtualscreen);
+                int vy = GetSystemMetrics(SmYvirtualscreen);
+                int vw = GetSystemMetrics(SmCxvirtualscreen);
+                int vh = GetSystemMetrics(SmCyvirtualscreen);
+                if (vw > 0 && vh > 0)
+                {
+                    int maxX = vx + vw - MinVisibleLeft;
+                    if (maxX < vx) maxX = vx;
+                    if (x < vx) x = vx; else if (x > maxX) x = maxX;
+                    int maxY = vy + vh - MinVisibleTop;
+                    if (maxY < vy) maxY = vy;
+                    if (y < vy) y = vy; else if (y > maxY) y = maxY;
+                }
+                _appWindow = GetAppWindow();
                 try
                 {
                     _appWindow.MoveAndResize(new Windows.Graphics.RectInt32
                     {
                         X = x, Y = y,
-                        Width = w > 0 ? w : 1180,
-                        Height = h > 0 ? h : 760,
+                        Width = w > 0 ? w : DefaultWinWidth,
+                        Height = h > 0 ? h : DefaultWinHeight,
                     });
                 }
                 catch
                 {
-                    _appWindow.Resize(new Windows.Graphics.SizeInt32(1180, 760));
+                    _appWindow.Resize(new Windows.Graphics.SizeInt32(
+                        DefaultWinWidth, DefaultWinHeight));
                 }
             }
-            catch { Resize(); }
+            catch (Exception ex)
+            {
+                LogExt("restore state err " + ex.Message);
+                Resize();
+            }
         }
 
         private void Resize()
         {
             try
             {
-                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-                var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
-                _appWindow = AppWindow.GetFromWindowId(windowId);
-                _appWindow.Resize(new Windows.Graphics.SizeInt32(1180, 760));
+                _appWindow = GetAppWindow();
+                _appWindow.Resize(new Windows.Graphics.SizeInt32(
+                    DefaultWinWidth, DefaultWinHeight));
             }
-            catch { }
+            catch (Exception ex) { LogExt("resize err " + ex.Message); }
+        }
+
+        /* shared hwnd -> AppWindow boilerplate */
+        private AppWindow GetAppWindow()
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
+            return AppWindow.GetFromWindowId(windowId);
         }
 
         private void SetIcon()
         {
             try
             {
-                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-                var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
-                var appWindow = AppWindow.GetFromWindowId(windowId);
+                var appWindow = GetAppWindow();
                 string dir = Path.GetDirectoryName(
                     Environment.ProcessPath ?? "") ?? "";
                 string icon = Path.Combine(dir, "vec_ipa.ico");
@@ -291,7 +478,7 @@ namespace Vec4ipaUI
                 _appWindow = appWindow;
                 SetupTitleBar(appWindow);
             }
-            catch { }
+            catch (Exception ex) { LogExt("set icon err " + ex.Message); }
         }
 
         /* custom title bar: content extends into the caption area; the
@@ -312,7 +499,7 @@ namespace Vec4ipaUI
                 Activated += (s, e) => ApplyDragRect(appWindow);
                 SizeChanged += (s, e) => ApplyDragRect(appWindow);
             }
-            catch { }
+            catch (Exception ex) { LogExt("title bar setup err " + ex.Message); }
         }
 
         /* always on top toggle (the only custom window button) */
@@ -324,9 +511,11 @@ namespace Vec4ipaUI
                 {
                     var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
                     bool top = IsTopmost();
-                    SetWindowPos(hwnd, top ? new IntPtr(-2) /* HWND_NOTOPMOST */
-                                           : new IntPtr(-1) /* HWND_TOPMOST */,
-                        0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+                    SetWindowPos(hwnd, top
+                            ? new IntPtr(HwndNotopmost)  /* HWND_NOTOPMOST */
+                            : new IntPtr(HwndTopmost),   /* HWND_TOPMOST */
+                        0, 0, 0, 0,
+                        SwpNoSize | SwpNoMove | SwpNoActivate);
                     RefreshPinVisual();
                     SetStatus(top
                         ? (_zh ? "取消置顶" : "always on top off")
@@ -334,7 +523,7 @@ namespace Vec4ipaUI
                 };
                 RefreshPinVisual();
             }
-            catch { }
+            catch (Exception ex) { LogExt("window buttons err " + ex.Message); }
         }
 
         private void RefreshPinVisual()
@@ -358,7 +547,7 @@ namespace Vec4ipaUI
                     : new Microsoft.UI.Xaml.Media.SolidColorBrush(
                         Microsoft.UI.Colors.Transparent);
             }
-            catch { }
+            catch (Exception ex) { LogExt("pin visual err " + ex.Message); }
         }
 
         private bool IsTopmost()
@@ -366,12 +555,14 @@ namespace Vec4ipaUI
             try
             {
                 var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-                return (GetWindowLongPtr(hwnd, -20).ToInt64() & 0x8) != 0;
+                return (GetWindowLongPtr(hwnd, GWL_EXSTYLE).ToInt64() &
+                        WS_EX_TOPMOST) != 0;
             }
             catch { return false; }
         }
 
-        private void ApplyDragRect(AppWindow appWindow)
+        /* DIP scale of the window (physical px = DIP * scale) */
+        private double DpiScale()
         {
             try
             {
@@ -380,17 +571,34 @@ namespace Vec4ipaUI
                 if (scale == 0) scale = 96;
                 scale /= 96.0;
                 if (scale < 1.0) scale = 1.0;
+                return scale;
+            }
+            catch { return 1.0; }
+        }
+
+        private long _lastDragRectTick;
+
+        /* resize fires per pixel; re-apply the drag rect at most every
+         * 100 ms (the size difference in between is imperceptible) */
+        private void ApplyDragRect(AppWindow appWindow)
+        {
+            try
+            {
+                long now = Environment.TickCount64;
+                if (now - _lastDragRectTick < 100) return;
+                _lastDragRectTick = now;
+                double scale = DpiScale();
                 int physW = appWindow.Size.Width;   /* physical px */
-                if (physW <= 0) physW = (int)(1180 * scale);
-                int dragW = physW - (int)(200 * scale); /* leave window buttons */
+                if (physW <= 0) physW = (int)(DefaultWinWidth * scale);
+                int dragW = physW - (int)(DragRectRightGap * scale);
                 if (dragW < 100) dragW = 100;
-                int dragH = (int)(30 * scale);
+                int dragH = (int)(DragRectTop * scale);
                 appWindow.TitleBar.SetDragRectangles(new[]
                 {
                     new Windows.Graphics.RectInt32(0, 0, dragW, dragH),
                 });
             }
-            catch { }
+            catch (Exception ex) { LogExt("drag rect err " + ex.Message); }
         }
 
         private void ApplyTitleBarTheme(AppWindow appWindow)
@@ -417,7 +625,7 @@ namespace Vec4ipaUI
                 tb.ButtonHoverBackgroundColor =
                     Windows.UI.Color.FromArgb(32, 127, 127, 127);
             }
-            catch { }
+            catch (Exception ex) { LogExt("title bar theme err " + ex.Message); }
         }
 
         /* ---- command-line arguments (CLI-compatible) ---- */
@@ -428,33 +636,48 @@ namespace Vec4ipaUI
             string? input = null, query = null, vec = null, exportDir = null;
             string? theme = null;
             bool reverse = false, showHelp = false;
+            var errs = new List<string>();
             var rest = new List<string>();
             for (int i = 1; i < args.Length; i++)
             {
                 string a = args[i];
                 if (a == "--help" || a == "-h") showHelp = true;
-                else if (a == "--width" && i + 1 < args.Length)
+                else if (a == "--width")
                 {
-                    string w = args[++i];
-                    if (w.Length == 1 && w[0] >= '0' && w[0] <= '4')
-                        WidthCombo.SelectedIndex = w[0] - '0';
+                    if (i + 1 >= args.Length) { errs.Add("--width needs a value (0-4)"); }
+                    else
+                    {
+                        string w = args[++i];
+                        if (w.Length == 1 && w[0] >= '0' && w[0] <= '4')
+                            WidthCombo.SelectedIndex = w[0] - '0';
+                    }
                 }
-                else if (a == "--theme" && i + 1 < args.Length)
-                    theme = args[++i];
+                else if (a == "--theme")
+                {
+                    if (i + 1 >= args.Length) { errs.Add("--theme needs a value"); }
+                    else theme = args[++i];
+                }
                 else if (a == "-q" || a == "--query")
                 {
-                    if (i + 1 < args.Length) query = args[++i];
+                    if (i + 1 >= args.Length) { errs.Add(a + " needs a value"); }
+                    else query = args[++i];
                 }
                 else if (a == "-r" || a == "--reverse")
                 {
-                    if (i + 1 < args.Length) { vec = args[++i]; reverse = true; }
+                    if (i + 1 >= args.Length) { errs.Add(a + " needs a value"); }
+                    else { vec = args[++i]; reverse = true; }
                 }
-                else if (a == "--export-tools" && i + 1 < args.Length)
-                    exportDir = args[++i];
+                else if (a == "--export-tools")
+                {
+                    if (i + 1 >= args.Length) { errs.Add("--export-tools needs a directory"); }
+                    else exportDir = args[++i];
+                }
                 else if (a.StartsWith("-") && a != "--")
                     rest.Add(a);
                 else if (input == null) input = a;
             }
+            if (errs.Count > 0)
+                SetStatus("argument error: " + string.Join("; ", errs));
             Core.SetArgs(rest.ToArray());
 
             if (theme != null)
@@ -484,19 +707,7 @@ namespace Vec4ipaUI
             }
             if (exportDir != null)
             {
-                int ok = 0, missing = 0;
-                string src = Path.Combine(AppContext.BaseDirectory, "tools");
-                foreach (var name in new[] { "ipa2vec.exe", "vec2ipa.exe", "vec4ipa.exe" })
-                {
-                    string from = Path.Combine(src, name);
-                    if (!File.Exists(from)) { missing++; continue; }
-                    try
-                    {
-                        File.Copy(from, Path.Combine(exportDir, name), true);
-                        ok++;
-                    }
-                    catch { }
-                }
+                var (ok, missing) = ExportToolsTo(exportDir);
                 var m = new ContentDialog
                 {
                     XamlRoot = Content.XamlRoot,
@@ -526,6 +737,7 @@ namespace Vec4ipaUI
             }
             catch (Exception ex)
             {
+                LogExt("startup args failed: " + ex.Message);
                 SetStatus("startup arguments failed: " + ex.Message);
             }
         }
@@ -536,6 +748,8 @@ namespace Vec4ipaUI
         private string _themeName = "System";
         private string[] _startupArgs = Array.Empty<string>();
         private bool _argsPending;
+        private bool _coreOk;            // ipa2vec_core.dll loaded and probed
+        private int _selRebuildToken;    // latest selection-rebuild request
         private TextBox? _focusedBox; // soft-keyboard target (last focused box)
         private TextBox? _kbPressedBox; // box focused when a key was pressed
         private bool _slideMode;         // glide-typing across keys
@@ -555,7 +769,10 @@ namespace Vec4ipaUI
                         Microsoft.UI.Xaml.WindowActivationState.Deactivated)
                         _extTarget = GetForegroundWindow();
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    LogExt("ext tracking err " + ex.Message);
+                }
             };
         }
 
@@ -594,41 +811,98 @@ namespace Vec4ipaUI
             catch (Exception ex) { LogExt("restore fg err " + ex.Message); }
         }
 
-        /* hot-path log: buffered in memory, flushed to disk at most once
-         * per second (pointer events fire far more often than that) */
-        private static readonly List<string> _extLogBuffer = new();
-        private static DateTime _lastExtFlush = DateTime.MinValue;
-
-        private static void LogExt(string msg)
+        /* hot-path logs (kb.log / ext.log): buffered in memory, written
+         * at most once per second and never on the UI thread (pointer
+         * events fire far more often than that); rotated past 1 MB */
+        private static class ThrottledLog
         {
-            _extLogBuffer.Add($"{DateTime.Now:HH:mm:ss.fff}: {msg}");
-            if (_extLogBuffer.Count > 200)
-                _extLogBuffer.RemoveAt(0);
-            var now = DateTime.Now;
-            if ((now - _lastExtFlush).TotalMilliseconds < 1000) return;
-            try
+            private const double FlushMs = 1000;
+            private const int MaxBuffer = 200;
+            private static readonly List<string> ExtBuffer = new();
+            private static DateTime ExtLastFlush = DateTime.MinValue;
+            private static string? _lastKbLine;
+            private static DateTime _kbLastFlush = DateTime.MinValue;
+            private static readonly object WriteLock = new();
+            private static Task? _extWrite;
+            private static Task? _kbWrite;
+
+            private static string Path(string name) =>
+                System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                    "vec4ipa", name);
+
+            public static void Ext(string msg)
             {
-                File.AppendAllLines(
-                    Path.Combine(Path.GetTempPath(), "vec4ipa", "ext.log"),
-                    _extLogBuffer);
-                _extLogBuffer.Clear();
-                _lastExtFlush = now;
+                ExtBuffer.Add($"{DateTime.Now:HH:mm:ss.fff}: {msg}");
+                if (ExtBuffer.Count > MaxBuffer) ExtBuffer.RemoveAt(0);
+                var now = DateTime.Now;
+                if ((now - ExtLastFlush).TotalMilliseconds < FlushMs) return;
+                ExtLastFlush = now;
+                if (ExtBuffer.Count == 0) return;
+                string[] lines = ExtBuffer.ToArray();
+                ExtBuffer.Clear();
+                var file = Path("ext.log");
+                _extWrite = Task.Run(() =>
+                {
+                    lock (WriteLock)
+                    {
+                        try
+                        {
+                            LogFiles.RotateIfLarge(file);
+                            File.AppendAllLines(file, lines);
+                        }
+                        catch { }
+                    }
+                });
             }
-            catch { }
+
+            /* only the latest key event is kept (single-line file) */
+            public static void Kb(string line)
+            {
+                _lastKbLine = line;
+                var now = DateTime.Now;
+                if ((now - _kbLastFlush).TotalMilliseconds < FlushMs) return;
+                _kbLastFlush = now;
+                if (_lastKbLine == null) return;
+                string content = _lastKbLine + "\n";
+                _lastKbLine = null;
+                var file = Path("kb.log");
+                _kbWrite = Task.Run(() =>
+                {
+                    lock (WriteLock)
+                    {
+                        try { File.WriteAllText(file, content); }
+                        catch { }
+                    }
+                });
+            }
+
+            /* called on exit: block so the last lines land on disk */
+            public static void FlushExtSync()
+            {
+                /* in-flight background writes first, then whatever is
+                 * still buffered (order preserved: the background tasks
+                 * captured older lines) */
+                try { _kbWrite?.Wait(2000); } catch { }
+                try { _extWrite?.Wait(2000); } catch { }
+                if (ExtBuffer.Count == 0) return;
+                string[] lines = ExtBuffer.ToArray();
+                ExtBuffer.Clear();
+                var file = Path("ext.log");
+                lock (WriteLock)
+                {
+                    try
+                    {
+                        LogFiles.RotateIfLarge(file);
+                        File.AppendAllLines(file, lines);
+                    }
+                    catch { }
+                }
+            }
         }
 
-        private static void FlushExtLog()
-        {
-            if (_extLogBuffer.Count == 0) return;
-            try
-            {
-                File.AppendAllLines(
-                    Path.Combine(Path.GetTempPath(), "vec4ipa", "ext.log"),
-                    _extLogBuffer);
-                _extLogBuffer.Clear();
-            }
-            catch { }
-        }
+        private static void LogExt(string msg) => ThrottledLog.Ext(msg);
+
+        private static void FlushExtLog() => ThrottledLog.FlushExtSync();
 
         /* external input: a global low-level mouse hook. A click on the
          * soft keyboard while the external app is focused would otherwise
@@ -686,7 +960,7 @@ namespace Vec4ipaUI
             {
                 if (_llHook != IntPtr.Zero) return;
                 _llProc = MouseHookProc;
-                _llHook = SetWindowsHookEx(14 /* WH_MOUSE_LL */, _llProc,
+                _llHook = SetWindowsHookEx(WhMouseLl, _llProc,
                     GetModuleHandle(null), 0);
                 LogExt("ll hook " + (_llHook != IntPtr.Zero
                     ? "installed" : "FAILED"));
@@ -705,7 +979,7 @@ namespace Vec4ipaUI
                     LogExt("ll hook removed");
                 }
             }
-            catch { }
+            catch (Exception ex) { LogExt("ll unhook err " + ex.Message); }
         }
 
         private IntPtr MouseHookProc(int nCode, IntPtr wParam, IntPtr lParam)
@@ -713,7 +987,7 @@ namespace Vec4ipaUI
             try
             {
                 if (nCode >= 0 && _externalMode &&
-                    (int)wParam == 0x0201 /* WM_LBUTTONDOWN */)
+                    (int)wParam == WmLButtonDown /* WM_LBUTTONDOWN */)
                 {
                     var info = (MSLLHOOKSTRUCT)System.Runtime.InteropServices
                         .Marshal.PtrToStructure(lParam,
@@ -737,7 +1011,7 @@ namespace Vec4ipaUI
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { LogExt("ll hook proc err " + ex.Message); }
             return CallNextHookEx(_llHook, nCode, wParam, lParam);
         }
 
@@ -747,7 +1021,16 @@ namespace Vec4ipaUI
             LogExt($"toggle sender={sender.GetType().Name} " +
                    $"checked={ExtToggle.IsChecked}");
             if (_externalMode)
+            {
+                /* make sure the type-into target is a real, other window */
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                if (_extTarget == IntPtr.Zero || _extTarget == hwnd)
+                {
+                    var fg = GetForegroundWindow();
+                    _extTarget = fg != hwnd ? fg : IntPtr.Zero;
+                }
                 InstallLLHook();
+            }
             else
                 UninstallLLHook();
             SetStatus(_externalMode
@@ -760,10 +1043,7 @@ namespace Vec4ipaUI
         {
             try
             {
-                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-                double scale = GetDpiForWindow(hwnd);
-                if (scale == 0) scale = 96;
-                scale /= 96.0;
+                double scale = DpiScale();
                 double x = xPhys / scale;
                 double y = yPhys / scale;
                 var root = Content.XamlRoot.Content as UIElement;
@@ -778,7 +1058,7 @@ namespace Vec4ipaUI
                         return sym;
                 }
             }
-            catch { }
+            catch (Exception ex) { LogExt("find sym err " + ex.Message); }
             return null;
         }
 
@@ -793,7 +1073,7 @@ namespace Vec4ipaUI
                     RestoreForeground(_extTarget);
                 SendTextToForeground(clean);
             }
-            catch { }
+            catch (Exception ex) { LogExt("ext type err " + ex.Message); }
         }
 
         /* send UTF-16 text to the foreground window via SendInput */
@@ -831,12 +1111,12 @@ namespace Vec4ipaUI
             {
                 var input = new INPUT
                 {
-                    type = 1, // INPUT_KEYBOARD
+                    type = InputKeyboard, // INPUT_KEYBOARD
                     ki = new KEYBDINPUT
                     {
                         wVk = 0,
                         wScan = c,
-                        dwFlags = 4, // KEYEVENTF_UNICODE
+                        dwFlags = KeyeventfUnicode, // KEYEVENTF_UNICODE
                         dwExtraInfo = System.IntPtr.Zero,
                     },
                 };
@@ -849,6 +1129,8 @@ namespace Vec4ipaUI
 
         private async void Settings_Click(object sender, RoutedEventArgs e)
         {
+            try
+            {
             /* theme */
             var themeRadio = new RadioButtons
             {
@@ -863,8 +1145,8 @@ namespace Vec4ipaUI
             /* feature names */
             var featSwitch = new ToggleSwitch
             {
-                Header = _zh ? "向量输出显示特征名（tt_pos=0.55）"
-                             : "Vector output shows feature names (tt_pos=0.55)",
+                Header = _zh ? "向量输出显示特征名（tongue_tip_pos=0.55）"
+                             : "Vector output shows feature names (tongue_tip_pos=0.55)",
                 IsOn = _featureNames,
             };
 
@@ -900,6 +1182,11 @@ namespace Vec4ipaUI
                 FontSize = 13,
                 Margin = new Thickness(0, 4, 0, 0),
             };
+            var loadMetricBtn = new Button
+            {
+                Content = _zh ? "加载 metric.json..." : "Load metric.json...",
+                HorizontalAlignment = HorizontalAlignment.Left,
+            };
 
             var content = new ScrollViewer
             {
@@ -910,11 +1197,7 @@ namespace Vec4ipaUI
                     new TextBlock { Text = _zh ? "学校模块" : "School modules", FontWeight =
                         Microsoft.UI.Text.FontWeights.SemiBold },
                     modsPanel,
-                    new Button
-                    {
-                        Content = _zh ? "加载 metric.json..." : "Load metric.json...",
-                        HorizontalAlignment = HorizontalAlignment.Left,
-                    },
+                    loadMetricBtn,
                     metricText,
                 } },
             };
@@ -927,19 +1210,23 @@ namespace Vec4ipaUI
                 PrimaryButtonText = _zh ? "确定" : "OK",
                 CloseButtonText = _zh ? "取消" : "Cancel",
             };
-            ((Button)((StackPanel)content.Content).Children[5]).Click +=
-                async (s2, e2) =>
+            loadMetricBtn.Click += async (s2, e2) =>
+            {
+                try
                 {
-                    var picker = new Windows.Storage.Pickers.FileOpenPicker();
-                    InitializePicker(picker);
-                    picker.FileTypeFilter.Add(".json");
-                    var file = await picker.PickSingleFileAsync();
+                    var file = await PickFileAsync(".json");
                     if (file == null) return;
                     string? err = Core.LoadMetric(file.Path);
                     metricText.Text = err == null
                         ? "Metric: " + file.Name + " (loaded)"
                         : "Metric load failed: " + file.Name;
-                };
+                }
+                catch (Exception ex)
+                {
+                    LogExt("load metric err " + ex.Message);
+                    metricText.Text = "Metric load failed: " + ex.Message;
+                }
+            };
 
             if (await dlg.ShowAsync() != ContentDialogResult.Primary)
                 return;
@@ -969,6 +1256,12 @@ namespace Vec4ipaUI
                         SetStatus("note: modules cannot be disabled at runtime");
                     }
                 }
+            }
+            }
+            catch (Exception ex)
+            {
+                LogExt("settings err " + ex.Message);
+                SetStatus("settings failed: " + ex.Message);
             }
         }
 
@@ -1035,6 +1328,10 @@ namespace Vec4ipaUI
             LblFav.Text = zh ? "收藏" : "Favorites";
             DistA.PlaceholderText = zh ? "符号 A" : "symbol A";
             DistB.PlaceholderText = zh ? "符号 B" : "symbol B";
+            Title = zh ? "vec4ipa 工作台" : "vec4ipa Workbench";
+            FmtVectors.Content = zh ? "向量" : "vectors";
+            CopyBtn.Content = zh ? "复制" : "Copy";
+            ClearBtn.Content = zh ? "清除" : "Clear";
         }
 
         private void ViewTable_Click(object sender, RoutedEventArgs e)
@@ -1068,11 +1365,12 @@ namespace Vec4ipaUI
                 SetStatus("nothing to export - type an IPA string first");
                 return;
             }
-            var picker = new Windows.Storage.Pickers.FileSavePicker();
-            InitializePicker(picker);
-            picker.SuggestedFileName = "ipa-ir";
-            picker.FileTypeChoices.Add("IR base", new List<string> { ".layer1" });
-            var file = await picker.PickSaveFileAsync();
+            if (Core.ForwardRaw(IpaInputRight.Text) == null)
+            {
+                SetStatus("IR export failed: the input does not parse");
+                return;
+            }
+            var file = await PickSaveFileAsync("ipa-ir", "IR base", ".layer1");
             if (file == null) return;
             string baseName = file.Path.EndsWith(".layer1")
                 ? file.Path[..^7] : file.Path;
@@ -1110,11 +1408,8 @@ namespace Vec4ipaUI
 
         private async void SaveOutput_Click(object sender, RoutedEventArgs e)
         {
-            var picker = new Windows.Storage.Pickers.FileSavePicker();
-            InitializePicker(picker);
-            picker.SuggestedFileName = "ipa2vec-output.txt";
-            picker.FileTypeChoices.Add("Text file", new List<string> { ".txt" });
-            var file = await picker.PickSaveFileAsync();
+            var file = await PickSaveFileAsync("ipa2vec-output.txt",
+                "Text file", ".txt");
             if (file == null) return;
             try
             {
@@ -1135,22 +1430,13 @@ namespace Vec4ipaUI
 
         private void CopyOutput_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
-                dp.SetText(OutputText());
-                Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
-                SetStatus("output copied to clipboard");
-            }
-            catch { SetStatus("copy failed"); }
+            SetStatus(CopyToClipboard(OutputText())
+                ? "output copied to clipboard" : "copy failed");
         }
 
         private async void OpenFileConvert_Click(object sender, RoutedEventArgs e)
         {
-            var picker = new Windows.Storage.Pickers.FileOpenPicker();
-            InitializePicker(picker);
-            picker.FileTypeFilter.Add(".txt");
-            var file = await picker.PickSingleFileAsync();
+            var file = await PickFileAsync(".txt");
             if (file == null) return;
             try
             {
@@ -1206,7 +1492,7 @@ namespace Vec4ipaUI
             var preview = new TextBlock
             {
                 FontSize = 16,
-                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Gentium Book Plus"),
+                FontFamily = IpaFont,
                 TextWrapping = TextWrapping.Wrap,
                 Text = "/?/",
             };
@@ -1224,8 +1510,21 @@ namespace Vec4ipaUI
                     x => x.ToString("F4")));
                 preview.Text = Core.Reverse(vec, 3) ?? "/?/";
             }
+
+            /* live preview only after 200 ms without further edits */
+            int previewToken = 0;
+            void SchedulePreview()
+            {
+                int t = ++previewToken;
+                DispatcherQueue.TryEnqueue(async () =>
+                {
+                    await System.Threading.Tasks.Task.Delay(200);
+                    if (t != previewToken) return;
+                    UpdatePreview();
+                });
+            }
             foreach (var box in boxes)
-                box.ValueChanged += (s, e2) => UpdatePreview();
+                box.ValueChanged += (s, e2) => SchedulePreview();
 
             var dlg = new ContentDialog
             {
@@ -1290,12 +1589,18 @@ namespace Vec4ipaUI
         private static extern bool SetWindowPos(IntPtr hWnd,
             IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern int GetSystemMetrics(int nIndex);
+
         [System.Runtime.InteropServices.StructLayout(
             System.Runtime.InteropServices.LayoutKind.Sequential)]
         private struct POINT32 { public int X; public int Y; }
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool GetCursorPos(out POINT32 lpPoint);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
 
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool SetCursorPos(int X, int Y);
@@ -1338,7 +1643,7 @@ namespace Vec4ipaUI
                     ApplyTitleBarTheme(_appWindow);
                 SetStatus("theme: " + name.ToLowerInvariant());
             }
-            catch { }
+            catch (Exception ex) { LogExt("apply theme err " + ex.Message); }
         }
 
         private void SetExplicitBackground(FrameworkElement root,
@@ -1354,8 +1659,8 @@ namespace Vec4ipaUI
             {
                 /* restore theme-driven background */
                 if (root is Microsoft.UI.Xaml.Controls.Grid g) g.Background = null;
-                if (StatusText.Parent is Microsoft.UI.Xaml.Controls.Grid sg)
-                    sg.Background = null;
+                if (StatusText.Parent is Microsoft.UI.Xaml.Controls.Grid gridBg)
+                    gridBg.Background = null;
                 return;
             }
             /* apply to every container we own */
@@ -1397,11 +1702,8 @@ namespace Vec4ipaUI
 
         private async void ExportCsv_Click(object sender, RoutedEventArgs e)
         {
-            var picker = new Windows.Storage.Pickers.FileSavePicker();
-            InitializePicker(picker);
-            picker.SuggestedFileName = "ipa2vec-table.csv";
-            picker.FileTypeChoices.Add("CSV", new List<string> { ".csv" });
-            var file = await picker.PickSaveFileAsync();
+            var file = await PickSaveFileAsync("ipa2vec-table.csv",
+                "CSV", ".csv");
             if (file == null) return;
             try
             {
@@ -1451,7 +1753,7 @@ namespace Vec4ipaUI
                 SplitGrip.AddHandler(UIElement.PointerCaptureLostEvent,
                     new PointerEventHandler(Splitter_Released), true);
             }
-            catch { }
+            catch (Exception ex) { LogExt("split grip wire err " + ex.Message); }
         }
 
         private void Splitter_Pressed(object sender, PointerRoutedEventArgs e)
@@ -1507,10 +1809,7 @@ namespace Vec4ipaUI
             {
                 var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
                 GetCursorPos(out var cur);
-                double scale = GetDpiForWindow(hwnd);
-                if (scale == 0) scale = 96;
-                scale /= 96.0;
-                if (scale < 1.0) scale = 1.0;
+                double scale = DpiScale();
                 var pt = new POINT32
                 {
                     X = (int)((LeftCol.ActualWidth + 6) * scale),
@@ -1519,7 +1818,7 @@ namespace Vec4ipaUI
                 ClientToScreen(hwnd, ref pt);
                 SetCursorPos(pt.X, pt.Y);
             }
-            catch { }
+            catch (Exception ex) { LogExt("snap cursor err " + ex.Message); }
         }
 
         private void Splitter_Released(object sender, PointerRoutedEventArgs e)
@@ -1547,7 +1846,7 @@ namespace Vec4ipaUI
                     SplitHit.SetPointerCursor(null);
                 }
             }
-            catch { }
+            catch (Exception ex) { LogExt("resize cursor err " + ex.Message); }
         }
 
         /* the divider shows a resize cursor (and nothing else) */
@@ -1566,11 +1865,17 @@ namespace Vec4ipaUI
         private bool _snapped;   /* the cursor is stuck to the divider */
         private int _lastCursorX;
         private long _lastMoveTick;
+        private IntPtr _cursorHwnd = IntPtr.Zero;
+        private double _cursorScale;
+        private bool _cursorDpiCached;
+        private long _lastCursorMoveTick;
 
         /* magnetic line: while the pointer glides past the divider it is
          * pulled onto the line itself and held there (slow moves keep
          * being pulled back, a fast flick escapes); skipped while
-         * dragging or in external mode */
+         * dragging, in external mode or while Ctrl is held; moves are
+         * throttled to 16 ms and the hwnd/DPI are cached (the hot path
+         * used to issue 4 P/Invokes per mouse move) */
         private void WireCursorMagnet()
         {
             try
@@ -1579,7 +1884,7 @@ namespace Vec4ipaUI
                     root.AddHandler(UIElement.PointerMovedEvent,
                         new PointerEventHandler(CursorMagnet_Moved), true);
             }
-            catch { }
+            catch (Exception ex) { LogExt("cursor magnet wire err " + ex.Message); }
         }
 
         private void CursorMagnet_Moved(object sender,
@@ -1588,18 +1893,30 @@ namespace Vec4ipaUI
             try
             {
                 if (_drag || _externalMode) return;
-                var hwnd = WinRT.Interop.WindowNative
-                    .GetWindowHandle(this);
+                long now = Environment.TickCount64;
+                if (now - _lastCursorMoveTick < 16) return;
+                _lastCursorMoveTick = now;
+                if ((GetAsyncKeyState(0x11 /* VK_CONTROL */) & 0x8000) != 0)
+                    return;
+                var hwnd = _cursorHwnd;
+                double scale;
+                if (!_cursorDpiCached)
+                {
+                    hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                    scale = GetDpiForWindow(hwnd);
+                    if (scale == 0) scale = 96;
+                    scale /= 96.0;
+                    if (scale < 1.0) scale = 1.0;
+                    _cursorHwnd = hwnd;
+                    _cursorScale = scale;
+                    _cursorDpiCached = true;
+                }
+                else scale = _cursorScale;
                 GetCursorPos(out var cur);
                 ScreenToClient(hwnd, ref cur);
-                double scale = GetDpiForWindow(hwnd);
-                if (scale == 0) scale = 96;
-                scale /= 96.0;
-                if (scale < 1.0) scale = 1.0;
                 double lineX = LeftCol.ActualWidth + 6;   /* DIP */
                 int lineXPhys = (int)(lineX * scale);
                 double dist = Math.Abs(cur.X / scale - lineX);
-                long now = Environment.TickCount64;
                 double dt = Math.Max((now - _lastMoveTick) / 1000.0, 1e-3);
                 _lastMoveTick = now;
                 if (_snapped)
@@ -1618,24 +1935,22 @@ namespace Vec4ipaUI
                         var pt = new POINT32 { X = lineXPhys, Y = cur.Y };
                         ClientToScreen(hwnd, ref pt);
                         SetCursorPos(pt.X, pt.Y);
-                        LogExt("magnet pull");
                         _lastCursorX = lineXPhys;
                         return;
                     }
                 }
-                else if (dist < 12)
+                else if (dist < MagnetRadius)
                 {
                     _snapped = true;
                     var pt = new POINT32 { X = lineXPhys, Y = cur.Y };
                     ClientToScreen(hwnd, ref pt);
                     SetCursorPos(pt.X, pt.Y);
-                    LogExt("magnet snap");
                     _lastCursorX = lineXPhys;
                     return;
                 }
                 _lastCursorX = cur.X;
             }
-            catch { }
+            catch (Exception ex) { LogExt("magnet err " + ex.Message); }
         }
 
         /* collapse / restore one pane; the other always stretches */
@@ -1680,7 +1995,7 @@ namespace Vec4ipaUI
                 if (_gripMoved) return;   /* a drag is not a click */
                 SetPaneCollapsed(true, !_leftCollapsed);
             }
-            catch { }
+            catch (Exception ex) { LogExt("grip click err " + ex.Message); }
         }
 
         /* left double click on the divider itself: reset both panes to
@@ -1692,12 +2007,12 @@ namespace Vec4ipaUI
             {
                 _leftCollapsed = false;
                 _rightCollapsed = false;
-                _savedLeftWidth = 560;
-                LeftCol.Width = new GridLength(560);
+                _savedLeftWidth = DefaultSplitWidth;
+                LeftCol.Width = new GridLength(DefaultSplitWidth);
                 RightCol.Width = new GridLength(1, GridUnitType.Star);
                 e.Handled = true;
             }
-            catch { }
+            catch (Exception ex) { LogExt("split dbl-tap err " + ex.Message); }
         }
 
         /* right click: collapse the right pane and expand the left */
@@ -1709,7 +2024,7 @@ namespace Vec4ipaUI
                 SetPaneCollapsed(false, !_rightCollapsed);
                 e.Handled = true;
             }
-            catch { }
+            catch (Exception ex) { LogExt("grip right-tap err " + ex.Message); }
         }
 
         private readonly List<string> _allCons = new();
@@ -1752,12 +2067,13 @@ namespace Vec4ipaUI
         private void BuildKeyboard()
         {
             try { _favorites.AddRange(File.ReadAllLines(_favPath)); }
-            catch { }
+            catch (Exception ex) { LogExt("favorites read err " + ex.Message); }
             /* dedupe and cap */
             var seen = new HashSet<string>();
             _favorites.RemoveAll(s => !seen.Add(s));
-            if (_favorites.Count > 200)
-                _favorites.RemoveRange(200, _favorites.Count - 200);
+            if (_favorites.Count > MaxFavorites)
+                _favorites.RemoveRange(MaxFavorites,
+                    _favorites.Count - MaxFavorites);
 
             var consPos = Core.ConsPositions();
             double Pos(string s) =>
@@ -1812,6 +2128,11 @@ namespace Vec4ipaUI
         private void RebuildKeyboard(string filter)
         {
             _kbButtons.Clear();
+            /* recent keys are rebuilt from scratch below; drop buttons
+             * of filtered-out symbols so no stale button stays mapped
+             * (a removed symbol re-typed would otherwise hit it) */
+            _recentBtns.Clear();
+            var placed = new HashSet<string>();
             bool Matches(string sym)
             {
                 if (filter.Length == 0) return true;
@@ -1831,9 +2152,13 @@ namespace Vec4ipaUI
             LetterKeys.Items.Clear();
             ToneKeys.Items.Clear();
             FavKeys.Items.Clear();
+            RecentKeys.Items.Clear();
 
             foreach (var s in _allCons.Where(Matches))
+            {
+                placed.Add(s);
                 ConsKeys.Items.Add(MakeKey(s));
+            }
             if (ConsKeys.Items.Count == 0) ConsKeys.Items.Add(new TextBlock
             {
                 Text = "(no matches)", Foreground =
@@ -1841,26 +2166,63 @@ namespace Vec4ipaUI
                         Microsoft.UI.Colors.Gray), Margin = new Thickness(4, 2, 0, 2),
             });
             foreach (var s in _allNp.Where(Matches))
+            {
+                placed.Add(s);
                 NpKeys.Items.Add(MakeKey(s));
+            }
             foreach (var s in _allVow.Where(Matches))
+            {
+                placed.Add(s);
                 VowKeys.Items.Add(MakeKey(s));
+            }
             foreach (var s in _allDiac.Where(Matches))
+            {
+                placed.Add(s);
                 DiacKeys.Items.Add(MakeKey(s, fontSize: 20));
+            }
             foreach (var s in _allLet.Where(Matches))
+            {
+                placed.Add(s);
                 LetterKeys.Items.Add(MakeKey(s, fontSize: 16));
+            }
             foreach (var s in _allTone.Where(Matches))
+            {
+                placed.Add(s);
                 ToneKeys.Items.Add(MakeKey(s));
+            }
 
             LblFav.Visibility = _favorites.Count > 0
                 ? Visibility.Visible : Visibility.Collapsed;
             if (_favorites.Count > 0)
                 foreach (var s in _favorites.Where(Matches))
+                {
+                    placed.Add(s);
                     FavKeys.Items.Add(MakeKey(s));
+                }
+            foreach (var s in _recent.Where(Matches))
+            {
+                /* a symbol already visible in a section needs no second
+                 * key (it would double up in _kbButtons hit-testing) */
+                if (!placed.Add(s)) continue;
+                var btn = MakeKey(s);
+                _recentBtns[s] = btn;
+                RecentKeys.Items.Add(btn);
+            }
         }
 
+        private int _filterToken;
+
+        /* every keystroke rebuilds the whole keyboard (hundreds of
+         * P/Invokes); debounce so only the final filter is applied */
         private void FilterBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            RebuildKeyboard(FilterBox.Text.Trim());
+            int token = ++_filterToken;
+            DispatcherQueue.TryEnqueue(async () =>
+            {
+                await System.Threading.Tasks.Task.Delay(200);
+                if (token != _filterToken) return;
+                RebuildKeyboard(FilterBox.Text.Trim());
+            });
         }
 
         private void LblFav_Tapped(object sender, TappedRoutedEventArgs e)
@@ -1969,10 +2331,10 @@ namespace Vec4ipaUI
                 {
                     Text = sym,
                     /* combining diacritics need a larger glyph */
-                    FontSize = IsCombiningModifier(sym) ? 30 : 24,
+                    FontSize = IsCombiningModifier(sym) ? HoverGlyphLarge
+                                                        : HoverGlyph,
                     Foreground = fg,
-                    FontFamily = new Microsoft.UI.Xaml.Media.FontFamily(
-                        "Gentium Book Plus"),
+                    FontFamily = IpaFont,
                 });
                 stack.Children.Add(new TextBlock
                 {
@@ -2000,7 +2362,7 @@ namespace Vec4ipaUI
                 Canvas.SetLeft(border, Math.Max(0, pt.X - 8));
                 Canvas.SetTop(border, Math.Max(0, pt.Y - h - 46));
             }
-            catch { }
+            catch (Exception ex) { LogExt("hover err " + ex.Message); }
         }
 
         private void HideHoverPreview()
@@ -2023,8 +2385,7 @@ namespace Vec4ipaUI
             {
                 Text = sym,
                 FontSize = 24,
-                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily(
-                    "Gentium Book Plus"),
+                FontFamily = IpaFont,
                 TextWrapping = TextWrapping.Wrap,
             };
             var terms = new TextBlock
@@ -2083,13 +2444,7 @@ namespace Vec4ipaUI
                               (tableText.Length > 0 ? "\n" + tableText : "");
             dlg.SecondaryButtonClick += (s2, e2) =>
             {
-                try
-                {
-                    var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
-                    dp.SetText(copyText);
-                    Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
-                }
-                catch { }
+                CopyToClipboard(copyText);
             };
             dlg.PrimaryButtonClick += (s2, e2) => ToggleFavorite(sym);
             await dlg.ShowAsync();
@@ -2106,7 +2461,7 @@ namespace Vec4ipaUI
                 Directory.CreateDirectory(Path.GetDirectoryName(_favPath)!);
                 File.WriteAllLines(_favPath, _favorites);
             }
-            catch { }
+            catch (Exception ex) { LogExt("favorites write err " + ex.Message); }
             RebuildKeyboard(FilterBox.Text.Trim());
         }
 
@@ -2255,7 +2610,8 @@ namespace Vec4ipaUI
         }
 
         private static string QuerySymbol(string sym)
-        {            if (sym.Contains('\u25CC'))
+        {
+            if (sym.Contains('\u25CC'))
                 sym = sym.Replace("\u25CC", "");
             return Core.Query(sym);
         }
@@ -2266,8 +2622,8 @@ namespace Vec4ipaUI
             {
                 Content = sym,
                 FontSize = fontSize,
-                MinWidth = 44,
-                MinHeight = 34,
+                MinWidth = KeyMinWidth,
+                MinHeight = KeyMinHeight,
                 Padding = new Thickness(3, 2, 3, 2),
                 Margin = new Thickness(2),
             };
@@ -2301,7 +2657,7 @@ namespace Vec4ipaUI
                     _kbPressedBox = FocusManager.GetFocusedElement(
                         Content.XamlRoot) as TextBox;
                 }
-                catch { }
+                catch (Exception ex) { LogExt("key press err " + ex.Message); }
                 if (_externalMode)
                 {
                     /* global input: type immediately and swallow the
@@ -2334,28 +2690,11 @@ namespace Vec4ipaUI
             return btn;
         }
 
-        /* hot-path log: only the latest event is kept, written at most
-         * once per second (single-line overwrite keeps the file tiny) */
-        private static string? _lastKbLog;
-        private static DateTime _lastKbFlush = DateTime.MinValue;
-
         private void AppendToInput(string sym)
         {
-            _lastKbLog = $"{DateTime.Now:HH:mm:ss.fff}: append '{sym}' " +
-                         $"pressed={_kbPressedBox?.GetType().Name ?? "null"} " +
-                         $"focused={_focusedBox?.GetType().Name ?? "null"}";
-            var now = DateTime.Now;
-            if ((now - _lastKbFlush).TotalMilliseconds >= 1000)
-            {
-                try
-                {
-                    File.WriteAllText(
-                        Path.Combine(Path.GetTempPath(), "vec4ipa", "kb.log"),
-                        _lastKbLog + "\n");
-                    _lastKbFlush = now;
-                }
-                catch { }
-            }
+            ThrottledLog.Kb($"{DateTime.Now:HH:mm:ss.fff}: append '{sym}' " +
+                            $"pressed={_kbPressedBox?.GetType().Name ?? "null"} " +
+                            $"focused={_focusedBox?.GetType().Name ?? "null"}");
             /* external mode: type into the foreground (other app) window;
              * first hand activation back to the external window so the
              * keystrokes land there and this app never keeps the focus */
@@ -2407,30 +2746,35 @@ namespace Vec4ipaUI
             source.Focus(FocusState.Programmatic);
             if (target == IpaInputRight)
                 ScrollRightInput();
+            /* the removed recent button is dropped from the hit-test
+             * list too, so _kbButtons stays bounded (it used to grow by
+             * one Button per typed symbol) */
             if (_recentBtns.TryGetValue(sym, out var old))
+            {
                 RecentKeys.Items.Remove(old);
+                _kbButtons.RemoveAll(x => x.Btn == old);
+            }
             _recent.Remove(sym);
             _recent.Insert(0, sym);
             var btn = MakeKey(sym);
             _recentBtns[sym] = btn;
             RecentKeys.Items.Insert(0, btn);
-            while (_recent.Count > 60)
+            while (_recent.Count > MaxRecent)
             {
                 string last = _recent[^1];
                 _recent.RemoveAt(_recent.Count - 1);
                 if (_recentBtns.Remove(last, out var b))
+                {
                     RecentKeys.Items.Remove(b);
+                    _kbButtons.RemoveAll(x => x.Btn == b);
+                }
             }
         }
 
         private void Example_Click(object sender, RoutedEventArgs e)
         {
             var item = (MenuFlyoutItem)sender;
-            string text = item.Text;
-            int cut = text.IndexOf(": ");
-            string ipa = cut >= 0 ? text[(cut + 2)..] : text;
-            ipa = ipa.Split(' ')[0]; // symbol = first token, rest is description
-            IpaInputRight.Text = ipa;
+            IpaInputRight.Text = item.Tag as string ?? "";
             IpaInputRight.Focus(FocusState.Programmatic);
             ConvertBtn_Click(sender, e);
         }
@@ -2445,10 +2789,10 @@ namespace Vec4ipaUI
                    cp == 0x1AB0 || (cp >= 0x1DC0 && cp <= 0x1DFF);
         }
 
-        private void AddHistory(string title, string body)
+        private void AddHistory(string title, string? body)
         {
-            _history.Add((title, body));
-            while (_history.Count > 200)
+            _history.Add((title, body ?? ""));
+            while (_history.Count > MaxHistory)
                 _history.RemoveAt(0);
         }
 
@@ -2474,8 +2818,9 @@ namespace Vec4ipaUI
                     AppendOutput($"=== IPA -> JSON ===\ninput: /{ipa}/\n" + result);
                     break;
                 default:
+                    string? ferr = null;
                     result = _featureNames ? Core.ForwardNamed(ipa)
-                                           : Core.Forward(ipa, out _);
+                                           : Core.Forward(ipa, out ferr);
                     if (result == null)
                     {
                         string hint = IsCombiningModifier(ipa)
@@ -2486,7 +2831,9 @@ namespace Vec4ipaUI
                               "If a symbol shows a red warning in the console,\n" +
                               "enable its school module under View > Modules.";
                         AppendOutput("=== IPA -> vectors ===\n" +
-                                     "Hmm, I could not parse: /" + ipa + "/\n" + hint);
+                                     "Hmm, I could not parse: /" + ipa + "/\n" +
+                                     (string.IsNullOrEmpty(ferr) ? "" : "core: " + ferr + "\n") +
+                                     hint);
                         break;
                     }
                     AppendOutput(_featureNames
@@ -2522,7 +2869,27 @@ namespace Vec4ipaUI
 
         private void AppendOutput(string text)
         {
-            OutputAppendRaw(text);
+            var doc = OutputBox.Document;
+            /* normalise line endings first so \r\n does not become a
+             * blank line (RichEditBox paragraphs are \r-separated) */
+            string norm = text.Replace("\r\n", "\n")
+                              .Replace('\r', '\n')
+                              .Replace("\n", "\r");
+            var endRange = doc.GetRange(0, int.MaxValue);
+            int end = endRange.EndPosition;
+            /* append at the very end; O(1) instead of re-setting the
+             * whole document (GetText+SetText was O(n^2) over history) */
+            if (end > 0)
+            {
+                endRange.StartPosition = end - 1;
+                if (endRange.Character != '\r' && endRange.Character != '\n')
+                    norm = "\r" + norm;
+            }
+            var sel = doc.Selection;
+            sel.StartPosition = sel.EndPosition = end;
+            sel.Text = norm;
+            sel.StartPosition = sel.EndPosition = int.MaxValue;
+            ScrollToEnd();
         }
 
         /* ---- RichEditBox helpers (OutputBox) ---- */
@@ -2545,19 +2912,6 @@ namespace Vec4ipaUI
                 Microsoft.UI.Text.TextSetOptions.None, norm);
         }
 
-        private void OutputAppendRaw(string text)
-        {
-            OutputBox.Document.GetText(
-                Microsoft.UI.Text.TextGetOptions.None, out string cur);
-            cur = cur ?? "";
-            string sep = cur.Length > 0 && cur[^1] != '\r' && cur[^1] != '\n'
-                ? "\r" : "";
-            OutputSet(cur + sep + text);
-            var sel = OutputBox.Document.Selection;
-            sel.StartPosition = sel.EndPosition = int.MaxValue;
-            ScrollToEnd();
-        }
-
         private void ScrollToSection(FrameworkElement header)
         {
             try
@@ -2569,7 +2923,7 @@ namespace Vec4ipaUI
                     new Windows.Foundation.Point(0, 0));
                 scroll.ChangeView(null, Math.Max(0, pt.Y - 6), null);
             }
-            catch { }
+            catch (Exception ex) { LogExt("scroll to section err " + ex.Message); }
         }
 
         /* keep the caret visible when the input overflows horizontally */
@@ -2584,7 +2938,7 @@ namespace Vec4ipaUI
                         sv.ChangeView(sv.ScrollableWidth, null, null);
                 });
             }
-            catch { }
+            catch (Exception ex) { LogExt("scroll input err " + ex.Message); }
         }
 
         /* scroll the readonly output to its end (find the inner ScrollViewer) */
@@ -2599,7 +2953,7 @@ namespace Vec4ipaUI
                         sv.ChangeView(null, sv.ScrollableHeight, null);
                 });
             }
-            catch { }
+            catch (Exception ex) { LogExt("scroll end err " + ex.Message); }
         }
 
         private static T? FindDescendant<T>(DependencyObject root)
@@ -2699,43 +3053,35 @@ namespace Vec4ipaUI
             ScrollViewer.SetVerticalScrollBarVisibility(box,
                 Microsoft.UI.Xaml.Controls.ScrollBarVisibility.Auto);
             ((StackPanel)dlg.Content).Children.Add(box);
-            dlg.PrimaryButtonClick += (s, e2) =>
-            {
-                try
-                {
-                    var dp = new Windows.ApplicationModel.DataTransfer.DataPackage();
-                    dp.SetText(box.Text);
-                    Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(dp);
-                }
-                catch { }
-            };
+            dlg.PrimaryButtonClick += (s, e2) => CopyToClipboard(box.Text);
             await dlg.ShowAsync();
         }
 
-        private async void ExportTools_Click(object sender, RoutedEventArgs e)
+        /* copy the bundled CLI tools into a directory (shared by
+         * --export-tools and the File menu) */
+        private static (int Ok, int Missing) ExportToolsTo(string destDir)
         {
-            var picker = new Windows.Storage.Pickers.FolderPicker();
-            InitializePicker(picker);
-            picker.FileTypeFilter.Add("*");
-            var folder = await picker.PickSingleFolderAsync();
-            if (folder == null) return;
-
-            string src = Path.Combine(AppContext.BaseDirectory, "tools");
-            string[] names = { "ipa2vec.exe", "vec2ipa.exe", "vec4ipa.exe" };
             int ok = 0, missing = 0;
-            foreach (var name in names)
+            string src = Path.Combine(AppContext.BaseDirectory, "tools");
+            foreach (var name in new[] { "ipa2vec.exe", "vec2ipa.exe", "vec4ipa.exe" })
             {
                 string from = Path.Combine(src, name);
                 if (!File.Exists(from)) { missing++; continue; }
                 try
                 {
-                    var f = await Windows.Storage.StorageFile.GetFileFromPathAsync(from);
-                    await f.CopyAsync(folder, name,
-                        Windows.Storage.NameCollisionOption.ReplaceExisting);
+                    File.Copy(from, Path.Combine(destDir, name), true);
                     ok++;
                 }
-                catch { }
+                catch (Exception ex) { LogExt("export tool err " + ex.Message); }
             }
+            return (ok, missing);
+        }
+
+        private async void ExportTools_Click(object sender, RoutedEventArgs e)
+        {
+            var folder = await PickFolderAsync();
+            if (folder == null) return;
+            var (ok, missing) = ExportToolsTo(folder.Path);
             var msg = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot,

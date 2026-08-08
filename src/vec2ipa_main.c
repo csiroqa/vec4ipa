@@ -29,7 +29,7 @@ static void usage(void)
     printf("  -o, --output FILE      write output to FILE\n");
     printf("  --width <0-4>          transcription narrowness (default 3)\n");
     printf("  --metric FILE          load metric.json weights/lambda at runtime\n");
-    printf("  --charset CLASS        enable reverse charset class (std|extipa|sinologist|all; default std)\n");
+    printf("  --charset CLASS        enable reverse charset class (std|extipa|sinologist|all; default std; aliases ext, school, sino)\n");
     printf("  -h, --help             this help\n");
     printf("  -v, --version          version\n");
     printf("\nwith no vector, input is read from stdin\n");
@@ -39,6 +39,7 @@ static void usage(void)
 int wmain(int argc, wchar_t **wargv)
 {
     char **argv = argv_utf8_from_wide(argc, wargv);
+    if (!argv) { fprintf(stderr, "vec2ipa: out of memory\n"); return 1; }
 #else
 int main(int argc, char **argv)
 {
@@ -48,6 +49,7 @@ int main(int argc, char **argv)
     const char *outfile = NULL;
     int nearest_only = 0;
     int dist_mode = 0;
+    int reverse_given = 0;
     int no_more_opts = 0;
 
     for (int i = 1; i < argc; i++) {
@@ -71,7 +73,7 @@ int main(int argc, char **argv)
             return 0;
         }
         if (opt_match(argv[i], "-n", "--nearest")) { nearest_only = 1; if (i + 1 < argc) vecstr = argv[++i]; else { fprintf(stderr, "vec2ipa: -n/--nearest needs a vector\n"); return 1; } continue; }
-        if (opt_match(argv[i], "-r", "--reverse")) { if (i + 1 < argc) vecstr = argv[++i]; else { fprintf(stderr, "vec2ipa: -r/--reverse needs a vector\n"); return 1; } continue; }
+        if (opt_match(argv[i], "-r", "--reverse")) { reverse_given = 1; if (i + 1 < argc) vecstr = argv[++i]; else { fprintf(stderr, "vec2ipa: -r/--reverse needs a vector\n"); return 1; } continue; }
         if (opt_match(argv[i], "-d", "--distance")) { dist_mode = 1; if (i + 2 < argc) { seg_a = argv[++i]; seg_b = argv[++i]; } else { fprintf(stderr, "vec2ipa: -d/--distance needs two segments\n"); return 1; } continue; }
         int r = opt_match_val(argv[i], "-o", "--output", &val, argc, argv, &i);
         if (r == 1) { outfile = val; continue; }
@@ -82,16 +84,24 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (outfile && redirect_output(outfile) != 0)
+    if (nearest_only && reverse_given) {
+        fprintf(stderr, "vec2ipa: -r/--reverse and -n/--nearest are mutually exclusive\n");
+        return 1;
+    }
+    if (dist_mode && vecstr) {
+        fprintf(stderr, "vec2ipa: -d/--distance conflicts with -r/--reverse or -n/--nearest\n");
+        return 1;
+    }
+    if (outfile && redirect_output(outfile, "vec2ipa") != 0)
         return 1;
 
     if (dist_mode) {
         if (!seg_a || !seg_b) { usage(); return 1; }
-        return run_distance(seg_a, seg_b);
+        return run_distance(seg_a, seg_b, "vec2ipa");
     }
 
     if (!vecstr || strcmp(vecstr, "-") == 0) {
-        char *in = read_stdin();
+        char *in = read_stdin("vec2ipa");
         if (!in) { usage(); return 1; }
         vecstr = in;
     }

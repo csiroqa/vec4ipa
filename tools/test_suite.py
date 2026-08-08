@@ -18,12 +18,12 @@ import tempfile
 from pathlib import Path
 
 import _common
-from _common import check, parse_rebuilt, parse_vector, run
+from _common import check, check_cond, fmt_vec, parse_rebuilt, parse_vector, run
 
 ROOT = Path(__file__).resolve().parents[1]
-EXE = sys.argv[1] if len(sys.argv) > 1 else ROOT / "ipa2vec.exe"
-VEC2IPA = sys.argv[2] if len(sys.argv) > 2 else ROOT / "vec2ipa.exe"
-VEC4IPA = sys.argv[3] if len(sys.argv) > 3 else ROOT / "vec4ipa.exe"
+EXE = sys.argv[1] if len(sys.argv) > 1 else ROOT / ("ipa2vec" + _common.BIN_SUFFIX)
+VEC2IPA = sys.argv[2] if len(sys.argv) > 2 else ROOT / ("vec2ipa" + _common.BIN_SUFFIX)
+VEC4IPA = sys.argv[3] if len(sys.argv) > 3 else ROOT / ("vec4ipa" + _common.BIN_SUFFIX)
 _common.EXE = EXE
 
 # ------------------------------------------------------------------
@@ -93,10 +93,7 @@ r0 = run(VEC2IPA, ["--width", "0", wv])
 r4 = run(VEC2IPA, ["--width", "4", wv])
 c0 = (r0.stdout or r0.stderr).count("+")
 c4 = (r4.stdout or r4.stderr).count("+")
-_common.total += 1
-if c4 < c0:
-    _common.fails += 1
-    print(f"FAIL: --width 4 mods={c4} < --width 0 mods={c0}")
+check_cond("--width 4 mods", c4 >= c0, f"mods={c4} < --width 0 mods={c0}")
 check("nasalised nasal warns", ["n\u0303"],
       expect_warn="nasalising the nasal n is redundant")
 check("nasalised vowel silent", ["a\u0303"], expect_rc=0)
@@ -203,8 +200,8 @@ check("warn dotless-i obsolete", ["\u0131"], expect_warn="warning")
 # 10. Base-table round-trip fidelity (forward -> -r rebuild -> forward)
 # ------------------------------------------------------------------
 out = run(VEC4IPA, ["-t"]).stdout
-# reverse search (vec2ipa) covers SEG_TABLE (132) only; extIPA EXTRA_BASE
-# entries are near-equivalent additions, so test the 132 main entries.
+# reverse search (vec2ipa) covers SEG_TABLE (133) only; extIPA EXTRA_BASE
+# entries are near-equivalent additions, so test the 133 main entries.
 segments = []
 for l in out.splitlines():
     if l.startswith("# extIPA"):
@@ -216,7 +213,7 @@ for l in out.splitlines():
         segments.append((parts[0], [float(x) for x in parts[2].split()]))
 rt_fail = 0
 for ipa, v in segments:
-    vec = ", ".join(f"{x:.4f}" for x in v)
+    vec = fmt_vec(v)
     r1 = run(VEC2IPA, [vec])
     if r1.returncode != 0:
         rt_fail += 1
@@ -232,14 +229,15 @@ for ipa, v in segments:
         continue
     body = parse_vector(l[0])
     fv = [float(x) for x in body.split(",")]
-    if max(abs(a - b) for a, b in zip(v, fv)) > 0.02:
+    if len(v) != len(fv):
         rt_fail += 1
-_common.total += 1
+        continue
+    if max(abs(a - b) for a, b in zip(v, fv)) > _common.TOL_REBUILD:
+        rt_fail += 1
+check_cond("round-trip", rt_fail == 0,
+           f"{rt_fail}/{len(segments)} segments drifted")
 if rt_fail == 0:
     print(f"round-trip: {len(segments)}/{len(segments)} base segments OK")
-else:
-    _common.fails += 1
-    print(f"FAIL: round-trip {rt_fail}/{len(segments)} segments drifted")
 
 # ------------------------------------------------------------------
 # 11. Advanced combos (multi-module stacking, stress robustness)
@@ -298,37 +296,22 @@ d_alt = run(VEC2IPA, ["--metric", _alt, "-d", "p", "t"]).stdout.strip()
 d_full = run(VEC2IPA, ["--metric", _full, "-d", "p", "t"]).stdout.strip()
 
 check("--metric equal file matches default", ["--metric", str(ROOT / "metric.json"), "ma"], expect_rc=0)
-_common.total += 1
-if d_default == d_alt:
-    _common.fails += 1
-    print("FAIL: --metric uniform weights must change p-t distance")
-elif abs(float(d_alt) - 1.25) > 1e-3:   # plain Euclidean p-t distance
-    _common.fails += 1
-    print(f"FAIL: --metric uniform weights gave {d_alt}, want 1.2500")
-_common.total += 1
-if d_default == d_full:
-    _common.fails += 1
-    print("FAIL: --metric full matrix must change p-t distance")
-elif abs(float(d_full) - float(d_alt) * (2 ** 0.5)) > 1e-3:
-    # matrix = 2I over the same uniform weights -> distance * sqrt(2)
-    _common.fails += 1
-    print(f"FAIL: --metric 2x matrix gave {d_full}, want {float(d_alt) * 2 ** 0.5:.4f}")
-_common.total += 1
+check_cond("--metric uniform weights", d_default != d_alt
+           and abs(float(d_alt) - 1.25) <= 1e-3,   # plain Euclidean p-t distance
+           f"gave {d_alt}, want 1.2500 (default: {d_default})")
+check_cond("--metric full matrix", d_default != d_full
+           and abs(float(d_full) - float(d_alt) * (2 ** 0.5)) <= 1e-3,
+           f"gave {d_full}, want {float(d_alt) * 2 ** 0.5:.4f} (default: {d_default})")
+# matrix = 2I over the same uniform weights -> distance * sqrt(2)
 r = run(EXE, ["--metric", _bad, "ma"])
-if r.returncode != 1:
-    _common.fails += 1
-    print(f"FAIL: malformed --metric json must exit 1 (rc={r.returncode})")
-_common.total += 1
+check_cond("malformed --metric json exits 1", r.returncode == 1,
+           f"rc={r.returncode}")
 r = run(EXE, ["--metric", os.path.join(_tmpdir, "nope.json"), "ma"])
-if r.returncode != 1:
-    _common.fails += 1
-    print(f"FAIL: missing --metric file must exit 1 (rc={r.returncode})")
-_common.total += 1
+check_cond("missing --metric file exits 1", r.returncode == 1,
+           f"rc={r.returncode}")
 r = run(VEC2IPA, ["--metric"])
-if r.returncode != 1:
-    _common.fails += 1
-    print(f"FAIL: --metric without value must exit 1 (rc={r.returncode})")
-_common.total += 1
+check_cond("--metric without value exits 1", r.returncode == 1,
+           f"rc={r.returncode}")
 
 # ------------------------------------------------------------------
 print(f"\n{_common.total - _common.fails}/{_common.total} checks passed")

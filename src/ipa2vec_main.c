@@ -28,9 +28,9 @@ static void usage(void)
     printf("  -o, --output FILE     write output to FILE\n");
     printf("  -x, --ir-out BASE     export IR to BASE.layer1/.layer2\n");
     printf("  -h, --help            this help\n");
-    printf("  --width <0-4>          transcription narrowness (default 3)\n");
+    printf("  --width <0-4>          transcription narrowness (default 3; --ir only)\n");
     printf("  --metric FILE         load metric.json weights/lambda at runtime\n");
-    printf("  --charset CLASS       enable reverse charset class (std|extipa|sinologist|all; default std)\n");
+    printf("  --charset CLASS       enable reverse charset class (std|extipa|sinologist|all; default std; aliases ext, school, sino; --ir only)\n");
     printf("  -v, --version         version\n");
     printf("\nwith no STRING, input is read from stdin\n");
     printf("layer 1 = character order; layer 2 = feature-tier order:\n");
@@ -41,6 +41,7 @@ static void usage(void)
 int wmain(int argc, wchar_t **wargv)
 {
     char **argv = argv_utf8_from_wide(argc, wargv);
+    if (!argv) { fprintf(stderr, "ipa2vec: out of memory\n"); return 1; }
 #else
 int main(int argc, char **argv)
 {
@@ -85,10 +86,14 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (outfile && redirect_output(outfile) != 0)
+    if (ir && json) {
+        fprintf(stderr, "ipa2vec: -i/--ir and -j/--json are mutually exclusive\n");
+        return 1;
+    }
+    if (outfile && redirect_output(outfile, "ipa2vec") != 0)
         return 1;
     if (!str || strcmp(str, "-") == 0) {
-        char *in = read_stdin();
+        char *in = read_stdin("ipa2vec");
         if (!in) { usage(); return 1; }
         str = in;
     }
