@@ -20,19 +20,14 @@
  * Build (ui/):
  *   windres app.rc -O coff -o app.res
  *   gcc -O2 -municode -mwindows -I../src -o vec4ipa_ui.exe \
- *       vec4ipa_ui.c app.res -lcomctl32 -lcomdlg32 -lshlwapi -lshell32 -lole32
+ *       vec4ipa_ui.c app.res -lcomctl32 -lcomdlg32 -lshell32 -lole32
  */
 
-#ifndef _WIN32
-#define UNICODE
-#define _UNICODE
-#endif
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
 #include <commdlg.h>
-#include <shlwapi.h>
 #include <shlobj.h>
 #include <stdio.h>
 #include <string.h>
@@ -45,7 +40,6 @@
 #define APP_VERSION   L"0.2.0"
 
 /* control ids */
-#define IDC_INFO_EDIT 1001
 #define IDC_EXPORT_TEXT 2001
 #define IDC_EXPORT_COPY 2002
 #define IDC_EXPORT_SAVE 2003
@@ -73,10 +67,6 @@
 #define IDC_COMBO_W   5007
 #define IDC_OUT       5008
 #define IDC_TABS      5009
-#define IDC_PANE_CONS 5010
-#define IDC_PANE_VOW  5011
-#define IDC_PANE_MOD  5012
-#define IDC_PANE_TONE 5013
 #define IDC_LBL_IPA   5014
 #define IDC_LBL_VEC   5015
 #define IDC_LBL_Q     5016
@@ -88,7 +78,8 @@
 #define IDB_MOD    8000
 #define IDB_TONE   9000
 #define IDB_VOW    9500
-#define IDB_MAX    10000
+/* largest button id actually used: the vowel group runs to IDB_VOW+NSEG-1 */
+#define IDB_LAST   (IDB_VOW + NSEG - 1)
 
 static HFONT g_font = NULL;        /* Gentium (UI text + IPA) */
 static HFONT g_font_btn = NULL;    /* smaller for keyboard buttons */
@@ -107,8 +98,25 @@ static int   g_kb_w[KB_GROUPS][KB_MAX_BTNS];
 static int   g_kb_h[KB_GROUPS][KB_MAX_BTNS];
 static int   g_kb_sel = 0;
 
-static const wchar_t *g_btn_sym[IDB_MAX - IDB_BASE]; /* symbol per button id */
+static const wchar_t *g_btn_sym[IDB_LAST - IDB_BASE + 1]; /* symbol per button id */
 static wchar_t g_ipa_buf[4096];
+
+static wchar_t *utf8_to_wide(const char *s, wchar_t *buf, size_t cap)
+{
+    if (!s) return NULL;
+    int n = MultiByteToWideChar(CP_UTF8, 0, s, -1, buf, (int)cap);
+    if (n <= 0) buf[0] = L'\0';
+    return buf;
+}
+
+/* vowels are the SEG_TABLE entries whose NAME_TABLE entry ends in ".vwl" */
+static int is_vowel(const SegEntry *se)
+{
+    if (!se) return 0;
+    ptrdiff_t idx = se - SEG_TABLE;
+    if (idx < 0 || idx >= NSEG) return 0;
+    return strstr(NAME_TABLE[idx], ".vwl") != NULL;
+}
 
 /* ------------------------------------------------------------------ */
 /* keyboard construction (buttons are children of the main window)     */
@@ -131,7 +139,7 @@ static int kb_add(HWND parent, int group, int id, const wchar_t *sym,
     g_kb_w[group][g_kb_n[group]] = w;
     g_kb_h[group][g_kb_n[group]] = h;
     g_kb_n[group]++;
-    if (id >= IDB_BASE && id < IDB_MAX)
+    if (id >= IDB_BASE && id <= IDB_LAST)
         g_btn_sym[id - IDB_BASE] = sym;
     return id;
 }
@@ -150,7 +158,7 @@ static void kb_build_all(HWND parent)
         if (is_vowel(&SEG_TABLE[i])) continue;
         wchar_t sym[8];
         utf8_to_wide(SEG_TABLE[i].ipa, sym, 8);
-        kb_add(0, IDB_BASE + i, sym, x, y, bw, bh);
+        kb_add(parent, 0, IDB_BASE + i, sym, x, y, bw, bh);
         n++;
         if (n % per_row == 0) { x = x0; y += bh + gap; } else x += bw + gap;
     }
@@ -158,7 +166,7 @@ static void kb_build_all(HWND parent)
     for (i = 0; i < N_EXTRA; i++) {
         wchar_t sym[8];
         utf8_to_wide(EXTRA_BASE[i].ipa, sym, 8);
-        kb_add(0, IDB_EXTRA + i, sym, x, y, bw, bh);
+        kb_add(parent, 0, IDB_EXTRA + i, sym, x, y, bw, bh);
         n++;
         if (n % per_row == 0) { x = x0; y += bh + gap; } else x += bw + gap;
     }
@@ -179,7 +187,7 @@ static void kb_build_all(HWND parent)
         if (row > 4) row = 4;
         wchar_t sym[8];
         utf8_to_wide(SEG_TABLE[i].ipa, sym, 8);
-        kb_add(1, IDB_VOW + i, sym, vx0 + col * (vbw + vgap),
+        kb_add(parent, 1, IDB_VOW + i, sym, vx0 + col * (vbw + vgap),
                vy0 + row * (vbh + vgap), vbw, vbh);
     }
 
@@ -188,7 +196,7 @@ static void kb_build_all(HWND parent)
     for (i = 0; i < NMODS; i++) {
         wchar_t sym[8];
         utf8_to_wide(MODS[i].ipa, sym, 8);
-        kb_add(2, IDB_MOD + i, sym, x, y, bw, bh);
+        kb_add(parent, 2, IDB_MOD + i, sym, x, y, bw, bh);
         n++;
         if (n % per_row == 0) { x = x0; y += bh + gap; } else x += bw + gap;
     }
@@ -205,7 +213,7 @@ static void kb_build_all(HWND parent)
     static const int trow = 6;
     x = x0; y = y0; n = 0;
     for (i = 0; i < (int)(sizeof(tone_syms) / sizeof(tone_syms[0])); i++) {
-        kb_add(3, IDB_TONE + i, tone_syms[i], x, y, 36, 30);
+        kb_add(parent, 3, IDB_TONE + i, tone_syms[i], x, y, 36, 30);
         n++;
         if (n % trow == 0) { x = x0; y += 33; } else x += 39;
     }
@@ -214,12 +222,11 @@ static void kb_build_all(HWND parent)
         for (int j = 0; j < g_kb_n[i]; j++)
             ShowWindow(g_kb_btn[i][j], SW_HIDE);
     }
-    (void)parent;
 }
 
 /* move the keyboard buttons into the tab display area (base = client
  * coords of the display area top-left) */
-static void kb_layout(HWND hwnd, int bx, int by)
+static void kb_layout(int bx, int by)
 {
     for (int g = 0; g < KB_GROUPS; g++) {
         for (int i = 0; i < g_kb_n[g]; i++) {
@@ -233,18 +240,11 @@ static void kb_layout(HWND hwnd, int bx, int by)
 /* helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-static wchar_t *utf8_to_wide(const char *s, wchar_t *buf, size_t cap)
-{
-    if (!s) return NULL;
-    int n = MultiByteToWideChar(CP_UTF8, 0, s, -1, buf, (int)cap);
-    if (n <= 0) buf[0] = L'\0';
-    return buf;
-}
-
 static void out_append(HWND out, const char *utf8)
 {
     wchar_t buf[8192];
-    utf8_to_wide(utf8, buf, 8192);
+    /* cap 8190 so the possible L"\r\n" suffix always fits */
+    utf8_to_wide(utf8, buf, 8190);
     size_t len = wcslen(buf);
     if (len && buf[len - 1] != L'\n')
         wcscat(buf, L"\r\n");
@@ -255,6 +255,9 @@ static void out_append(HWND out, const char *utf8)
     SendMessageW(out, EM_REPLACESEL, FALSE, (LPARAM)buf);
     SendMessageW(out, EM_SETREADONLY, TRUE, 0);
 }
+
+/* wide_to_utf8() (malloc'd UTF-8 copy of a wide string) comes from
+ * ipa2vec_core.h */
 
 static void out_header(HWND out, const wchar_t *title)
 {
@@ -316,6 +319,8 @@ static void do_reverse(HWND out, const char *vecstr)
         out_append(out, "bad vector: need 16 comma-separated values");
         return;
     }
+    if (tok)
+        out_append(out, "warning: extra values beyond 16 were ignored");
     const SegEntry *b; double d;
     nearest_base(v, &b, &d);
     const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
@@ -404,28 +409,35 @@ static void set_width(int level)
 
 
 /* ------------------------------------------------------------------ */
-/* command-line export (unchanged from previous build)                 */
+/* command-line export (File > Export command lines...)                */
 /* ------------------------------------------------------------------ */
 
 static void build_export_text(wchar_t *buf, size_t cap)
 {
+    /* the CLI tools live beside this executable */
     wchar_t dir[MAX_PATH];
-    GetCurrentDirectoryW(MAX_PATH, dir);
+    DWORD dn = GetModuleFileNameW(NULL, dir, MAX_PATH);
+    if (dn == 0 || dn >= MAX_PATH) {
+        buf[0] = L'\0';
+        return;
+    }
+    wchar_t *slash = wcsrchr(dir, L'\\');
+    if (slash) slash[1] = L'\0';
 
     swprintf(buf, cap,
         L"# vec4ipa CLI commands (generated by %s)\r\n"
-        L"# working directory: %s\r\n"
+        L"# tools directory: %s\r\n"
         L"\r\n"
         L":: ipa2vec  - IPA -> 16-D vectors (with IR + rebuilt demo)\r\n"
-        L"\"D:\\2-OGP\\IPA2Vector\\ipa2vec.exe\" --width 3 -i \"\\\"\\u02c8t\\u02b0a\\\"\"\r\n"
+        L"\"%sipa2vec.exe\" --width 3 -i \"\\\"\\u02c8t\\u02b0a\\\"\"\r\n"
         L"\r\n"
         L":: vec2ipa  - 16-D vector -> IPA (reverse fit)\r\n"
-        L"\"D:\\2-OGP\\IPA2Vector\\vec2ipa.exe\" --width 3 \"0.0,0.0,0.55,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,0.0,0.0,0.0,0.0,1.0\"\r\n"
+        L"\"%svec2ipa.exe\" --width 3 \"0.0,0.0,0.55,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,0.0,0.0,0.0,0.0,1.0\"\r\n"
         L"\r\n"
         L":: vec4ipa - inventory / query / reverse\r\n"
-        L"\"D:\\2-OGP\\IPA2Vector\\vec4ipa.exe\" -q \u02b0\r\n"
-        L"\"D:\\2-OGP\\IPA2Vector\\vec4ipa.exe\" --width 3 -r \"0.0,0.0,0.55,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,0.0,0.0,0.0,0.0,1.0\"\r\n",
-        APP_VERSION, dir);
+        L"\"%svec4ipa.exe\" -q \u02b0\r\n"
+        L"\"%svec4ipa.exe\" --width 3 -r \"0.0,0.0,0.55,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,0.0,0.0,0.0,0.0,1.0\"\r\n",
+        APP_VERSION, dir, dir, dir, dir, dir);
 }
 
 static void copy_to_clipboard(HWND owner, const wchar_t *text)
@@ -527,7 +539,6 @@ static void export_tools_dialog(HWND owner)
 /* ------------------------------------------------------------------ */
 
 static HWND g_dlg = NULL;
-static WNDPROC g_dlg_proc = NULL;
 
 static LRESULT CALLBACK export_wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
@@ -613,12 +624,6 @@ static void show_export_dialog(HWND owner)
 /* main window                                                        */
 /* ------------------------------------------------------------------ */
 
-static BOOL CALLBACK invalidate_btn(HWND h, LPARAM l)
-{
-    InvalidateRect(h, NULL, TRUE);
-    return TRUE;
-}
-
 static void layout(HWND hwnd)
 {
     RECT cr;
@@ -684,7 +689,7 @@ static void layout(HWND hwnd)
     TabCtrl_GetItemRect(GetDlgItem(hwnd, IDC_TABS), 0, &tcr);
     int header = tcr.bottom - tcr.top + 4;
     int px = kx + 4, py = 8 + header + 4;
-    kb_layout(hwnd, px, py);
+    kb_layout(px, py);
 }
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
@@ -768,22 +773,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             TabCtrl_InsertItem(tabs, i, &ti);
         }
 
-        const wchar_t *panes[4] = { L"PANE_CONS", L"PANE_VOW",
-                                    L"PANE_MOD", L"PANE_TONE" };
-        int ids[4] = { IDC_PANE_CONS, IDC_PANE_VOW,
-                       IDC_PANE_MOD, IDC_PANE_TONE };
-        HWND pv[4];
-        for (int i = 0; i < 4; i++) {
-            pv[i] = CreateWindowW(L"STATIC", L"",
-                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-                0, 0, 0, 0, hwnd, (HMENU)(INT_PTR)ids[i],
-                GetModuleHandleW(NULL), NULL);
-            (void)panes;
-        }
-        ShowWindow(pv[1], SW_HIDE);
-        ShowWindow(pv[2], SW_HIDE);
-        ShowWindow(pv[3], SW_HIDE);
-
         kb_build_all(hwnd);
 
         /* status bar */
@@ -797,6 +786,14 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     case WM_SIZE:
         layout(hwnd);
         break;
+    case WM_GETMINMAXINFO: {
+        /* keep the layout from producing negative control sizes */
+        MINMAXINFO *mmi = (MINMAXINFO *)lp;
+        DefWindowProcW(hwnd, msg, wp, lp);
+        mmi->ptMinTrackSize.x = 560;
+        mmi->ptMinTrackSize.y = 420;
+        break;
+    }
     case WM_NOTIFY: {
         if (LOWORD(wp) == IDC_TABS) {
             NMHDR *nm = (NMHDR *)lp;
@@ -818,37 +815,40 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         switch (id) {
         case IDC_BTN_FWD: {
             GetDlgItemTextW(hwnd, IDC_IPA_IN, g_ipa_buf, 4096);
-            char utf8[8192];
-            int n = WideCharToMultiByte(CP_UTF8, 0, g_ipa_buf, -1,
-                                        utf8, 8192, NULL, NULL);
-            if (n > 1) {
+            char *utf8 = wide_to_utf8(g_ipa_buf);
+            if (utf8 && utf8[0]) {
                 HWND out = GetDlgItem(hwnd, IDC_OUT);
                 out_header(out, L"IPA -> vectors");
                 do_forward(out, utf8);
             }
+            free(utf8);
             break;
         }
         case IDC_BTN_REV: {
             wchar_t wbuf[4096];
             GetDlgItemTextW(hwnd, IDC_VEC_IN, wbuf, 4096);
-            char utf8[8192];
-            WideCharToMultiByte(CP_UTF8, 0, wbuf, -1, utf8, 8192, NULL, NULL);
-            int sel = (int)SendMessageW(GetDlgItem(hwnd, IDC_COMBO_W),
-                                        CB_GETCURSEL, 0, 0);
-            set_width(sel < 0 ? 3 : sel);
-            HWND out = GetDlgItem(hwnd, IDC_OUT);
-            out_header(out, L"Vector -> IPA (reverse fit)");
-            do_reverse(out, utf8);
+            char *utf8 = wide_to_utf8(wbuf);
+            if (utf8) {
+                int sel = (int)SendMessageW(GetDlgItem(hwnd, IDC_COMBO_W),
+                                            CB_GETCURSEL, 0, 0);
+                set_width(sel < 0 ? 3 : sel);
+                HWND out = GetDlgItem(hwnd, IDC_OUT);
+                out_header(out, L"Vector -> IPA (reverse fit)");
+                do_reverse(out, utf8);
+            }
+            free(utf8);
             break;
         }
         case IDC_BTN_QUERY: {
             wchar_t wbuf[4096];
             GetDlgItemTextW(hwnd, IDC_Q_IN, wbuf, 4096);
-            char utf8[8192];
-            WideCharToMultiByte(CP_UTF8, 0, wbuf, -1, utf8, 8192, NULL, NULL);
-            HWND out = GetDlgItem(hwnd, IDC_OUT);
-            out_header(out, L"Query");
-            do_query(out, utf8);
+            char *utf8 = wide_to_utf8(wbuf);
+            if (utf8) {
+                HWND out = GetDlgItem(hwnd, IDC_OUT);
+                out_header(out, L"Query");
+                do_query(out, utf8);
+            }
+            free(utf8);
             break;
         }
         case ID_FILE_EXPORT:
@@ -856,6 +856,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             break;
         case ID_FILE_EXPORT_TOOLS:
             export_tools_dialog(hwnd);
+            break;
+        case ID_FILE_EXIT:
+            DestroyWindow(hwnd);
             break;
         case ID_HELP_ABOUT:
             MessageBoxW(hwnd,
@@ -871,7 +874,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             break;
         }
         default:
-            if (id >= IDB_BASE && id < IDB_MAX && g_btn_sym[id - IDB_BASE]) {
+            if (id >= IDB_BASE && id <= IDB_LAST && g_btn_sym[id - IDB_BASE]) {
                 /* keyboard button: append symbol to IPA input */
                 GetDlgItemTextW(hwnd, IDC_IPA_IN, g_ipa_buf, 4096);
                 size_t len = wcslen(g_ipa_buf);
@@ -936,7 +939,9 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int nCmdShow)
             };
             for (int i = 0; i < 2; i++) {
                 swprintf(fontpath, MAX_PATH, L"%s%s", exe, fonts[i]);
-                AddFontResourceExW(fontpath, FR_PRIVATE, 0);
+                if (AddFontResourceExW(fontpath, FR_PRIVATE, 0) == 0)
+                    MessageBoxW(NULL, fontpath, L"Font not loaded",
+                                MB_ICONWARNING);
             }
         }
     }
@@ -957,7 +962,11 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int nCmdShow)
     wc.hCursor = LoadCursorW(NULL, (LPCWSTR)IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     wc.lpszClassName = L"Vec4ipaWorkbench";
-    RegisterClassExW(&wc);
+    if (!RegisterClassExW(&wc)) {
+        MessageBoxW(NULL, L"Failed to register the main window class.",
+                    APP_NAME, MB_ICONERROR);
+        return 1;
+    }
 
     WNDCLASSEXW wd = {0};
     wd.cbSize = sizeof(wd);
@@ -966,14 +975,22 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int nCmdShow)
     wd.hIcon = LoadIconW(hInst, MAKEINTRESOURCEW(IDI_APP));
     wd.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     wd.lpszClassName = L"IPA2VecExportDlg";
-    RegisterClassExW(&wd);
+    if (!RegisterClassExW(&wd)) {
+        MessageBoxW(NULL, L"Failed to register the export dialog class.",
+                    APP_NAME, MB_ICONERROR);
+        return 1;
+    }
 
     set_width(3);
 
     HWND hwnd = CreateWindowExW(0, L"Vec4ipaWorkbench", APP_NAME,
         WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 980, 640,
         NULL, NULL, hInst, NULL);
-    if (!hwnd) return 0;
+    if (!hwnd) {
+        MessageBoxW(NULL, L"Failed to create the main window.", APP_NAME,
+                    MB_ICONERROR);
+        return 1;
+    }
     init_menu(hwnd);
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
