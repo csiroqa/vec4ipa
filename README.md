@@ -71,6 +71,9 @@ vec2ipa -n <V0,...,V15>     nearest base segment only
 vec2ipa -d <A> <B>          weighted distance (Mahalanobis + airstream penalty λ)
 vec2ipa --width <0-4>       transcription narrowness (default 3)
 vec2ipa --metric FILE       load metric.json weights/lambda at runtime
+vec2ipa --charset CLASS     reverse charset class (std|extipa|sinologist|all; default std, repeatable;
+                              standard IPA incl. ɚ ɞ ɝ ꞎ ᶑ never gated; extipa = ʬ ʭ ʩ;
+                              sinologist = ᴇ ȶ ȡ ȵ ȴ)
 
 vec4ipa -i | -t             full information table (main + extIPA bases)
 vec4ipa -m                  regional modules and their symbols
@@ -82,6 +85,9 @@ vec4ipa -r <V0,...,V15>     reverse: vectors -> IPA
 vec4ipa -n <V0,...,V15>     nearest base segment
 vec4ipa -d <A> <B>          weighted distance
 vec4ipa --metric FILE       load metric.json weights/lambda at runtime
+vec4ipa --charset CLASS     reverse charset class (std|extipa|sinologist|all; default std, repeatable;
+                              standard IPA incl. ɚ ɞ ɝ ꞎ ᶑ never gated; extipa = ʬ ʭ ʩ;
+                              sinologist = ᴇ ȶ ȡ ȵ ȴ)
 vec4ipa -h                  help (this README, embedded)
 vec4ipa -v                  version
 ```
@@ -203,10 +209,12 @@ those consume the vector argument that follows them.)
 
 ## Supported notations
 
-- All 132 base segments of `IPA_VECTORS.md` (vowels, consonants,
+- All 133 base segments of `IPA_VECTORS.md` (vowels, consonants,
   affricates, co‑articulated, ejectives, implosives, clicks).
 - ExtIPA base segments not in the table: `ʬ ʭ ʩ ʪ ʫ ꞎ ᶑ ᴇ ɚ ɞ ɝ`
-  (see `EXTRA_BASE` in `src/ipa2vec_core.h`).
+  (see `EXTRA_BASE` in `src/ipa2vec_core.h`).  The reverse direction
+  emits standard IPA by default; `--charset extipa` adds `ʬ ʭ ʩ` and
+  `--charset sinologist` adds `ᴇ ȶ ȡ ȵ ȴ` (repeatable, any combination).
 - ASCII alias: Latin `g` == IPA `ɡ`.
 - Diacritics of §10: nasalised `̃`, long `ː`, half‑long `ˑ`, aspirated `ʰ`,
   creaky `̰`, breathy `̤` (U+0324), pharyngealised `ˤ/̴`, velarised `ˠ`,
@@ -214,7 +222,9 @@ those consume the vector argument that follows them.)
   unreleased `̚`, voiceless `̥`, voiced `̬`, nasal‑click `ᵑ` (preposed),
   ejective `ʼ` (U+02BC, sets `cg=1 sg=0 lt=0.6 voiced=0` and airstream =
   glottalic egressive), macron `◌̄` (U+0304, level tone).
-- extIPA/clinical marks: dental `̪`, linguolabial `̼`, laminal `̻`, raised
+- extIPA/clinical marks: dental `̪` (lingual: dentalise; labial: the
+  labiodental stop/nasal `p̪ b̪ m̪` / `ɱ`, encoded on the dental
+  dimension `tt_pos = 1.0` like `t̪ θ ð`), linguolabial `̼`, laminal `̻`, raised
   `̝`/`˔`, lowered `̞`, advanced `̟`, retracted `̠`, more/less rounded
   `̹/̜`, bridged `͆`, apical `̺`, ATR `̘`, RTR `̙`, denasal `̻`,
   mid‑centralised `̽`, rhotacised `˞`, extra‑short `̆`, fortis `͈`,

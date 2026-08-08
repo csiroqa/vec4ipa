@@ -147,6 +147,7 @@ static void usage(void)
     printf("  -h, --help             this help\n");
     printf("  --width <0-4>          transcription narrowness (default 3)\n");
     printf("  --metric FILE          load metric.json weights/lambda at runtime\n");
+    printf("  --charset CLASS        enable reverse charset class (std|extipa|sinologist|all; default std)\n");
     printf("  -t, --table            full base table\n");
     printf("  -m, --modules          regional modules\n");
     printf("  -q, --query SYM        query a symbol\n");
@@ -194,7 +195,9 @@ static int run_forward(const char *str, int ir, int json, const char *irbase)
             int nm = fit_modifiers(po.segs[s].v, b, mods);
             char rebuilt[128];
             build_ipa(b, mods, nm, rebuilt, sizeof(rebuilt));
-            printf("rebuilt[%d]: /%s/\n", s, rebuilt);
+            char tb[48];
+            tone_rebuild(&po.segs[s], tb, sizeof(tb));
+            printf("rebuilt[%d]: /%s%s/\n", s, rebuilt, tb);
         }
         return 0;
     }
@@ -269,6 +272,9 @@ int main(int argc, char **argv)
         if (m == 1) continue;
         if (m == -1) { fprintf(stderr, "vec4ipa: --metric needs a file\n"); return 1; }
         if (m == -2) return 1;
+        int cs = opt_charset(argv[i], argc, argv, &i);
+        if (cs == 1) continue;
+        if (cs == -1) { fprintf(stderr, "vec4ipa: --charset needs std|extipa|sinologist|all\n"); return 1; }
         if (opt_match(argv[i], "-i", "--information")) { printf("%s", EMBEDDED_README); return 0; }
         if (opt_match(argv[i], "-v", "--version")) {
             printf("vec4ipa %s (%d base segments + %d extIPA bases, %d modifiers)\n",

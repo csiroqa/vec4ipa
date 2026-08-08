@@ -300,17 +300,19 @@ static const SegEntry EXTRA_BASE[] = {
     { "\xe1\xb6\x91", { 0.0, 0.0, 0.1, 0.9, 0.0, 0.0, 0.0, 0.0,
                         1.0, 0.55, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0 }, 2 },
     /* ȶ U+0236: voiceless alveolo-palatal stop (curl notation, Sinologist);
-     * alveolo-palatal = tip at 0.25 with tongue body neutral (cf. ɕ ʑ) */
-    { "\xc8\xb6", { 0.0, 0.0, 0.25, 1.0, 0.0, 0.0, 0.0, 0.0,
+     * standard spelling t̠ʲ — tip closure kept 0.05 off alveolar (0.35) so
+     * the standard fallback lands on /t/, not the retroflex /ʈ/ */
+    { "\xc8\xb6", { 0.0, 0.0, 0.35, 1.0, 0.0, 0.0, 0.0, 0.0,
                     0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0, 1.0 }, 0 },
-    /* ȡ U+0221: voiced alveolo-palatal stop */
-    { "\xc8\xa1", { 0.0, 0.0, 0.25, 1.0, 0.0, 0.0, 0.0, 0.0,
+    /* ȡ U+0221: voiced alveolo-palatal stop (standard spelling d̠ʲ) */
+    { "\xc8\xa1", { 0.0, 0.0, 0.35, 1.0, 0.0, 0.0, 0.0, 0.0,
                     1.0, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 }, 0 },
-    /* ȵ U+0235: voiced alveolo-palatal nasal */
-    { "\xc8\xb5", { 0.0, 0.0, 0.25, 1.0, 0.0, 0.0, 1.0, 0.0,
+    /* ȵ U+0235: voiced alveolo-palatal nasal (standard spelling n̠ʲ) */
+    { "\xc8\xb5", { 0.0, 0.0, 0.35, 1.0, 0.0, 0.0, 1.0, 0.0,
                     1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 }, 0 },
-    /* ȴ U+0234: voiced alveolo-palatal lateral */
-    { "\xc8\xb4", { 0.0, 0.0, 0.25, 1.0, 0.0, 0.0, 0.0, 1.0,
+    /* ȴ U+0234: voiced alveolo-palatal lateral (standard spelling l̠ʲ);
+     * closure height aligned with /l/ (0.7) so the fallback is /l/ */
+    { "\xc8\xb4", { 0.0, 0.0, 0.35, 0.7, 0.0, 0.0, 0.0, 1.0,
                     1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.5, 1.0 }, 0 },
 };
 #define N_EXTRA ((int)(sizeof(EXTRA_BASE) / sizeof(EXTRA_BASE[0])))
@@ -468,11 +470,13 @@ static IPA2VEC_MAYBE_UNUSED void mod_nasal_click (double v[NDIM], const void *m)
 /* dental (U+032A): on labials this is the labiodental plosive/nasal
  * (b̪ = vd labiodental plosive, p̪ = vl, m̪ = labiodental nasal — IPA
  * writes labiodental stops as p̪ b̪); on lingual segments it dentalises
- * the tip (t̪ d̪ n̪ …). */
+ * the tip (t̪ d̪ n̪ …).  Labiodentals are described by the DENTAL
+ * dimension (tt_pos 1.0, the same "at the teeth" value as t̪ θ ð), so
+ * the derived spellings b̪ m̪ match the base rows /p̪/ /ɱ/. */
 static IPA2VEC_MAYBE_UNUSED void mod_dental (double v[NDIM], const void *m) {
     (void)m;
-    if (v[0] > 0.5)          /* bilabial -> labiodental */
-        v[0] = 0.9;
+    if (v[0] > 0.5)          /* bilabial -> labiodental: contact at the teeth */
+        v[2] = 1.0;
     else { v[2] = 1.0; if (v[3] < 0.5) v[3] = 0.5; }
 }
 static IPA2VEC_MAYBE_UNUSED void mod_raised (double v[NDIM], const void *m) { (void)m; v[3] += 0.15; }
@@ -2096,6 +2100,33 @@ static IPA2VEC_MAYBE_UNUSED void apply_layer2 (IrTok *l2, int n2, SegVec *segs, 
 /* most reduces weighted distance, until no improvement.               */
 /* ------------------------------------------------------------------ */
 
+/* reverse output character set (--charset), user-selectable bitmask:
+ *   bit 0  extIPA-only letters (ʬ ʭ ʩ — clinical phonetics)  [default off]
+ *   bit 1  Sinologist letters (ᴇ ȶ ȡ ȵ ȴ)                   [default off]
+ * `--charset` is repeatable and accumulates: any combination is allowed;
+ * `--charset std` clears to standard IPA only (the default), `--charset
+ * all` sets both.
+ * Standard IPA letters (incl. ɚ ɞ ɝ ꞎ ᶑ — rhotacised vowels use the
+ * standard diacritic ◌˞) are never gated. */
+static int g_reverse_charset = 0;
+
+/* reverse targets must respect the user-chosen character set.  The
+ * Sinologist curl letters ȶ ȡ ȵ ȴ and the small-cap letter ᴇ are
+ * Sinologist notation (standard IPA spells these with diacritics, e.g.
+ * t̠ʲ and e̞) — excluded unless bit 1 is enabled; the percussives and the
+ * velopharyngeal fricative ʩ are extIPA — excluded unless bit 0 is set. */
+static IPA2VEC_MAYBE_UNUSED int extra_is_reverse_base(int i)
+{
+    if (i < 0 || i >= N_EXTRA) return 0;
+    if (EXTRA_SCHOOL[i] >= 0) return (g_reverse_charset & 2) != 0;   /* ȶ ȡ ȵ ȴ */
+    if (strcmp(EXTRA_BASE[i].ipa, "\xe1\xb4\x87") == 0) return (g_reverse_charset & 2) != 0;  /* ᴇ */
+    if (strcmp(EXTRA_BASE[i].ipa, "\xca\xac") == 0 ||                /* ʬ */
+        strcmp(EXTRA_BASE[i].ipa, "\xca\xad") == 0 ||                /* ʭ */
+        strcmp(EXTRA_BASE[i].ipa, "\xca\xa9") == 0)                  /* ʩ */
+        return (g_reverse_charset & 1) != 0;
+    return 1;                                                        /* ɚ ɞ ɝ ꞎ ᶑ: standard */
+}
+
 static IPA2VEC_MAYBE_UNUSED void nearest_base (const double v[NDIM], const SegEntry **out, double *outd)
 {
     int best = -1;
@@ -2104,11 +2135,10 @@ static IPA2VEC_MAYBE_UNUSED void nearest_base (const double v[NDIM], const SegEn
         double d = seg_dist(v, SEG_TABLE[i].v);
         if (d < bestd) { bestd = d; best = i; }
     }
-    /* EXTRA_BASE entries (extIPA + school-gated bases like the
-     * Sinologist curl letters ȶ ȡ ȵ ȴ) are valid reverse targets too;
-     * skip school entries whose module is not enabled */
+    /* EXTRA_BASE entries (extIPA) are valid reverse targets too, but only
+     * the standard ones — see extra_is_reverse_base. */
     for (int i = 0; i < N_EXTRA; i++) {
-        if (EXTRA_SCHOOL[i] >= 0 && !g_alias_on[EXTRA_SCHOOL[i]])
+        if (!extra_is_reverse_base(i))
             continue;
         double d = seg_dist(v, EXTRA_BASE[i].v);
         if (d < bestd) { bestd = d; best = NSEG + i; }
@@ -2519,6 +2549,70 @@ static IPA2VEC_MAYBE_UNUSED void build_ipa (const SegEntry *base, const ModRec *
 /* Output helpers                                                      */
 /* ------------------------------------------------------------------ */
 
+/* rebuild the tone letters / pitch marks from a segment's extra tone
+ * vectors — the inverse of the forward tone parsing: 5-level contour
+ * letters (˩˨˧˦˥), sandhi letters (꜖꜕꜔꜓꜒), then the 3-D marks
+ * (upstep ꜛ / downstep ꜜ, global ↗ / ↘, Chinese tone class ꜀…꜇). */
+static IPA2VEC_MAYBE_UNUSED void tone_rebuild (const SegVec *sv, char *out, size_t outsz)
+{
+    static const char *L5  = "\xcb\xa5\xcb\xa6\xcb\xa7\xcb\xa8\xcb\xa9";   /* ˥˦˧˨˩ */
+    static const char *S5  = "\xea\x9c\x92\xea\x9c\x93\xea\x9c\x94"
+                             "\xea\x9c\x95\xea\x9c\x96";                    /* ꜒꜓꜔꜕꜖ */
+    static const char *CLS = "\xea\x9c\x80\xea\x9c\x81\xea\x9c\x82\xea\x9c\x83"
+                             "\xea\x9c\x84\xea\x9c\x85\xea\x9c\x86\xea\x9c\x87"; /* ꜀꜁꜂꜃꜄꜅꜆꜇ */
+    size_t used = 0;
+    out[0] = 0;
+    /* 5-level letters ˥˦˧˨˩ (U+02E5-U+02E9) are 2-byte UTF-8; the
+     * sandhi/class letters and ↗↘ꜛꜜ are 3-byte UTF-8.  Copy exactly the
+     * letter's byte width (strlen on a mid-string pointer would copy the
+     * whole remaining tail). */
+#define TONE_APPENDN(s, n) do { const char *_s = (s); \
+    if (used + (n) + 1 < outsz) { memcpy(out + used, _s, (n)); used += (n); out[used] = 0; } \
+    } while (0)
+
+    if (sv->tkind[0] == 1) {
+        /* a level tone is stored doubled (v,v) — collapse it; contours
+         * hold 2-3 distinct values followed by NAN */
+        int c = isnan(sv->tone[0][2])
+                ? (sv->tone[0][0] == sv->tone[0][1] ? 1 : 2) : 3;
+        for (int k = 0; k < c && k < 3; k++) {
+            int v = (int)(sv->tone[0][k] + 0.5);
+            if (v < 1) v = 1; else if (v > 5) v = 5;
+            TONE_APPENDN(L5 + (5 - v) * 2, 2);
+        }
+    }
+    if (sv->tkind[1] == 1) {
+        int c = isnan(sv->tone[1][2])
+                ? (sv->tone[1][0] == sv->tone[1][1] ? 1 : 2) : 3;
+        for (int k = 0; k < c && k < 3; k++) {
+            int v = (int)(sv->tone[1][k] + 0.5);
+            if (v < 1) v = 1; else if (v > 5) v = 5;
+            TONE_APPENDN(S5 + (5 - v) * 3, 3);
+        }
+    }
+    if (sv->tkind[2] == 2) {
+        /* postposed marks set only their own component; the others stay
+         * NAN — treat NAN as "absent" and round negatives correctly
+         * ((int)(-3 + 0.5) truncates to -2) */
+        double s = sv->tone[2][0];
+        if (!isnan(s) && s < 0) TONE_APPENDN("\xea\x9c\x9b", 3);        /* ꜛ upstep */
+        else if (!isnan(s) && s > 0) TONE_APPENDN("\xea\x9c\x9c", 3);   /* ꜜ downstep */
+        double g = sv->tone[2][1];
+        if (!isnan(g) && g > 0) TONE_APPENDN("\xe2\x86\x97", 3);        /* ↗ */
+        else if (!isnan(g) && g < 0) TONE_APPENDN("\xe2\x86\x98", 3);   /* ↘ */
+        double c2 = sv->tone[2][2];
+        if (!isnan(c2)) {
+            int cls = (int)(c2 < 0 ? c2 - 0.5 : c2 + 0.5);
+            if (cls != 0) {
+                int idx = cls == 1 ? 0 : cls == -1 ? 1 : cls == 2 ? 2 : cls == -2 ? 3
+                        : cls == 3 ? 4 : cls == -3 ? 5 : cls == 4 ? 6 : 7;
+                TONE_APPENDN(CLS + idx * 3, 3);
+            }
+        }
+    }
+#undef TONE_APPENDN
+}
+
 /* print the 5-group tone annotation, e.g.  ()?(1,2)?(4,5)  */
 static IPA2VEC_MAYBE_UNUSED void print_tone (const SegVec *sv)
 {
@@ -2645,6 +2739,32 @@ static IPA2VEC_MAYBE_UNUSED int opt_width(const char *arg, int argc, char **argv
     }
     g_fit_max_mods = maxmods[level];
     g_fit_min_gain = mingain[level];
+    return 1;
+}
+
+/* --charset <std|extipa|sinologist|all> — enable classes of the reverse
+ * direction's output character set.  Repeatable: each call accumulates
+ * (std clears to standard IPA only — the default; all sets everything).
+ * Returns 1 if matched, -1 if malformed, 0 if not ours. */
+static IPA2VEC_MAYBE_UNUSED int opt_charset(const char *arg, int argc, char **argv, int *i)
+{
+    const char *name = NULL;
+    if (strcmp(arg, "--charset") == 0) {
+        if (*i + 1 >= argc) return -1;
+        name = argv[++*i];
+    } else if (strncmp(arg, "--charset=", 10) == 0) {
+        name = arg + 10;
+    } else {
+        return 0;
+    }
+    if (strcmp(name, "std") == 0) g_reverse_charset = 0;
+    else if (strcmp(name, "ext") == 0 || strcmp(name, "extipa") == 0)
+        g_reverse_charset |= 1;
+    else if (strcmp(name, "school") == 0 || strcmp(name, "sino") == 0 ||
+             strcmp(name, "sinologist") == 0)
+        g_reverse_charset |= 2;
+    else if (strcmp(name, "all") == 0) g_reverse_charset = 3;
+    else return -1;
     return 1;
 }
 

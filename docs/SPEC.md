@@ -206,7 +206,7 @@ All anchor values are **normalised ratios of empirical quantities**; intermediat
 | `tt_height` | rest 0.25, vowels 0.25, dental fricatives 0.5, laminal sibilants 0.6, apical/retroflex 0.8–0.9, tip closures 1.0 | Maeda (1990) APEX parameter (tongue‑tip height; affects F2); anchors ordered by tip‑raising scale `(interpolated between APEX settings)` |
 | `tb_pos` | +1 palatal → 0 central → −0.5 velar → −0.72 uvular → −0.89 pharyngeal → −1 epiglottal | Dorsal place along hard palate → velum → posterior pharynx (MRI area functions, Story, Titze & Hoffman 1996); −0.72/−0.89/−1.0 pinned to uvular/pharyngeal/epiglottal MRI sites; −0.5 velar is the central‑to‑uvular midpoint `(interpolated)` |
 | `tongue_root` | −1 ATR … +1 RTR | Pharyngeal width differences for ATR pairs (MRI: advanced root widens pharynx) |
-| `vel_open` | oral 0, nasalised V 0.8, nasal 1.0 | Velopharyngeal port area: nasal consonants require maximal port opening; nasal vowels partial opening |
+| `vel_open` | oral 0, nasalised V 0.6, nasal 1.0 | Velopharyngeal port area: nasal consonants require maximal port opening; nasal vowels partial opening |
 | `lateral_ratio` | 0 central … 1 fully lateral | Lateral airflow fraction measured aerodynamically for /l/ |
 | `voiced` | 0 / 1 | Vocal fold vibration (EGG, laryngoscopy) |
 | `cg` | 0 open, 0.2 modal, 0.55 implosive, 0.7 creaky, 1.0 closed (/ʔ/, ejective hold) | Open quotient: pressed/creaky OQ ≈ 0.3, modal ≈ 0.5, breathy 0.6–0.7 (Alku & Vilkman 1996; Henrich et al. 2005); cg ≈ 1 − OQ for phonatory states; full closure for glottal stop and ejective hold (Dent, Niimi & Lisker 1980); implosives 0.55 = constricted during downward glottal movement `(interpolated)` |

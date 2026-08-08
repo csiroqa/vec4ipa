@@ -45,6 +45,7 @@ static void usage(void)
     printf("  -o, --output FILE      write output to FILE\n");
     printf("  --width <0-4>          transcription narrowness (default 3)\n");
     printf("  --metric FILE          load metric.json weights/lambda at runtime\n");
+    printf("  --charset CLASS        enable reverse charset class (std|extipa|sinologist|all; default std)\n");
     printf("  -h, --help             this help\n");
     printf("  -v, --version          version\n");
     printf("\nwith no vector, input is read from stdin\n");
@@ -81,6 +82,9 @@ int main(int argc, char **argv)
         if (m == 1) continue;
         if (m == -1) { fprintf(stderr, "vec2ipa: --metric needs a file\n"); return 1; }
         if (m == -2) return 1;
+        int cs = opt_charset(argv[i], argc, argv, &i);
+        if (cs == 1) continue;
+        if (cs == -1) { fprintf(stderr, "vec2ipa: --charset needs std|extipa|sinologist|all\n"); return 1; }
         if (opt_match(argv[i], "-v", "--version")) {
             printf("vec2ipa %s (16-D vectors, %d base segments, lambda=%.2f)\n",
                    IPA2VEC_VERSION, NSEG, METRIC_LAMBDA);
