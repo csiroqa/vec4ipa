@@ -287,8 +287,11 @@ static const SegEntry EXTRA_BASE[] = {
     /* ʭ U+02AD: bidental percussive (extIPA) — non-pulmonic */
     { "\xca\xad", { 0.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0,
                     0.0, 0.0, 0.4, 0.0, 0.1, 0.0, 0.0, 0.0 }, 4 },
-    /* ʩ U+02A9: velopharyngeal fricative (extIPA) */
-    { "\xca\xa9", { 0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 0.5, 0.0,
+    /* ʩ U+02A9: velopharyngeal fricative (extIPA) — friction at the
+     * velopharyngeal port requires full nasal airflow, so vel_open is
+     * 1.0 (a "half-nasal" 0.5 would make it the accidental nearest
+     * neighbour of every nasalised voiceless fricative) */
+    { "\xca\xa9", { 0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 1.0, 0.0,
                     0.0, 0.0, 0.4, 0.0, 0.6, 0.0, 0.09, 1.0 }, 0 },
     /* ꞎ U+A78E: voiceless retroflex lateral fricative (IPA 2018) */
     { "\xea\x9e\x8e", { 0.0, 0.0, 0.1, 0.8, 0.0, 0.0, 0.0, 1.0,
@@ -339,7 +342,7 @@ static const int EXTRA_SCHOOL[N_EXTRA] = {
 };
 
 /* longest-prefix base lookup against the 132-entry table */
-static IPA2VEC_MAYBE_UNUSED void mod_nasal (double v[NDIM], const void *m) { (void)m; v[6]  = 0.8; }
+static IPA2VEC_MAYBE_UNUSED void mod_nasal (double v[NDIM], const void *m) { (void)m; v[6]  = 0.6; }
 static IPA2VEC_MAYBE_UNUSED void mod_long (double v[NDIM], const void *m) { (void)m; v[12] = 2.0; }
 /* contrast-aware setter: set v[dim] to full_val unless the result would
  * exactly equal a DIFFERENTLY-spelled base segment (e.g. p + ◌̚ would
@@ -2123,69 +2126,144 @@ static IPA2VEC_MAYBE_UNUSED void nearest_base (const double v[NDIM], const SegEn
 static int    g_fit_max_mods = 6;
 static double g_fit_min_gain = 0.015;
 
-static IPA2VEC_MAYBE_UNUSED int mod_priority(const ModRec *m);   /* fwd: canonical order (see below) */
+static IPA2VEC_MAYBE_UNUSED int mod_priority(const ModRec *m);   /* fwd: emission order (see below) */
+static IPA2VEC_MAYBE_UNUSED int mod_is_spacing(const ModRec *m); /* fwd: see below */
+static IPA2VEC_MAYBE_UNUSED const char *base_tail_marks(const char *s); /* fwd: see below */
+
+/* reparse application order: the parser's canonicalise re-sorts by tier
+ * (stable), preserving the emitted within-tier order (combining before
+ * spacing).  The fit must evaluate in THIS order, not mod_priority
+ * (which is spacing-major, for typography only). */
+static IPA2VEC_MAYBE_UNUSED int mod_apply_key(const ModRec *m)
+{
+    return (int)m->tier * 2 + (mod_is_spacing(m) ? 1 : 0);
+}
+
+/* apply a modifier set from the base vector in reparse order */
+static IPA2VEC_MAYBE_UNUSED void apply_mod_set (double v[NDIM], const SegEntry *base,
+                                                const ModRec *const *mods, int nm)
+{
+    memcpy(v, base->v, sizeof(double) * NDIM);
+    for (int i = 0; i < nm; i++)
+        apply_voicing_mod(v, mods[i], base);
+}
+
+/* insert m into a set at its reparse-order position (stable) */
+static IPA2VEC_MAYBE_UNUSED int set_insert (const ModRec **set, int n,
+                                            const ModRec *m)
+{
+    int i = n;
+    while (i > 0 && mod_apply_key(set[i - 1]) > mod_apply_key(m)) {
+        set[i] = set[i - 1];
+        i--;
+    }
+    set[i] = m;
+    return n + 1;
+}
 
 static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const SegEntry *base,
                          const ModRec *mods[IPA2VEC_FIT_MAX_MODS])
 {
     /* The greedy search picks the best single modifier each round, but the
-     * chosen set must be applied in the SAME canonical order (combining
-     * marks first, then spacing superscripts, each by feature tier) that
-     * the parser will use when the emitted IPA is re-parsed.  Applying
-     * them in greedy pick order would give a different vector than the
-     * emitted string reproduces (order matters for interacting mods like
-     * rnd_more vs whistled on v[1]).  So the chosen list is kept sorted
-     * by mod_priority and every evaluation re-applies the whole set. */
+     * chosen set must be applied in the SAME order the parser's
+     * canonicalise will use when the emitted IPA is re-parsed: tier
+     * (airstream → laryngeal → place → manner → nasal → timing), with
+     * combining marks before spacing superscripts within a tier, stable.
+     * Applying in greedy pick order — or in the typographic mod_priority
+     * order — would give a different vector than the emitted string
+     * reproduces (order matters for interacting mods, e.g. ◌̚ sets v12
+     * while ˢ adds v12).  So every evaluation re-applies the whole set in
+     * mod_apply_key order. */
+    /* tail-marked bases (qʼ, lˠ): build_ipa splits the spelling into core
+     * + trailing spacing mark, and re-parsing matches the CORE base with
+     * the mark applied as a modifier.  The fit must therefore evaluate on
+     * the core, with the tail marks pre-applied (and has_voicing_counterpart
+     * decided against the core, not the tailed spelling — otherwise the
+     * voiceless/voiced full-vs-part choice flips). */
+    const SegEntry *eval_base = base;
+    const ModRec *tailmods[4];
+    int ntail = 0;
+    const char *tail = base_tail_marks(base->ipa);
+    if (tail) {
+        char corebuf[64];
+        size_t clen = (size_t)(tail - base->ipa);
+        if (clen < sizeof(corebuf)) {
+            memcpy(corebuf, base->ipa, clen);
+            corebuf[clen] = 0;
+            const SegEntry *cb = NULL;
+            for (int i = 0; i < NSEG; i++)
+                if (strcmp(SEG_TABLE[i].ipa, corebuf) == 0) { cb = &SEG_TABLE[i]; break; }
+            if (!cb)
+                for (int i = 0; i < N_EXTRA; i++)
+                    if (strcmp(EXTRA_BASE[i].ipa, corebuf) == 0) { cb = &EXTRA_BASE[i]; break; }
+            if (cb) {
+                eval_base = cb;
+                const unsigned char *p = (const unsigned char *)tail;
+                while (*p) {
+                    unsigned long cp;
+                    int k = utf8_decode(p, &cp);
+                    if (!k) break;
+                    const ModRec *m = find_mod(cp);
+                    if (m && m->apply && ntail < 4) tailmods[ntail++] = m;
+                    p += k;
+                }
+            }
+        }
+    }
     int n = 0;
-    /* nasality spelling depends on the base: vowels AND nasal
-     * consonants use ◌̃ (mod_nasal); oral consonants use the
-     * superscript ⁿ (mod_nasal_rel, nasal release).  During fitting,
-     * allow only the matching one so the output never writes ̃ⁿ
-     * together and vowels never get a release mark. */
-    int base_nasal = (base->v[6] >= 0.5);
-    int base_is_vowel = (base->v[14] >= 0.5);
+    int base_nasal = (eval_base->v[6] >= 0.5);
+    int base_is_vowel = (eval_base->v[8] >= 0.5 && eval_base->v[14] >= 0.3
+                         && eval_base->v[12] >= 0.9);
     int maxmods = g_fit_max_mods < IPA2VEC_FIT_MAX_MODS
                   ? g_fit_max_mods : IPA2VEC_FIT_MAX_MODS;
     for (int round = 0; round < maxmods; round++) {
         int besti = -1;
         double trial[NDIM];
         double curd = 1e300;
-        /* distance of the current chosen set, applied canonically */
-        if (n == 0) {
-            curd = seg_dist(target, base->v);
-        } else {
-            memcpy(trial, base->v, sizeof(trial));
-            for (int k = 0; k < n; k++)
-                apply_voicing_mod(trial, mods[k], base);
+        /* distance of the current chosen set (tail + chosen), reparse order */
+        {
+            const ModRec *cur[IPA2VEC_FIT_MAX_MODS + 4];
+            int nc = 0;
+            for (int k = 0; k < ntail; k++) cur[nc++] = tailmods[k];
+            for (int k = 0; k < n; k++) cur[nc++] = mods[k];
+            apply_mod_set(trial, eval_base, cur, nc);
             curd = seg_dist(target, trial);
         }
         double bestd = curd;
         for (int i = 0; i < NMODS; i++) {
             if (!MODS[i].apply || is_ligature_cp(MODS[i].cp)) continue;
             if (!MODS[i].reverse) continue;   /* input-tolerance only */
-            /* skip modifiers already chosen, or with the same effect */
+            /* preposed-only airstream modifiers (ˀ ᵑ ᵋ, air<0): the lexer
+             * refuses them after a base (they belong to the NEXT segment),
+             * so emitting them postposed would break the round-trip.
+             * (ʼ ejective has air=1 and IS acceptable postposed.) */
+            if (MODS[i].tier == TIER_AIRSTREAM && MODS[i].air < 0) continue;
+            /* skip modifiers already chosen, tail marks, or same effect */
             int used = 0;
             for (int k = 0; k < n; k++)
                 if (mods[k]->apply == MODS[i].apply) { used = 1; break; }
+            for (int k = 0; k < ntail; k++)
+                if (tailmods[k]->apply == MODS[i].apply) { used = 1; break; }
             if (used) continue;
-            /* vowel/nasal -> ◌̃ only; oral consonant -> ⁿ only */
-            if (MODS[i].apply == mod_nasal &&
-                !(base_is_vowel || base_nasal)) continue;
-            if (MODS[i].apply == mod_nasal_rel &&
-                (base_is_vowel || base_nasal)) continue;
-            /* evaluate: base + mods[0..n-1] + candidate, applied in
-             * canonical order (the order the emitted IPA re-parses in) */
-            const ModRec *ins[IPA2VEC_FIT_MAX_MODS + 1];
-            int ni = 0, placed = 0;
-            for (int k = 0; k < n; k++) {
-                if (!placed && mod_priority(&MODS[i]) < mod_priority(mods[k]))
-                    { ins[ni++] = &MODS[i]; placed = 1; }
-                ins[ni++] = mods[k];
+            /* nasalisation: ◌̃ (nasalised) and ⁿ (nasal release) are
+             * mutually exclusive; the greedy picks whichever the target
+             * actually used (they share the vel_open axis). */
+            if (MODS[i].apply == mod_nasal ||
+                MODS[i].apply == mod_nasal_rel) {
+                int has_nasal = 0;
+                for (int k = 0; k < n; k++)
+                    if (mods[k]->apply == mod_nasal ||
+                        mods[k]->apply == mod_nasal_rel)
+                        has_nasal = 1;
+                if (has_nasal) continue;
             }
-            if (!placed) ins[ni++] = &MODS[i];
-            memcpy(trial, base->v, sizeof(trial));
-            for (int k = 0; k < ni; k++)
-                apply_voicing_mod(trial, ins[k], base);
+            /* evaluate: tail + mods[0..n-1] + candidate, reparse order */
+            const ModRec *ins[IPA2VEC_FIT_MAX_MODS + 5];
+            int ni = 0;
+            for (int k = 0; k < ntail; k++) ins[ni++] = tailmods[k];
+            for (int k = 0; k < n; k++) ins[ni++] = mods[k];
+            ni = set_insert(ins, ni, &MODS[i]);
+            apply_mod_set(trial, eval_base, ins, ni);
             double d = seg_dist(target, trial);
             if (d < bestd - 1e-9) { bestd = d; besti = i; }
         }
@@ -2194,17 +2272,8 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
          * improvement over the previous distance (before this round) */
         if (curd > 1e-12 && (curd - bestd) / curd < g_fit_min_gain)
             break;
-        /* insert the winner in canonical position */
-        const ModRec *ins[IPA2VEC_FIT_MAX_MODS + 1];
-        int ni = 0, placed = 0;
-        for (int k = 0; k < n; k++) {
-            if (!placed && mod_priority(&MODS[besti]) < mod_priority(mods[k]))
-                { ins[ni++] = &MODS[besti]; placed = 1; }
-            ins[ni++] = mods[k];
-        }
-        if (!placed) ins[ni++] = &MODS[besti];
-        for (int k = 0; k < ni; k++) mods[k] = ins[k];
-        n = ni;
+        /* insert the winner at its reparse-order position */
+        n = set_insert(mods, n, &MODS[besti]);
     }
     return n;
 }
@@ -2303,15 +2372,19 @@ static IPA2VEC_MAYBE_UNUSED void order_mods(const ModRec **mods, int nmods)
  * Return a pointer to the first such trailing mark (0 if none). */
 static IPA2VEC_MAYBE_UNUSED const char *base_tail_marks(const char *s)
 {
-    /* modifier letters / superscripts: U+02B0-02FF, U+1D00-1D7F */
+    /* modifier letters / superscripts: U+02B0-02FF, U+1D00-1D7F — but
+     * only when the code point is an actual modifier (find_mod).  The
+     * 1D00-1D7F block also contains real base LETTERS (ᴇ U+1D07 = lowered
+     * e, ᶑ U+1D91 = retroflex implosive); treating them as tail marks
+     * would emit "̹ᴇ" instead of "ᴇ̹". */
     const unsigned char *p = (const unsigned char *)s;
     const char *tail = NULL;
     while (*p) {
         unsigned long cp;
         int k = utf8_decode(p, &cp);
         if (!k) break;
-        if ((cp >= 0x02B0 && cp <= 0x02FF) ||
-            (cp >= 0x1D00 && cp <= 0x1D7F)) {
+        if (((cp >= 0x02B0 && cp <= 0x02FF) ||
+             (cp >= 0x1D00 && cp <= 0x1D7F)) && find_mod(cp)) {
             if (!tail) tail = (const char *)p;   /* start of trailing run */
         } else {
             tail = NULL;   /* run broken by a letter */
@@ -2332,14 +2405,24 @@ static IPA2VEC_MAYBE_UNUSED void build_ipa (const SegEntry *base, const ModRec *
                        char *out, size_t outsz)
 {
     /* copy to a local array so we can reorder without touching caller data */
-    const ModRec *ordered[8];
-    int n = nmods < 8 ? nmods : 8;
+    const ModRec *ordered[IPA2VEC_FIT_MAX_MODS];
+    int n = nmods < IPA2VEC_FIT_MAX_MODS ? nmods : IPA2VEC_FIT_MAX_MODS;
     for (int i = 0; i < n; i++) ordered[i] = mods[i];
     order_mods(ordered, n);
 
-    int desc = has_descender(base->ipa);
     const char *tail = base_tail_marks(base->ipa);
     size_t corelen = tail ? (size_t)(tail - base->ipa) : strlen(base->ipa);
+    /* descender check must use the CORE spelling (qʼ -> q, lˠ -> l):
+     * the emitted letter is the core, and re-parsing matches the core */
+    char core[32];
+    int desc = 0;
+    if (corelen < sizeof(core)) {
+        memcpy(core, base->ipa, corelen);
+        core[corelen] = 0;
+        desc = has_descender(core);
+    } else {
+        desc = has_descender(base->ipa);
+    }
     size_t used = 0;
     if (corelen + 1 <= outsz) {
         memcpy(out, base->ipa, corelen);

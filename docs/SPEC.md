@@ -35,7 +35,7 @@ Default per‑dimension weights and the learnable metric matrix live in **`metri
 | 3     | `tt_height`           | Tongue tip height (Maeda APEX)                             | 0.25 = rest/low, 0.5 = raised (dental fricatives), 0.6 = laminal sibilants, 0.8–0.9 = apical/retroflex/taps, 1.0 = full tip closure (t/d/n) |
 | 4     | `tb_pos`              | Tongue body position (front–back)                          | +1.0 = palatal/front, 0.0 = central, −0.5 = velar, −0.72 = uvular, −0.89 = pharyngeal, −1.0 = epiglottal |
 | 5     | `tongue_root`         | Tongue root position (ATR ↔ RTR)                           | -1.0 = advanced, 0.0 = neutral, +1.0 = retracted/pharyngealised                                  |
-| 6     | `vel_open`            | Velopharyngeal opening (nasality)                          | 0.0 = oral, 0.8 = nasalised vowel, 1.0 = full nasal                                              |
+| 6     | `vel_open`            | Velopharyngeal opening (nasality)                          | 0.0 = oral, 0.6 = nasalised vowel, 1.0 = full nasal                                              |
 | 7     | `lateral_ratio`       | Lateral airflow fraction                                   | 0.0 = central, 1.0 = fully lateral                                                               |
 | 8     | `voiced`              | Vocal fold vibration                                       | 0.0 = voiceless, 1.0 = voiced (all vowels and sonorants set 1.0)                                 |
 | 9     | `cg`                  | Glottal constriction (≈ 1 − OQ)                            | 0.0 = open, 0.2 = modal voiced, 0.55 = implosive constriction, 0.7 = creaky (OQ≈0.3), 1.0 = fully closed (/ʔ/, ejective hold) |
