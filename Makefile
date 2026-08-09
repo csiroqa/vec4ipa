@@ -32,7 +32,7 @@ endif
 all: $(TARGETS)
 
 CORE := $(SRC)/ipa2vec_core.h
-SCHEME ?=   # set SCHEME=tools/data/spec_next.scheme to build with a custom scheme
+SCHEME ?= tools/data/spec_next.scheme   # default build = SPEC-NEXT 16-D scheme
 
 ipa2vec$(EXE_SUFFIX): $(SRC)/ipa2vec_main.c $(VECTORS_H) $(CORE)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SRC)/ipa2vec_main.c
