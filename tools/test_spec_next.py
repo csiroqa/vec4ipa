@@ -77,7 +77,7 @@ def main():
 
     # ---- 1. table integrity ----
     print('== 1. table integrity ==')
-    check('132 segments', len(names) == 132, f'got {len(names)}')
+    check('133 segments', len(names) == 133, f'got {len(names)}')
     check('16 dims', len(dims) == 16)
     ranges = [(-0.95, 0.95), (-0.6, 0.6), (0, 1), (-1, 1),
               (0.2, 1.0), (-1, 1), (0, 1), (0, 1), (0, 1),

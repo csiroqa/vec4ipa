@@ -67,8 +67,8 @@ VOWEL_COL = {  # vowel -> (place, area)
     'e': (0.15, 0.70), 'ɛ': (0.15, 0.85), 'æ': (0.15, 0.95),
     'ɶ': (0.15, 0.95),
     'ø': (0.00, 0.70), 'œ': (0.00, 0.85), 'a': (0.03, 1.00),
-    'ɨ': (0.00, 0.40), 'ʉ': (0.00, 0.40), 'ɘ': (0.00, 0.55), 'ɵ': (0.00, 0.55),
-    'ə': (0.00, 0.70), 'ɜ': (0.00, 0.82), 'ɐ': (-0.03, 0.90),
+    'ɨ': (0.00, 0.40), 'ʉ': (0.00, 0.40), 'ɘ': (0.00, 0.70), 'ɵ': (0.00, 0.70),
+    'ə': (0.00, 0.70), 'ɜ': (0.00, 0.82), 'ɞ': (0.00, 0.82), 'ɐ': (-0.03, 0.90),
     'ɯ': (0.30, 0.40), 'u': (0.30, 0.40), 'ʊ': (0.30, 0.55), 'ɤ': (0.30, 0.70),
     'o': (0.30, 0.70), 'ʌ': (0.30, 0.85), 'ɔ': (0.30, 0.85), 'ɑ': (0.30, 1.00),
     'ɒ': (0.30, 1.00),
@@ -106,13 +106,19 @@ def aperture_of(v):
 def body_of(seg):
     """Secondary-constriction rule (SPEC-NEXT §3)."""
     if seg in ('ɧ',):
-        return 0.4                       # postalveolar + palatal secondary
+        return -0.4                      # postalveolar + VELAR secondary
+                                         # (IPA: simultaneous postalv.+velar)
     if is_click(V8[seg]):
         return -0.4                      # clicks: velar secondary closure
     return 0.0                           # default: no secondary constriction
 
 
-def larynx_of(v):
+def larynx_of(v, seg):
+    """larynx height: ejective +1 (raised), implosive -1 (lowered), else 0.
+    /ʔ/ is a glottal stop -- NOT an ejective -- so its v8 cg=1.0 must not
+    trigger the ejective rule."""
+    if seg == 'ʔ':
+        return 0.0
     if is_ejective(v):
         return 1.0                       # ejective: larynx raised
     if is_implosive(v):
@@ -147,16 +153,39 @@ def build():
         # --- body: secondary constriction
         x[1] = body_of(seg)
         is_vowel = seg in VOWEL_COL
-        # --- lips_closed: chain-neutral (only true bilabial closure)
-        x[2] = 0.0 if seg in LABIODENTAL or v[0] < 1.0 else 1.0
+        # --- lips_closed: bilabials 1.0; labiodentals 0.3 (lower lip on
+        # upper teeth -- partial lip involvement, not closure); rest 0
+        if seg in LABIODENTAL:
+            x[2] = 0.3
+        elif v[0] >= 1.0:
+            x[2] = 1.0
+        else:
+            x[2] = 0.0
         # --- lips_rounded: vowels keep v8 (rounding is core); consonants
         # keep rounding ONLY for inherently rounded ones (ɥ w ʍ) and the
         # sibilants ʃ ʒ (v8 used /ʃ/ rounding for s-ʃ; the confusion data
         # s-ʃ = 2.5% shows it is perceptually real).  Other consonants 0.
         ROUND_CONS = {'ɥ', 'w', 'ʍ', 'ʃ', 'ʒ'}
         x[3] = v[1] if is_vowel or seg in ROUND_CONS else 0.0
-        # --- tip_shape: inherit v8 tip_height
-        x[4] = v[3]
+        # --- tip_shape: inherit v8 tip_height with IPA fixes:
+        #   retroflex stops/nasal/affricates 0.8 (not 0.9 -- that's trill)
+        #   ɹ 0.7 (postalveolar approx, not 0.6 sibilant)
+        #   ɻ 0.8 / ɭ 0.7 (v8 had them swapped)
+        #   ʘ 1.0 (bilabial click closure), ǂ 0.6 (palatal click, no tip)
+        if seg in ('ʈ', 'ɖ', 'ɳ', 'ʈ͡ʂ', 'ɖ͡ʐ'):
+            x[4] = 0.8
+        elif seg == 'ɻ':
+            x[4] = 0.8
+        elif seg == 'ɭ':
+            x[4] = 0.7
+        elif seg == 'ɹ':
+            x[4] = 0.7
+        elif seg == 'ʘ':
+            x[4] = 1.0
+        elif seg == 'ǂ':
+            x[4] = 0.6
+        else:
+            x[4] = v[3]
         # --- tongue_root
         x[5] = v[5]
         # --- vel_open
@@ -168,25 +197,38 @@ def build():
         # --- glottal_aperture: cg/sg lookup
         x[9] = aperture_of(v)
         # --- glottal_tension: inherit v8 laryngeal_tension
-        x[10] = v[11]
+        x[10] = -0.6 if seg == 'ɦ' else v[11]   # ɦ breathy: tension -0.6 (v8 0.3)
         # --- larynx_height: ejective/implosive rule
-        x[11] = larynx_of(v)
+        x[11] = larynx_of(v, seg)
         # --- duration / jet_focus / area / airflow inherit
         x[12] = v[12]
         x[13] = v[13]
         x[14] = v[14] if not is_vowel else VOWEL_COL[seg][1]
         x[15] = v[15]
         # --- affricate composition: inherit fricative-phase rounding
+        # (area stays at the v8 affricate value -- t͡s 0.1 vs s 0.08 is an
+        # intended closure-phase distinction)
         if seg in AFFRICATE_FRIC and AFFRICATE_FRIC[seg] in out:
             x[3] = out[AFFRICATE_FRIC[seg]][3]   # rounding of the fricative
+        # ejective affricate t͡ʃʼ inherits ʃ rounding too
+        if seg == 't͡ʃʼ' and 't͡ʃ' in out:
+            x[3] = out['t͡ʃ'][3]
         # --- glide composition: semi-vowel inherits vowel partner's
         # tongue root (ATR) and lip shape; area slightly narrower
         if seg in GLIDE_PARTNER and GLIDE_PARTNER[seg] in out:
             pv = out[GLIDE_PARTNER[seg]]
             x[5] = pv[5]                    # tongue_root (ATR)
             x[3] = pv[3]                    # lip shape
-            x[14] = pv[14] - 0.10           # slightly narrower (approx)
+            # velar glide ɰ is wider than the others (v8 0.45): keep its
+            # extra openness rather than the uniform -0.10
+            x[14] = 0.35 if seg == 'ɰ' else pv[14] - 0.10
         out[seg] = [round(float(t), 3) for t in x]
+    # ɞ (central open-mid rounded vowel): IPA standard, absent from v8.
+    # Rounding partner of ɜ -- same place/area, lips +1.0.
+    if 'ɜ' in out:
+        x = list(out['ɜ'])
+        x[3] = 1.0
+        out['ɞ'] = [round(float(t), 3) for t in x]
     return out
 
 
