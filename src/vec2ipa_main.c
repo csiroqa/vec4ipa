@@ -64,6 +64,10 @@ int main(int argc, char **argv)
         if (m == 1) continue;
         if (m == -1) { fprintf(stderr, "vec2ipa: --metric needs a file\n"); return 1; }
         if (m == -2) return 1;
+        int sc = opt_scheme(argv[i], argc, argv, &i);
+        if (sc == 1) continue;
+        if (sc == -1) { fprintf(stderr, "vec2ipa: --scheme needs a file\n"); return 1; }
+        if (sc == -2) return 1;
         int cs = opt_charset(argv[i], argc, argv, &i);
         if (cs == 1) continue;
         if (cs == -1) { fprintf(stderr, "vec2ipa: --charset needs std|extipa|sinologist|all\n"); return 1; }

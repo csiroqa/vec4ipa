@@ -30,6 +30,7 @@ static void usage(void)
     printf("  -h, --help            this help\n");
     printf("  --width <0-4>          transcription narrowness (default 3; --ir only)\n");
     printf("  --metric FILE         load metric.json weights/lambda at runtime\n");
+    printf("  --scheme FILE         load custom dimension scheme (ndim/dim/weight/lambda)\n");
     printf("  --charset CLASS       enable reverse charset class (std|extipa|sinologist|all; default std; aliases ext, school, sino; --ir only)\n");
     printf("  -v, --version         version\n");
     printf("\nwith no STRING, input is read from stdin\n");
@@ -64,6 +65,10 @@ int main(int argc, char **argv)
         if (m == 1) continue;
         if (m == -1) { fprintf(stderr, "ipa2vec: --metric needs a file\n"); return 1; }
         if (m == -2) return 1;
+        int sc = opt_scheme(argv[i], argc, argv, &i);
+        if (sc == 1) continue;
+        if (sc == -1) { fprintf(stderr, "ipa2vec: --scheme needs a file\n"); return 1; }
+        if (sc == -2) return 1;
         int cs = opt_charset(argv[i], argc, argv, &i);
         if (cs == 1) continue;
         if (cs == -1) { fprintf(stderr, "ipa2vec: --charset needs std|extipa|sinologist|all\n"); return 1; }

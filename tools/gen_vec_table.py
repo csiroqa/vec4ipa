@@ -66,9 +66,9 @@ VOWEL_COL = {  # vowel -> (place, area)
     'i': (0.15, 0.40), 'y': (0.15, 0.40), 'ɪ': (0.15, 0.55), 'ʏ': (0.15, 0.55),
     'e': (0.15, 0.70), 'ɛ': (0.15, 0.85), 'æ': (0.15, 0.95),
     'ɶ': (0.15, 0.95),
-    'ø': (0.00, 0.70), 'œ': (0.00, 0.85), 'a': (0.00, 1.00),
+    'ø': (0.00, 0.70), 'œ': (0.00, 0.85), 'a': (0.03, 1.00),
     'ɨ': (0.00, 0.40), 'ʉ': (0.00, 0.40), 'ɘ': (0.00, 0.55), 'ɵ': (0.00, 0.55),
-    'ə': (0.00, 0.70), 'ɜ': (0.00, 0.85), 'ɐ': (0.00, 0.95),
+    'ə': (0.00, 0.70), 'ɜ': (0.00, 0.82), 'ɐ': (-0.03, 0.90),
     'ɯ': (0.30, 0.40), 'u': (0.30, 0.40), 'ʊ': (0.30, 0.55), 'ɤ': (0.30, 0.70),
     'o': (0.30, 0.70), 'ʌ': (0.30, 0.85), 'ɔ': (0.30, 0.85), 'ɑ': (0.30, 1.00),
     'ɒ': (0.30, 1.00),
@@ -127,6 +127,11 @@ AFFRICATE_FRIC = {'t͡s': 's', 'd͡z': 'z', 't͡ʃ': 'ʃ', 'd͡ʒ': 'ʒ',
                   't͡ɕ': 'ɕ', 'd͡ʑ': 'ʑ', 'ʈ͡ʂ': 'ʂ', 'ɖ͡ʐ': 'ʐ',
                   'k͡x': 'x', 'q͡χ': 'χ'}
 
+# glides (semi-vowels) are the NON-SYLLABIC forms of their vowel partner:
+# same tongue root (ATR) and lip shape, slightly narrower constriction
+# (physical: approximant < vowel area).  j=i, ɥ=y, w=u, ɰ=ɯ.
+GLIDE_PARTNER = {'j': 'i', 'ɥ': 'y', 'w': 'u', 'ɰ': 'ɯ'}
+
 
 def build():
     out = {}
@@ -174,6 +179,13 @@ def build():
         # --- affricate composition: inherit fricative-phase rounding
         if seg in AFFRICATE_FRIC and AFFRICATE_FRIC[seg] in out:
             x[3] = out[AFFRICATE_FRIC[seg]][3]   # rounding of the fricative
+        # --- glide composition: semi-vowel inherits vowel partner's
+        # tongue root (ATR) and lip shape; area slightly narrower
+        if seg in GLIDE_PARTNER and GLIDE_PARTNER[seg] in out:
+            pv = out[GLIDE_PARTNER[seg]]
+            x[5] = pv[5]                    # tongue_root (ATR)
+            x[3] = pv[3]                    # lip shape
+            x[14] = pv[14] - 0.10           # slightly narrower (approx)
         out[seg] = [round(float(t), 3) for t in x]
     return out
 

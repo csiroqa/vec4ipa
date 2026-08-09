@@ -31,13 +31,16 @@ endif
 
 all: $(TARGETS)
 
-ipa2vec$(EXE_SUFFIX): $(SRC)/ipa2vec_main.c $(VECTORS_H)
+CORE := $(SRC)/ipa2vec_core.h
+SCHEME ?=   # set SCHEME=tools/data/spec_next.scheme to build with a custom scheme
+
+ipa2vec$(EXE_SUFFIX): $(SRC)/ipa2vec_main.c $(VECTORS_H) $(CORE)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SRC)/ipa2vec_main.c
 
-vec2ipa$(EXE_SUFFIX): $(SRC)/vec2ipa_main.c $(VECTORS_H)
+vec2ipa$(EXE_SUFFIX): $(SRC)/vec2ipa_main.c $(VECTORS_H) $(CORE)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SRC)/vec2ipa_main.c
 
-vec4ipa$(EXE_SUFFIX): $(SRC)/vec4ipa_main.c $(SRC)/readme_embed.h $(VECTORS_H)
+vec4ipa$(EXE_SUFFIX): $(SRC)/vec4ipa_main.c $(SRC)/readme_embed.h $(VECTORS_H) $(CORE)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SRC)/vec4ipa_main.c
 
 # Win32 GUI wrapper (Windows only) — lives in ui/
@@ -55,8 +58,8 @@ ui/app.res: ui/app.rc ui/vec_ipa.ico ipa2vec$(EXE_SUFFIX) vec2ipa$(EXE_SUFFIX) v
 $(SRC)/readme_embed.h: tools/gen_readme_embed.py README.md
 	$(PYTHON) tools/gen_readme_embed.py
 
-$(VECTORS_H): tools/gen_vectors_h.py IPA_VECTORS.md metric.json src/names.tsv
-	$(PYTHON) tools/gen_vectors_h.py
+$(VECTORS_H): tools/gen_vectors_h.py IPA_VECTORS.md metric.json src/names.tsv $(SCHEME)
+	$(PYTHON) tools/gen_vectors_h.py $(if $(SCHEME),--scheme $(SCHEME),)
 
 gen: $(VECTORS_H) $(SRC)/readme_embed.h
 
