@@ -4,8 +4,8 @@
  * Usage:
  *   vec4ipa [OPTIONS]
  *
- *   -i, --information      the full documentation (embedded README)
- *   -h, --help             this help
+ *   -i, --information      repository, license, feature overview
+ *   -R, --readme          full README.md (embedded)
  *   -t, --table            full base table (main + extIPA bases)
  *   -m, --modules          regional modules and their symbols
  *   -q, --query <SYM>      query one symbol
@@ -17,7 +17,7 @@
  *   -j, --json <STRING>    forward IPA -> vectors, JSON output
  *   -e, --ir <STRING>      forward IPA -> vectors, two-layer IR
  *   -o, --output FILE      write output to FILE
- *   -x, --ir-out BASE      export IR to BASE.layer1/.layer2
+ *   -x/-X, --layers-out BASE export layers to BASE.layer1/.layer2 (alias --ir-out)
  *   -v, --version          version
  *
  * With no input string, forward direction reads from stdin.
@@ -144,11 +144,13 @@ static void usage(void)
     printf("usage:\n");
     printf("  vec4ipa [OPTIONS]\n");
     printf("\noptions:\n");
-    printf("  -i, --information      full documentation (embedded README)\n");
-    printf("  -h, --help             this help\n");
-    printf("  --width <0-4>          transcription narrowness (default 3)\n");
-    printf("  --metric FILE          load metric.json weights/lambda at runtime\n");
-    printf("  --charset CLASS        enable reverse charset class (std|extipa|sinologist|all; default std; aliases ext, school, sino)\n");
+    printf("  -i, --information     repository, license, feature overview\n");
+    printf("  -R, --readme          full README.md (embedded)\n");
+    printf("  -N, --narrowness=LEVEL transcription narrowness: broadest|broad|medium|narrow (default)|narrowest (or 0-4; alias --width)\n");
+    printf("  -M, --metric FILE     load metric.json weights/lambda at runtime\n");
+    printf("  -D, --scheme FILE     load custom dimension scheme (ndim/dim/weight/lambda)\n");
+    printf("  -S, --symbols=CLASS   reverse output symbols: standard|extipa|sinologist|all (aliases std, ext, school, sino; alias --charset; repeatable)\n");
+    printf("  -P, --spacing=NAME    modifier spacing: binary (default)|ternary|2:1:2|1:x:1|X (alias --mode)\n");
     printf("  -t, --table            full base table\n");
     printf("  -m, --modules          regional modules\n");
     printf("  -q, --query SYM        query a symbol\n");
@@ -158,9 +160,9 @@ static void usage(void)
     printf("  -n, --nearest VEC      nearest base segment only\n");
     printf("  -d, --distance A B     weighted distance\n");
     printf("  -j, --json STRING      forward IPA -> vectors, JSON\n");
-    printf("  -e, --ir STRING        forward IPA -> vectors, two-layer IR\n");
+    printf("  -e/-L, --layers STRING forward IPA -> vectors, two-layer tier decomposition (alias --ir)\n");
     printf("  -o, --output FILE      write output to FILE\n");
-    printf("  -x, --ir-out BASE      export IR to BASE.layer1/.layer2\n");
+    printf("  -x/-X, --layers-out BASE export layers to BASE.layer1/.layer2 (alias --ir-out)\n");
     printf("  -v, --version          version\n");
     printf("\nwith no input string, forward direction reads from stdin\n");
 }
@@ -200,7 +202,7 @@ int main(int argc, char **argv)
         if (opt_school(argv[i])) continue;
         int w = opt_width(argv[i], argc, argv, &i);
         if (w == 1) continue;
-        if (w == -1) { fprintf(stderr, "vec4ipa: --width needs 0-4\n"); return 1; }
+        if (w == -1) { fprintf(stderr, "vec4ipa: --narrowness needs broadest|broad|medium|narrow|narrowest|0-4\n"); return 1; }
         int m = opt_metric(argv[i], argc, argv, &i);
         if (m == 1) continue;
         if (m == -1) { fprintf(stderr, "vec4ipa: --metric needs a file\n"); return 1; }
@@ -211,8 +213,12 @@ int main(int argc, char **argv)
         if (sc == -2) return 1;
         int cs = opt_charset(argv[i], argc, argv, &i);
         if (cs == 1) continue;
-        if (cs == -1) { fprintf(stderr, "vec4ipa: --charset needs std|extipa|sinologist|all\n"); return 1; }
-        if (opt_match(argv[i], "-i", "--information")) { note_ignored_inputs(argv[i], dist_mode, vecstr, json, ir, query); printf("%s", EMBEDDED_README); return 0; }
+        if (cs == -1) { fprintf(stderr, "vec4ipa: --symbols needs standard|extipa|sinologist|all\n"); return 1; }
+        int ms = opt_mod_spacing(argv[i], argc, argv, &i);
+        if (ms == 1) continue;
+        if (ms == -1) { fprintf(stderr, "vec4ipa: --spacing needs binary|ternary|2:1:2|1:x:1|0-10\n"); return 1; }
+        if (opt_match(argv[i], "-i", "--information")) { note_ignored_inputs(argv[i], dist_mode, vecstr, json, ir, query); print_info("vec4ipa"); return 0; }
+        if (opt_match(argv[i], "-R", "--readme")) { note_ignored_inputs(argv[i], dist_mode, vecstr, json, ir, query); printf("%s", EMBEDDED_README); return 0; }
         if (opt_match(argv[i], "-v", "--version")) {
             printf("vec4ipa %s (%d base segments + %d extIPA bases, %d modifiers)\n",
                    IPA2VEC_VERSION, NSEG, N_EXTRA, NMODS);
@@ -223,7 +229,7 @@ int main(int argc, char **argv)
         if (opt_match(argv[i], "-s", "--stats")) { note_ignored_inputs(argv[i], dist_mode, vecstr, json, ir, query); print_stats(); return 0; }
         if (opt_match(argv[i], "-w", "--weights")) { note_ignored_inputs(argv[i], dist_mode, vecstr, json, ir, query); print_weights(); return 0; }
         if (opt_match(argv[i], "-j", "--json")) { json = 1; if (i + 1 < argc) str = argv[++i]; else { fprintf(stderr, "vec4ipa: -j/--json needs a string\n"); return 1; } continue; }
-        if (opt_match(argv[i], "-e", "--ir")) { ir = 1; if (i + 1 < argc) str = argv[++i]; else { fprintf(stderr, "vec4ipa: -e/--ir needs a string\n"); return 1; } continue; }
+        if (opt_match(argv[i], "-e", "--ir") || opt_match(argv[i], "-L", "--layers")) { ir = 1; if (i + 1 < argc) str = argv[++i]; else { fprintf(stderr, "vec4ipa: -e/--layers needs a string\n"); return 1; } continue; }
         if (opt_match(argv[i], "-n", "--nearest")) { nearest_only = 1; if (i + 1 < argc) vecstr = argv[++i]; else { fprintf(stderr, "vec4ipa: -n/--nearest needs a vector\n"); return 1; } continue; }
         if (opt_match(argv[i], "-r", "--reverse")) { reverse_given = 1; if (i + 1 < argc) vecstr = argv[++i]; else { fprintf(stderr, "vec4ipa: -r/--reverse needs a vector\n"); return 1; } continue; }
         if (opt_match(argv[i], "-d", "--distance")) { dist_mode = 1; if (i + 2 < argc) { seg_a = argv[++i]; seg_b = argv[++i]; } else { fprintf(stderr, "vec4ipa: -d/--distance needs two segments\n"); return 1; } continue; }
@@ -232,6 +238,9 @@ int main(int argc, char **argv)
         if (r == 1) { outfile = val; continue; }
         if (r == -1) { fprintf(stderr, "vec4ipa: %s needs a file\n", argv[i]); return 1; }
         r = opt_match_val(argv[i], "-x", "--ir-out", &val, argc, argv, &i);
+        if (r == 1) { irbase = val; continue; }
+        if (r == -1) { fprintf(stderr, "vec4ipa: %s needs a base name\n", argv[i]); return 1; }
+        r = opt_match_val(argv[i], "-X", "--layers-out", &val, argc, argv, &i);
         if (r == 1) { irbase = val; continue; }
         if (r == -1) { fprintf(stderr, "vec4ipa: %s needs a base name\n", argv[i]); return 1; }
         if ((no_more_opts || argv[i][0] != '-') && !str && !vecstr) { str = argv[i]; continue; }

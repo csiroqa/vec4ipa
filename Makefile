@@ -34,10 +34,10 @@ all: $(TARGETS)
 CORE := $(SRC)/ipa2vec_core.h
 SCHEME ?= tools/data/spec_next.scheme   # default build = SPEC-NEXT 16-D scheme
 
-ipa2vec$(EXE_SUFFIX): $(SRC)/ipa2vec_main.c $(VECTORS_H) $(CORE)
+ipa2vec$(EXE_SUFFIX): $(SRC)/ipa2vec_main.c $(SRC)/readme_embed.h $(VECTORS_H) $(CORE)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SRC)/ipa2vec_main.c
 
-vec2ipa$(EXE_SUFFIX): $(SRC)/vec2ipa_main.c $(VECTORS_H) $(CORE)
+vec2ipa$(EXE_SUFFIX): $(SRC)/vec2ipa_main.c $(SRC)/readme_embed.h $(VECTORS_H) $(CORE)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SRC)/vec2ipa_main.c
 
 vec4ipa$(EXE_SUFFIX): $(SRC)/vec4ipa_main.c $(SRC)/readme_embed.h $(VECTORS_H) $(CORE)

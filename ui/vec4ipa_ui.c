@@ -7,7 +7,7 @@
  *
  * Features:
  *   - IPA string -> 16-D vectors (forward)
- *   - 16-D vector -> IPA (reverse fit, --width 0-4)
+ *   - 16-D vector -> IPA (reverse fit, --narrowness or --width 0-4)
  *   - symbol query (base / extIPA / modifier / alias)
  *   - IPA on-screen keyboard (consonants / vowels / modifiers / tones)
  *   - File > Export command lines...  (copy / save .bat)
@@ -444,7 +444,7 @@ static void build_export_text(wchar_t *buf, size_t cap)
         L"# tools directory: %s\r\n"
         L"\r\n"
         L":: ipa2vec  - IPA -> 16-D vectors (with IR + rebuilt demo)\r\n"
-        L"\"%sipa2vec.exe\" --width 3 -i \"\\\"\\u02c8t\\u02b0a\\\"\"\r\n"
+        L"\"%sipa2vec.exe\" --width 3 -L \"\\\"\\u02c8t\\u02b0a\\\"\"\r\n"
         L"\r\n"
         L":: vec2ipa  - 16-D vector -> IPA (reverse fit)\r\n"
         L"\"%svec2ipa.exe\" --width 3 \"0.0,0.0,0.55,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,0.0,0.0,0.0,0.0,1.0\"\r\n"

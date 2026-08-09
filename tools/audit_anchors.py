@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""SPEC-NEXT anchor-space audit: detect ANOMALOUS / counter-intuitive distances.
+"""SPEC-NEXT 16-D anchor-space audit: detect ANOMALOUS / counter-intuitive distances.
 
-Rebuilds the 13-dim SPEC-NEXT vector table from the v8 base table + the
-13 extIPA EXTRA_BASE entries (place axis + glottal_state merge + chain-
-neutral lip/tip fixes), then flags:
+Rebuilds the 16-dim vector table from the generated src/vectors.h (133
+base segments, produced by gen_vectors_h.py from spec_next.scheme) plus
+the 13 extIPA EXTRA_BASE entries (kept in sync with ipa2vec_core.h), plus
+the few derived segments the checks need (e̞ = e+lowered, aː = a+long,
+ã = a+nasal, mirroring the modifier functions in ipa2vec_core.h), then
+flags:
 
   1. near-collisions            -- pairs below the resolvability floor (0.6)
   2. counter-intuitive distances -- pairs whose ORDER contradicts
@@ -16,7 +19,8 @@ neutral lip/tip fixes), then flags:
            velopharyngeal ʩ must sit sensibly vs their nearest neighbours.
   3. chain-step distortions     -- fricative place chain uniformity.
 
-Fixes are suggested per finding.  Run:  python tools/audit_anchors.py
+Distances use the scheme's own 16-dim weights (spec_next.scheme weight
+line).  Run:  python tools/audit_anchors.py
 """
 
 import os
@@ -25,147 +29,83 @@ import json
 
 import numpy as np
 
-from explore_dims import PLACE_ANCHOR
-
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-VECTORS_MD = os.path.join(ROOT, 'IPA_VECTORS.md')
+VECTORS_H = os.path.join(ROOT, 'src', 'vectors.h')
 PHATAK = os.path.join(ROOT, 'tools', 'data', 'phatak08_cm.json')
 
-NDIM = 13
-DIMS = ['place', 'lips_closed', 'lips_rounded', 'tip_shape', 'tongue_root',
-        'vel_open', 'lateral_ratio', 'voiced', 'glottal_state', 'duration',
+# spec_next.scheme dim order and weights (weight line, 16 numbers).
+NDIM = 16
+DIMS = ['place', 'body', 'lips_closed', 'lips_rounded', 'tip_shape',
+        'tongue_root', 'vel_open', 'lateral_ratio', 'voiced',
+        'glottal_aperture', 'glottal_tension', 'larynx_height', 'duration',
         'jet_focus', 'effective_oral_area', 'airflow_direction']
-
-PROV_W = np.array([25.0, 1.5, 3.0, 1.7, 3.0, 3.7, 2.0, 1.5, 8.0,
-                   2.9, 2.7, 4.6, 4.0])
+W = np.array([30.0, 1.0, 0.5, 8.0, 5.0, 2.0, 6.7, 1.0, 2.0, 1.1,
+              1.0, 1.0, 25.0, 8.0, 16.0, 1.0])
 
 FRIC_CHAIN = 'ɸ f θ s ʃ ɕ ʂ ç x χ ħ ʜ h'.split()
 
-# vowel place derived by RULE from v8 body_pos (SPEC-NEXT §3):
-#   body >= 0: place = 0.500 + 0.083*body
-#   body <  0: place = 0.500 - 0.333*body
-# computed at rebuild time -- no hand-picked values.
-VOWEL_BACK = None  # filled in rebuild()
-
-# extIPA / IPA2018 EXTRA_BASE: (name, v8-16d vector) from ipa2vec_core.h
+# extIPA / IPA2018 EXTRA_BASE: (name, 16-D vector) from ipa2vec_core.h.
+# Order: place, body, lips_closed, lips_rounded, tip_shape, tongue_root,
+# vel_open, lateral_ratio, voiced, glottal_aperture, glottal_tension,
+# larynx_height, duration, jet_focus, effective_oral_area, airflow_direction.
 EXTRA = {
-    'ᴇ':  [0.0, 0.0, 0.55, 0.1, 1.0, -0.2, 0.0, 0.0, 1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0],
-    'ɚ':  [0.0, 0.0, 0.55, 0.45, 0.0, 0.0, 0.0, 0.0, 1.0, 0.2, 0.0, 0.3, 1.0, 0.0, 0.65, 1.0],
-    'ɞ':  [0.0, 1.0, 0.55, 0.25, 0.0, 0.1, 0.0, 0.0, 1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.85, 1.0],
-    'ɝ':  [0.0, 0.0, 0.55, 0.35, 0.0, 0.1, 0.0, 0.0, 1.0, 0.2, 0.0, 0.5, 1.0, 0.0, 0.85, 1.0],
-    'ʬ':  [1.0, 0.0, 0.55, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.1, 0.0, 0.0, 0.0],
-    'ʭ':  [0.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.1, 0.0, 0.0, 0.0],
-    'ʩ':  [0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 1.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.6, 0.0, 0.09, 1.0],
-    'ꞎ':  [0.0, 0.0, 0.1, 0.8, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.4, 0.0, 0.9, 0.5, 0.08, 1.0],
-    'ᶑ':  [0.0, 0.0, 0.1, 0.9, 0.0, 0.0, 0.0, 0.0, 1.0, 0.55, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0],
-    'ȶ':  [0.0, 0.0, 0.35, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0, 1.0],
-    'ȡ':  [0.0, 0.0, 0.35, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-    'ȵ':  [0.0, 0.0, 0.35, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
-    'ȴ':  [0.0, 0.0, 0.35, 0.7, 0.0, 0.0, 0.0, 1.0, 1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.5, 1.0],
+    'ᴇ':  [0.15, 0.0, 0.0, 0.0, 0.25, -0.2, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0],
+    'ɚ':  [0.0, 0.0, 0.0, 0.0, 0.45, 0.0, 0.0, 0.0, 1.0, 0.0, 0.3, 0.0, 1.0, 0.0, 0.65, 1.0],
+    'ɞ':  [0.0, 0.0, 0.0, 1.0, 0.25, 0.1, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.8, 1.0],
+    'ɝ':  [0.0, 0.0, 0.0, 0.0, 0.35, 0.1, 0.0, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0, 0.0, 0.8, 1.0],
+    'ʬ':  [-0.9, 0.0, 1.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0],
+    'ʭ':  [-0.6, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0],
+    'ʩ':  [0.3, -0.5, 0.0, 0.0, 0.25, 0.0, 1.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.6, 0.0, 0.09, 1.0],
+    'ꞎ':  [0.0, 0.0, 0.0, 0.0, 0.8, 0.0, 0.0, 1.0, 0.0, 0.4, 0.0, 0.0, 0.9, 0.5, 0.08, 1.0],
+    'ᶑ':  [0.0, 0.0, 0.0, 0.0, 0.9, 0.0, 0.0, 0.0, 1.0, -0.55, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0],
+    'ȶ':  [-0.40, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    'ȡ':  [-0.40, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    'ȵ':  [-0.40, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
+    'ȴ':  [-0.40, 0.0, 0.0, 0.0, 0.7, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.5, 1.0],
 }
-EXTRA_PLACE = {'ᴇ': 0.583, 'ɚ': 0.500, 'ɞ': 0.500, 'ɝ': 0.500,
-               'ʬ': 0.000, 'ʭ': 0.167, 'ʩ': 0.667, 'ꞎ': 0.500,
-               'ᶑ': 0.500,
-               # ȶ ȡ ȵ ȴ: code comment pins tip_pos 0.35 so the standard
-               # fallback lands on /t/ (0.250), not the retroflex /ʈ/;
-               # mirror that intent (dental-alveolar edge, not 龈齶 0.417)
-               'ȶ': 0.250, 'ȡ': 0.250, 'ȵ': 0.250, 'ȴ': 0.250}
 
 
-def gs_of(v):
-    """SPEC-NEXT §4 glottal_state lookup from v8 (cg, sg) -- NOT sg-cg.
-    Exact anchors from §4; intermediates by region."""
-    cg, sg = v[9], v[10]
-    if sg >= 0.55:
-        return sg                      # breathy/aspirated side: 0.55/0.7/0.9/1.0
-    if cg == 0.0 and sg == 0.4:
-        return 0.4                     # voiceless unaspirated
-    if cg == 0.2 and sg == 0.0:
-        return 0.0                     # modal voiced
-    if cg == 0.55:
-        return -0.55                   # implosive constriction
-    if cg == 0.7:
-        return -0.7                    # creaky
-    if cg >= 0.9:
-        return -1.0                    # glottal stop / ejective hold
-    return sg - cg                     # fallback (unlisted combinations)
-
-
-def to13(v8):
-    """v8 16-D row -> SPEC-NEXT 13-D row.
-    Chain-neutral fixes: lip closure ONLY for bilabials (labiodental
-    f/v/p̪/ɱ/ⱱ get lips_closed=0); the SIBILANT rounding that v8 used to
-    encode s-vs-ʃ is removed (SPEC-NEXT §3 moves it to the place axis) --
-    but VOWEL rounding (i-vs-y, u-vs-ɯ) is a core vowel feature and kept.
-    glottal_state by the §4 lookup table."""
-    v = [float(x) for x in v8]
-    x = np.zeros(NDIM)
-    x[1] = 0.0 if v[0] < 1.0 else 1.0      # lip closure only for bilabial
-    is_vowel = v[8] >= 0.5 and v[14] >= 0.4 and v[12] >= 1.0
-    is_sibilant = v[13] >= 0.5              # jet_focus marks sibilants
-    x[2] = v[1] if is_vowel else 0.0        # keep vowel rounding, drop sibilant
-    x[3] = v[3]
-    x[4] = v[5]
-    x[5] = v[6]
-    x[6] = v[7]
-    x[7] = v[8]
-    x[8] = gs_of(v)                         # §4 lookup, not sg - cg
-    x[9] = v[12]
-    x[10] = v[13]
-    x[11] = v[14]
-    x[12] = v[15]
-    return x
-
-
-def rebuild():
+def _parse_vectors_h():
+    """All base rows from the generated table: {ipa: 16-list}."""
     rows = {}
-    pat = re.compile(r"^`/([^/`]*)/`: `\((.*)\)`")
-    for line in open(VECTORS_MD, encoding='utf-8'):
-        m = pat.match(line.strip())
-        if m and len(m.group(2).split(',')) == 16:
-            rows[m.group(1)] = [float(x.strip())
-                                for x in m.group(2).replace('+', '').split(',')]
-    # vowel place from the v8 body_pos rule (SPEC-NEXT §3)
-    def vplace(body):
-        return 0.500 + 0.083 * body if body >= 0 else 0.500 - 0.333 * body
-    global VOWEL_BACK
-    VOWEL_BACK = {}
-    for seg, v in rows.items():
-        if v[8] >= 0.5 and v[14] >= 0.4 and v[12] >= 1.0 and seg not in PLACE_ANCHOR:
-            VOWEL_BACK[seg] = vplace(v[4])
+    for line in open(VECTORS_H, encoding='utf-8'):
+        m = re.search(r'\{ "([^"]+)", \{([^}]+)\}, 0 \}', line)
+        if m:
+            rows[m.group(1)] = [float(x) for x in m.group(2).split(',')]
+    return rows
+
+
+def _derived(rows):
+    """Derived segments used by the checks, mirroring ipa2vec_core.h
+    modifier functions (mod_lowered: eoa+0.1 capped; mod_long: dur 1.0-1.2
+    -> 2.0; mod_nasal: vel_open 0.6)."""
+    EOA, VEL, DUR = 14, 6, 12
     out = {}
-    for seg, v in rows.items():
-        x = to13(v)
-        if seg in PLACE_ANCHOR:
-            x[0] = PLACE_ANCHOR[seg]
-        elif seg in VOWEL_BACK:
-            x[0] = VOWEL_BACK[seg]
-        elif seg == 'ʋ':
-            x[0] = 0.083
-        else:
-            raise KeyError(f'no place for {seg!r}')
-        out[seg] = x
-    for seg, v in EXTRA.items():
-        x = to13(v)
-        x[0] = EXTRA_PLACE[seg]
-        out[seg] = x
+    v = list(rows['e']); v[EOA] = min(1.0, v[EOA] + 0.1); out['e̞'] = v
+    v = list(rows['a']); v[DUR] = 2.0; out['aː'] = v
+    v = list(rows['a']); v[VEL] = 0.6; out['ã'] = v
     return out
 
 
-def is_vowel(seg):
-    return seg in VOWEL_BACK or seg in ('ᴇ', 'ɚ', 'ɞ', 'ɝ')
+def rebuild():
+    rows = _parse_vectors_h()
+    rows.update(_derived(rows))
+    for seg, v in EXTRA.items():
+        rows[seg] = list(v)
+    return rows
 
 
 def main():
     vecs = rebuild()
     names = list(vecs)
     X = np.array([vecs[n] for n in names])
-    d2 = ((X[:, None, :] - X[None, :, :]) ** 2) * PROV_W
+    d2 = ((X[:, None, :] - X[None, :, :]) ** 2) * W
     D = np.sqrt(d2.sum(axis=2))
     np.fill_diagonal(D, np.inf)
 
     print(f'SPEC-NEXT anchor audit: {len(names)} segments '
-          f'({len(names)-len(EXTRA)} IPA + {len(EXTRA)} extIPA), {NDIM} dims\n')
+          f'({len(names)-len(EXTRA)} base + {len(EXTRA)} extIPA), '
+          f'{NDIM} dims (spec_next weights)\n')
 
     # ---- 1. near collisions ----
     print('=== 1. near-collisions (d < 0.6) ===')

@@ -47,7 +47,7 @@ _nearest_cache = {}
 def nearest_vec(v, charsets=()):
     key = (tuple(v), tuple(charsets))
     if key not in _nearest_cache:
-        args = [a for cs in charsets for a in ("--charset", cs)]
+        args = [a for cs in charsets for a in ("--symbols", cs)]
         r = run(VEC2IPA, args + ["-n", fmt_vec(v)])
         _nearest_cache[key] = (r.stdout.split("  ")[0]
                                if r.returncode == 0 else "ERR")
@@ -160,10 +160,10 @@ for ipa, want in DOC:
 # ʩ (velopharyngeal fricative) is the only voiceless nasal fricative
 # base; x̃ is velar voiceless nasalised — a place-exact match.  ʩ is in
 # the extipa charset class: default std falls back to /x/ (the rebuild
-# still spells x̃), --charset extipa reaches the ʩ target.
+# still spells x̃), --symbols extipa reaches the ʩ target.
 check("documented x̃ -> /x/ under default std charset",
       nearest_base("x̃") == "x", f"-> {nearest_base('x̃')}")
-check("documented x̃ -> /ʩ/ with --charset extipa",
+check("documented x̃ -> /ʩ/ with --symbols extipa",
       nearest_vec(vector_of("x̃"), ("extipa",)) == "/ʩ/", "")
 
 # ------------------------------------------------------------------
@@ -227,7 +227,7 @@ for inp, want in TONE_CASES:
 # 6. reverse uses standard IPA only (no ȶ ȡ ȵ ȴ ᴇ)
 # ------------------------------------------------------------------
 # ᴇ (lowered e, small-cap display letter) -> standard spelling e̞
-E_VEC = [0.0, 0.0, 0.55, 0.1, 1.0, -0.2, 0.0, 0.0, 1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0]
+E_VEC = [0.15, 0.0, 0.0, 0.0, 0.25, -0.2, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0]
 check("ᴇ vector nearest is e", nearest_base("e̞") != "ERR" and
       nearest_vec(E_VEC) == "/e/",
       run(VEC2IPA, ["-n", fmt_vec(E_VEC)]).stdout.splitlines()[0][:40])
@@ -240,15 +240,15 @@ for curl, fallback in (("ȶ", "/t/"), ("ȡ", "/d/"), ("ȵ", "/n/"), ("ȴ", "/l/"
     nb = nearest_vec(vector_of(curl))
     check(f"{curl} vector not rebuilt as {curl} by default", nb != f"/{curl}/", nb)
     check(f"{curl} vector falls back to {fallback}", nb == fallback, nb)
-# --charset is repeatable and accumulates; any combination is allowed
-check("--charset sinologist allows ȶ",
+# --symbols is repeatable and accumulates; any combination is allowed
+check("--symbols sinologist allows ȶ",
       nearest_vec(vector_of("ȶ"), ("sinologist",)) == "/ȶ/", "")
-check("--charset sinologist allows ᴇ (small-cap is Sinologist)",
+check("--symbols sinologist allows ᴇ (small-cap is Sinologist)",
       nearest_vec(E_VEC, ("sinologist",)) == "/ᴇ/", "")
 check("standard rhotacised ɝ kept under any charset",
       nearest_vec(vector_of("ɝ")) == "/ɝ/"
       and nearest_vec(vector_of("ɝ"), ("std",)) == "/ɝ/", "")
-check("extIPA ʬ gated by default (std), enabled by --charset extipa",
+check("extIPA ʬ gated by default (std), enabled by --symbols extipa",
       nearest_vec(vector_of("ʬ")) != "/ʬ/"
       and nearest_vec(vector_of("ʬ"), ("extipa",)) == "/ʬ/", "")
 check("--charset std + sinologist: combo without extIPA",

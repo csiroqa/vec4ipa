@@ -8,6 +8,8 @@
  *   -n, --nearest <VEC>   nearest base segment only
  *   -d, --distance <A> <B>  weighted distance (Mahalanobis + airstream)
  *   -o, --output FILE     write output to FILE
+ *   -i, --information     repository, license, feature overview
+ *   -R, --readme          full README.md (embedded)
  *   -h, --help            this help
  *   -v, --version         version
  *
@@ -16,6 +18,7 @@
  */
 
 #include "ipa2vec_core.h"
+#include "readme_embed.h"
 
 static void usage(void)
 {
@@ -27,9 +30,12 @@ static void usage(void)
     printf("  -n, --nearest <VEC>    nearest base segment only\n");
     printf("  -d, --distance <A> <B> weighted distance\n");
     printf("  -o, --output FILE      write output to FILE\n");
-    printf("  --width <0-4>          transcription narrowness (default 3)\n");
-    printf("  --metric FILE          load metric.json weights/lambda at runtime\n");
-    printf("  --charset CLASS        enable reverse charset class (std|extipa|sinologist|all; default std; aliases ext, school, sino)\n");
+    printf("  -N, --narrowness=LEVEL transcription narrowness: broadest|broad|medium|narrow (default)|narrowest (or 0-4; alias --width)\n");
+    printf("  -M, --metric FILE     load metric.json weights/lambda at runtime\n");
+    printf("  -S, --symbols=CLASS   reverse output symbols: standard|extipa|sinologist|all (aliases std, ext, school, sino; alias --charset; repeatable)\n");
+    printf("  -P, --spacing=NAME    modifier spacing: binary (default)|ternary|2:1:2|1:x:1|X (alias --mode)\n");
+    printf("  -i, --information     repository, license, feature overview\n");
+    printf("  -R, --readme          full README.md (embedded)\n");
     printf("  -h, --help             this help\n");
     printf("  -v, --version          version\n");
     printf("\nwith no vector, input is read from stdin\n");
@@ -56,10 +62,12 @@ int main(int argc, char **argv)
         const char *val = NULL;
         if (!no_more_opts && strcmp(argv[i], "--") == 0) { no_more_opts = 1; continue; }
         if (opt_match(argv[i], "-h", "--help")) { usage(); return 0; }
+        if (opt_match(argv[i], "-i", "--information")) { print_info("vec2ipa"); return 0; }
+        if (opt_match(argv[i], "-R", "--readme")) { printf("%s", EMBEDDED_README); return 0; }
         if (opt_school(argv[i])) continue;
         int w = opt_width(argv[i], argc, argv, &i);
         if (w == 1) continue;
-        if (w == -1) { fprintf(stderr, "vec2ipa: --width needs 0-4\n"); return 1; }
+        if (w == -1) { fprintf(stderr, "vec2ipa: --narrowness needs broadest|broad|medium|narrow|narrowest|0-4\n"); return 1; }
         int m = opt_metric(argv[i], argc, argv, &i);
         if (m == 1) continue;
         if (m == -1) { fprintf(stderr, "vec2ipa: --metric needs a file\n"); return 1; }
@@ -70,7 +78,10 @@ int main(int argc, char **argv)
         if (sc == -2) return 1;
         int cs = opt_charset(argv[i], argc, argv, &i);
         if (cs == 1) continue;
-        if (cs == -1) { fprintf(stderr, "vec2ipa: --charset needs std|extipa|sinologist|all\n"); return 1; }
+        if (cs == -1) { fprintf(stderr, "vec2ipa: --symbols needs standard|extipa|sinologist|all\n"); return 1; }
+        int ms = opt_mod_spacing(argv[i], argc, argv, &i);
+        if (ms == 1) continue;
+        if (ms == -1) { fprintf(stderr, "vec2ipa: --spacing needs binary|ternary|2:1:2|1:x:1|0-10\n"); return 1; }
         if (opt_match(argv[i], "-v", "--version")) {
             printf("vec2ipa %s (16-D vectors, %d base segments, lambda=%.2f)\n",
                    IPA2VEC_VERSION, NSEG, METRIC_LAMBDA);

@@ -70,7 +70,7 @@ Output: `ui\winui\dist\` — a self-contained folder with
 
 ```
 vec4ipa_ui [OPTIONS] [IPA-STRING]
-  --width 0-4          reverse-fit narrowness (default 3)
+  --narrowness LEVEL    reverse-fit narrowness (broadest|broad|medium|narrow|narrowest, or 0-4; alias --width; default narrow)
   -q, --query SYM      query one symbol on startup
   -r, --reverse VEC    16-D vector -> IPA on startup
   --theme system|light|dark

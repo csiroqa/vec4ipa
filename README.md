@@ -68,34 +68,38 @@ faces when the folder is absent; no font installation is required.
 
 ```
 ipa2vec <STRING>            parse each segment -> vectors
-ipa2vec -i <STRING>         show the two-layer IR, then rebuild IPA (inverse demo)
+ipa2vec -L <STRING>         two-layer tier decomposition, then rebuild IPA (inverse demo; alias --ir)
 ipa2vec -j <STRING>         JSON output
-ipa2vec --metric FILE       load metric.json weights/lambda at runtime
+ipa2vec -M FILE             load metric.json weights/lambda at runtime (or --metric FILE)
 ipa2vec -v                  version
 
 vec2ipa <V0,...,V15>        nearest segment + modifier fit -> IPA
 vec2ipa -n <V0,...,V15>     nearest base segment only
 vec2ipa -d <A> <B>          weighted distance (Mahalanobis + airstream penalty λ)
-vec2ipa --width <0-4>       transcription narrowness (default 3)
-vec2ipa --metric FILE       load metric.json weights/lambda at runtime
-vec2ipa --charset CLASS     reverse charset class (std|extipa|sinologist|all; default std, repeatable;
+vec2ipa -N <LEVEL>          transcription narrowness (broadest|broad|medium|narrow|narrowest, or 0-4; alias --width; default narrow)
+vec2ipa -M FILE             load metric.json weights/lambda at runtime (or --metric FILE)
+vec2ipa -S <CLASS>          reverse symbol class (standard|extipa|sinologist|all; aliases std, ext, school, sino; alias --charset; repeatable;
                               standard IPA incl. ɚ ɞ ɝ ꞎ ᶑ never gated; extipa = ʬ ʭ ʩ;
                               sinologist = ᴇ ȶ ȡ ȵ ȴ)
 
-vec4ipa -i | -t             full information table (main + extIPA bases)
+vec4ipa -t                  full base table (main + extIPA bases)
 vec4ipa -m                  regional modules and their symbols
 vec4ipa -q <SYM>            query one symbol (base / modifier / alias)
 vec4ipa -s                  statistics
 vec4ipa -w                  metric weights / lambda
 vec4ipa <STRING>            forward: IPA -> vectors
+vec4ipa -j <STRING>         forward: IPA -> vectors, JSON
+vec4ipa -L <STRING>         forward: two-layer tier decomposition (alias --ir)
 vec4ipa -r <V0,...,V15>     reverse: vectors -> IPA
 vec4ipa -n <V0,...,V15>     nearest base segment
 vec4ipa -d <A> <B>          weighted distance
-vec4ipa --metric FILE       load metric.json weights/lambda at runtime
-vec4ipa --charset CLASS     reverse charset class (std|extipa|sinologist|all; default std, repeatable;
-                              standard IPA incl. ɚ ɞ ɝ ꞎ ᶑ never gated; extipa = ʬ ʭ ʩ;
-                              sinologist = ᴇ ȶ ȡ ȵ ȴ)
-vec4ipa -h                  help (this README, embedded)
+vec4ipa -M FILE             load metric.json weights/lambda at runtime (or --metric FILE)
+vec4ipa -D FILE             load custom dimension scheme (ndim/dim/weight/lambda; or --scheme FILE)
+vec4ipa -S <CLASS>          reverse symbol class (standard|extipa|sinologist|all; aliases std, ext, school, sino; alias --charset; repeatable)
+vec4ipa -P <NAME>           modifier spacing (binary|ternary|2:1:2|1:x:1|X; alias --mode)
+vec4ipa -i                  repository / license / feature overview
+vec4ipa -R                  full README.md (embedded; or --readme)
+vec4ipa -h                  help (usage summary)
 vec4ipa -v                  version
 ```
 
@@ -105,10 +109,14 @@ vec4ipa -v                  version
   (`echo "tʰa" | ipa2vec`, `echo "V0,...,V15" | vec2ipa`)
 - **`-o FILE`, `--output FILE`**: write output to FILE (stderr stays on the
   terminal)
-- **`-x BASE`, `--ir-out BASE`**: export the two-layer intermediate
-  representation to `BASE.layer1` (character-composition order) and
-  `BASE.layer2` (feature-tier order), one token per line:
+- **`-x/-X BASE`, `--layers-out BASE`** (alias `--ir-out`): export the
+  two-layer intermediate representation to `BASE.layer1`
+  (character-composition order) and `BASE.layer2` (feature-tier order),
+  one token per line:
   `BASE<TAB>ipa<TAB>latin` · `MOD<TAB>ipa<TAB>latin<TAB>tier` · `TIE`
+- **`-i`, `--information`**: repository, license, and feature overview
+  (short CLI summary — the full documentation is `-R`/`--readme`)
+- **`-R`, `--readme`**: print the embedded full README.md
 - **`--metric FILE`**: load a metric JSON (the `metric.json` schema:
   `weights` = 16 numbers, `lambda`, and optionally a full 16×16
   `metric` matrix that overrides `weights`) and use it for every
@@ -126,7 +134,7 @@ $ ipa2vec "tʰeɪk"
 [1]    ...
 [3]    ...
 
-$ ipa2vec -i "ã"            # precomposed char decomposed like a + ◌̃
+$ ipa2vec -L "ã"           # precomposed char decomposed like a + ◌̃
   layer1 (char order) : [a:front.opn.unr.vwl] → [◌̃:nas/nasal]
   layer2 (feature order): [a:front.opn.unr.vwl] → [◌̃:nas/nasal]
 vector[0]: (... vel_open 0.8000 ...)  pulmonic  [nas
@@ -195,24 +203,45 @@ reproduces the vector to ≤ 0.02 per dimension). Modifier reconstruction
 is approximate for combinations the greedy search cannot separate (e.g.
 a ligature that is not a table entry).
 
-### Transcription narrowness (`--width`)
+### Transcription narrowness (`--narrowness`)
 
 How many diacritics the reverse fit keeps is controlled by
-`--width <0-4>` (default **3**): each level sets the maximum number
-of modifiers per segment and the minimum relative distance gain a
-modifier must achieve to be kept.
+`--narrowness LEVEL` (default **narrow**; alias `--width`, which also
+accepts the legacy levels `0-4`): each level sets the maximum number of
+modifiers per segment and the minimum relative distance gain a modifier
+must achieve to be kept.
 
-| level | max mods | min gain | style |
-| ----- | -------- | -------- | ----- |
-| 0 | 2 | 25% | broadest — phonemic, few marks |
-| 1 | 3 | 10% | broad |
-| 2 | 4 | 4% | medium |
-| 3 | 6 | 1.5% | narrow (default) |
-| 4 | 10 | 0.1% | narrowest — keep almost every mark |
+| level | name (default) | max mods | min gain | style |
+| ----- | -------------- | -------- | -------- | ----- |
+| 0 | broadest | 2 | 25% | phonemic, few marks |
+| 1 | broad | 3 | 10% | broad |
+| 2 | medium | 4 | 4% | medium |
+| 3 | narrow | 6 | 1.5% | narrow |
+| 4 | narrowest | 10 | 0.1% | keep almost every mark |
 
-Example (`t̬˞̩ˤ` → vector → back): `--width 0` gives `/ɾˤ˞/`,
-`--width 3` gives `/ɾ̝ˤ̆˞/`. (Place `--width` before `-r`/`-n` —
-those consume the vector argument that follows them.)
+Example (`t̬˞̩ˤ` → vector → back): `--narrowness broadest` (or `--width 0`)
+gives `/ɾˤ˞/`, `--narrowness narrow` (or `--width 3`) gives `/ɾ̝ˤ̆˞/`.
+(Place the option before `-r`/`-n` — those consume the vector argument
+that follows them.)
+
+### Modifier spacing (`--spacing`)
+
+How far an incremental diacritic (raised/lowered `̝̞`, advanced/retracted
+`̟̠`, more/less rounded, palatalised, nasalised, …) moves its dimension
+value is controlled by `--spacing NAME` (default **binary**; alias
+`--mode`).  The step on each side of the neutral 0.5 is `0.5·2/(2+X)`
+for a 1:X:1 ratio:
+
+| name | X | step ratio | example (`i` raised/lowered) |
+| ---- | - | ---------- | ----------------------------- |
+| `binary` | 0 | 1:1 | `i̞` ≡ `e̝` → 0.500 / 0.500 |
+| `ternary` | 1 | 1:1:1 | `i̞` → 0.533, `e̝` → 0.467 |
+| `2:1:2` | 0.5 | 2:1:2 | `i̞` → 0.520, `e̝` → 0.480 |
+| `1:x:1` | x | 1:x:1 | any `x` 0–10 (`1:2:1`, `1:4:1`, …; a non-`1:x:1` triplet such as `1:2:3` is rejected) |
+| bare `X` | X | 1:X:1 | number 0–10, e.g. `--spacing 2` |
+
+Set-type modifiers (nasal, voicing, aperture, …) set fixed values and
+are not affected.
 
 ## Supported notations
 
@@ -220,8 +249,8 @@ those consume the vector argument that follows them.)
   affricates, co‑articulated, ejectives, implosives, clicks).
 - ExtIPA base segments not in the table: `ʬ ʭ ʩ ʪ ʫ ꞎ ᶑ ᴇ ɚ ɞ ɝ`
   (see `EXTRA_BASE` in `src/ipa2vec_core.h`).  The reverse direction
-  emits standard IPA by default; `--charset extipa` adds `ʬ ʭ ʩ` and
-  `--charset sinologist` adds `ᴇ ȶ ȡ ȵ ȴ` (repeatable, any combination).
+  emits standard IPA by default; `--symbols extipa` adds `ʬ ʭ ʩ` and
+  `--symbols sinologist` adds `ᴇ ȶ ȡ ȵ ȴ` (repeatable, any combination; alias `--charset`).
 - ASCII alias: Latin `g` == IPA `ɡ`.
 - Diacritics of §10: nasalised `̃`, long `ː`, half‑long `ˑ`, aspirated `ʰ`,
   creaky `̰`, breathy `̤` (U+0324), pharyngealised `ˤ/̴`, velarised `ˠ`,

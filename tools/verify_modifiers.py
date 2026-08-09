@@ -133,7 +133,7 @@ def main():
     ]
     print('== 1. variant vs base distance ==')
     idempotent = {('p', 'voiceless'), ('b', 'voiced'), ('n', 'nasal'),
-                  ('a', 'centralized')}  # base already in target state
+                  ('a', 'centralized'), ('a', 'lowered')}  # lowered /a/ saturates at area 1.0
     for base, mods in checks:
         bv = np.array(tbl[base])
         for m in mods:

@@ -242,6 +242,28 @@ static int    g_metric_ready = 0;  /* 0: seg_dist must sync defaults */
 static int    g_ndim = NDIM;
 static const char *g_dimname[MAXDIM];
 
+/* raised/lowered (height-diacritic) spacing mode:
+ *   1 = binary-equivalent: i̞ ≡ e̝ (both land mid-way, step 0.10)
+ *   2 = ternary-inequivalent: i̞ / e̝ are distinct thirds (step 0.20/3)
+ *   3 = 2:1:2 compromise: i̞ closer to i, e̝ closer to e (step 0.08) — default
+ */
+/* modifier spacing mode: the height band splits 1 : X : 1
+ * (i→i̞ = e̝→e = s, i̞→e̝ = X·s, total 0.20 → s = 0.10·2/(2+X)):
+ *   X = 0   binary-equivalent (i̞ ≡ e̝, factor 1.0)  — default
+ *   X = 1   ternary-inequivalent (factor 2/3)
+ *   X = 0.5 2:1:2 compromise (factor 0.8)
+ * ALL increment-type modifiers scale with this factor; set-to-value
+ * modifiers (nasal, voicing, apertures, …) are unaffected. */
+static double g_mod_spacing_x = 0.0;
+IPA2VEC_MAYBE_UNUSED void ipa2vec_set_mod_spacing (double x)
+{
+    if (x >= 0.0 && x <= 10.0) g_mod_spacing_x = x;
+}
+static IPA2VEC_MAYBE_UNUSED double mod_spacing_step (double base)
+{
+    return base * 2.0 / (2.0 + g_mod_spacing_x);
+}
+
 /* runtime segment table & count: default = compiled static table;
  * --scheme FILE replaces them with heap copies. */
 static const SegEntry *g_seg_table = SEG_TABLE;
@@ -402,59 +424,67 @@ typedef struct {
 
 /* --- apply functions (sequential, order matters) --- */
 static const SegEntry EXTRA_BASE[] = {
-    /* ᴇ U+1D07: small-cap E = lowered e [e̞] (front mid unrounded) */
-    { "\xe1\xb4\x87", { 0.0, 0.0, 0.55, 0.1, 1.0, -0.2, 0.0, 0.0,
-                        1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0 }, 0 },
-    /* ɚ U+025A: rhotacised schwa */
-    { "\xc9\x9a", { 0.0, 0.0, 0.55, 0.45, 0.0, 0.0, 0.0, 0.0,
-                    1.0, 0.2, 0.0, 0.3, 1.0, 0.0, 0.65, 1.0 }, 0 },
+    /* NOTE: rows are in SPEC-NEXT 16-D order — place, body, lips_closed,
+     * lips_rounded, tip_shape, tongue_root, vel_open, lateral_ratio,
+     * voiced, glottal_aperture, glottal_tension, larynx_height, duration,
+     * jet_focus, effective_oral_area, airflow_direction — matching the
+     * DIM_NAMES order the binary is compiled with (see vectors.h).
+     * ᴇ U+1D07: small-cap E = lowered e [e̞] (front mid unrounded);
+     * lowered acts on effective_oral_area: e 0.6 -> 0.7, tip stays at rest */
+    { "\xe1\xb4\x87", { 0.15, 0.0, 0.0, 0.0, 0.25, -0.2, 0.0, 0.0,
+                        1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0 }, 0 },
+    /* ɚ U+025A: rhotacised schwa (tip 0.45 rhotic bunch, tension 0.3) */
+    { "\xc9\x9a", { 0.0, 0.0, 0.0, 0.0, 0.45, 0.0, 0.0, 0.0,
+                    1.0, 0.0, 0.3, 0.0, 1.0, 0.0, 0.65, 1.0 }, 0 },
     /* ɞ U+025E: open-mid central rounded vowel */
-    { "\xc9\x9e", { 0.0, 1.0, 0.55, 0.25, 0.0, 0.1, 0.0, 0.0,
-                    1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.85, 1.0 }, 0 },
+    { "\xc9\x9e", { 0.0, 0.0, 0.0, 1.0, 0.25, 0.1, 0.0, 0.0,
+                    1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.8, 1.0 }, 0 },
     /* ɝ U+025D: rhotacised open-mid central vowel (extIPA) */
-    { "\xc9\x9d", { 0.0, 0.0, 0.55, 0.35, 0.0, 0.1, 0.0, 0.0,
-                    1.0, 0.2, 0.0, 0.5, 1.0, 0.0, 0.85, 1.0 }, 0 },
+    { "\xc9\x9d", { 0.0, 0.0, 0.0, 0.0, 0.35, 0.1, 0.0, 0.0,
+                    1.0, 0.0, 0.5, 0.0, 1.0, 0.0, 0.8, 1.0 }, 0 },
     /* ʬ U+02AC: bilabial percussive (extIPA) — non-pulmonic (no airflow:
      * airflow_direction 0), airstream = percussive (index 4) */
-    { "\xca\xac", { 1.0, 0.0, 0.55, 0.25, 0.0, 0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.4, 0.0, 0.1, 0.0, 0.0, 0.0 }, 4 },
-    /* ʭ U+02AD: bidental percussive (extIPA) — non-pulmonic */
-    { "\xca\xad", { 0.0, 0.0, 1.0, 0.5, 0.0, 0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.4, 0.0, 0.1, 0.0, 0.0, 0.0 }, 4 },
+    { "\xca\xac", { -0.9, 0.0, 1.0, 0.0, 0.25, 0.0, 0.0, 0.0,
+                    0.0, 0.4, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0 }, 4 },
+    /* ʭ U+02AD: bidental percussive (extIPA) — non-pulmonic, dental
+     * place like θ (-0.6) with the tongue clamped (tip_shape 0.5) */
+    { "\xca\xad", { -0.6, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0,
+                    0.0, 0.4, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0 }, 4 },
     /* ʩ U+02A9: velopharyngeal fricative (extIPA) — friction at the
      * velopharyngeal port requires full nasal airflow, so vel_open is
      * 1.0 (a "half-nasal" 0.5 would make it the accidental nearest
      * neighbour of every nasalised voiceless fricative) */
-    { "\xca\xa9", { 0.0, 0.0, 0.55, 0.25, -0.5, 0.0, 1.0, 0.0,
-                    0.0, 0.0, 0.4, 0.0, 0.6, 0.0, 0.09, 1.0 }, 0 },
+    { "\xca\xa9", { 0.3, -0.5, 0.0, 0.0, 0.25, 0.0, 1.0, 0.0,
+                    0.0, 0.4, 0.0, 0.0, 0.6, 0.0, 0.09, 1.0 }, 0 },
     /* ꞎ U+A78E: voiceless retroflex lateral fricative (IPA 2018) */
-    { "\xea\x9e\x8e", { 0.0, 0.0, 0.1, 0.8, 0.0, 0.0, 0.0, 1.0,
-                        0.0, 0.0, 0.4, 0.0, 0.9, 0.5, 0.08, 1.0 }, 0 },
-    /* ᶑ U+1D91: retroflex implosive (IPA 2018) */
-    { "\xe1\xb6\x91", { 0.0, 0.0, 0.1, 0.9, 0.0, 0.0, 0.0, 0.0,
-                        1.0, 0.55, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0 }, 2 },
+    { "\xea\x9e\x8e", { 0.0, 0.0, 0.0, 0.0, 0.8, 0.0, 0.0, 1.0,
+                        0.0, 0.4, 0.0, 0.0, 0.9, 0.5, 0.08, 1.0 }, 0 },
+    /* ᶑ U+1D91: retroflex implosive (IPA 2018) — constricted glottis
+     * (aperture -0.55) with the larynx pulled down, exactly like ɓ */
+    { "\xe1\xb6\x91", { 0.0, 0.0, 0.0, 0.0, 0.9, 0.0, 0.0, 0.0,
+                        1.0, -0.55, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0 }, 2 },
     /* ȶ U+0236: voiceless alveolo-palatal stop (curl notation, Sinologist);
-     * standard spelling t̠ʲ — tip closure kept 0.05 off alveolar (0.35) so
-     * the standard fallback lands on /t/, not the retroflex /ʈ/ */
-    { "\xc8\xb6", { 0.0, 0.0, 0.35, 1.0, 0.0, 0.0, 0.0, 0.0,
-                    0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0, 1.0 }, 0 },
+     * standard spelling t̠ʲ — place kept 0.05 off alveolar /t/ (-0.45)
+     * so the standard fallback lands on /t/, not the retroflex /ʈ/ */
+    { "\xc8\xb6", { -0.40, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                    0.0, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 }, 0 },
     /* ȡ U+0221: voiced alveolo-palatal stop (standard spelling d̠ʲ) */
-    { "\xc8\xa1", { 0.0, 0.0, 0.35, 1.0, 0.0, 0.0, 0.0, 0.0,
-                    1.0, 0.2, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 }, 0 },
+    { "\xc8\xa1", { -0.40, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                    1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 }, 0 },
     /* ȵ U+0235: voiced alveolo-palatal nasal (standard spelling n̠ʲ) */
-    { "\xc8\xb5", { 0.0, 0.0, 0.35, 1.0, 0.0, 0.0, 1.0, 0.0,
-                    1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 }, 0 },
+    { "\xc8\xb5", { -0.40, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0,
+                    1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 }, 0 },
     /* ȴ U+0234: voiced alveolo-palatal lateral (standard spelling l̠ʲ);
      * closure height aligned with /l/ (0.7) so the fallback is /l/ */
-    { "\xc8\xb4", { 0.0, 0.0, 0.35, 0.7, 0.0, 0.0, 0.0, 1.0,
-                    1.0, 0.2, 0.0, 0.0, 1.0, 0.0, 0.5, 1.0 }, 0 },
+    { "\xc8\xb4", { -0.40, 0.0, 0.0, 0.0, 0.7, 0.0, 0.0, 1.0,
+                    1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.5, 1.0 }, 0 },
 };
 #define N_EXTRA ((int)(sizeof(EXTRA_BASE) / sizeof(EXTRA_BASE[0])))
 
 /* latin feature names for EXTRA_BASE (parallel array) */
 static const char *EXTRA_NAMES[N_EXTRA] = {
     "fr.mid.unr.vwl",     /* ᴇ = e̞ */
-    "cent.mid.rnd.vwl",   /* ɚ rhotacised schwa */
+    "cent.mid.rhot.vwl",  /* ɚ rhotacised schwa */
     "cent.omid.rnd.vwl",  /* ɞ */
     "cent.omid.rhot.vwl", /* ɝ */
     "bil.percussive",     /* ʬ */
@@ -491,9 +521,9 @@ static IPA2VEC_MAYBE_UNUSED void mod_nasal (double v[NDIM], const void *m) { (vo
  * affricates) lengthen by a small in-band amount. */
 static IPA2VEC_MAYBE_UNUSED void mod_long (double v[NDIM], const void *m) { (void)m;
     v[dim_of_ok("duration", DIM_DURATION)] = (v[dim_of_ok("duration", DIM_DURATION)] >= 1.0 && v[dim_of_ok("duration", DIM_DURATION)] < 1.2) ? 2.0
-                      : v[dim_of_ok("duration", DIM_DURATION)] + 0.1; }
+                      : v[dim_of_ok("duration", DIM_DURATION)] + mod_spacing_step(0.1); }
 static IPA2VEC_MAYBE_UNUSED void mod_syl (double v[NDIM], const void *m) { (void)m;
-    v[dim_of_ok("duration", DIM_DURATION)] += (v[dim_of_ok("duration", DIM_DURATION)] >= 1.0 && v[dim_of_ok("duration", DIM_DURATION)] < 1.2) ? 0.5 : 0.1; }
+    v[dim_of_ok("duration", DIM_DURATION)] += (v[dim_of_ok("duration", DIM_DURATION)] >= 1.0 && v[dim_of_ok("duration", DIM_DURATION)] < 1.2) ? mod_spacing_step(0.5) : mod_spacing_step(0.1); }
 static IPA2VEC_MAYBE_UNUSED void mod_extra_short (double v[NDIM], const void *m){ (void)m;
     v[dim_of_ok("duration", DIM_DURATION)] *= 0.5; }
 /* contrast-aware setter: set v[dim] to full_val unless the result would
@@ -543,9 +573,9 @@ static IPA2VEC_MAYBE_UNUSED void mod_creaky (double v[NDIM], const void *m) { (v
 static IPA2VEC_MAYBE_UNUSED void mod_breathy (double v[NDIM], const void *m) { (void)m; mod_set_aperture(v, 0.55, 0.2); v[dim_of_ok("laryngeal_tension", DIM_LARYNGEAL_TENSION)] = -0.6; }
 static IPA2VEC_MAYBE_UNUSED void mod_phar (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_root", DIM_TONGUE_ROOT)] = 0.7; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.2; }
 static IPA2VEC_MAYBE_UNUSED void mod_velar (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.3; v[dim_of_ok("tongue_root", DIM_TONGUE_ROOT)] = 0.3; }
-static IPA2VEC_MAYBE_UNUSED void mod_pal (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] += 0.3; }
+static IPA2VEC_MAYBE_UNUSED void mod_pal (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] += mod_spacing_step(0.3); }
 static IPA2VEC_MAYBE_UNUSED void mod_lab (double v[NDIM], const void *m) { (void)m; if (v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] < 0.5) v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] = 0.5; }
-static IPA2VEC_MAYBE_UNUSED void mod_nosyl (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("duration", DIM_DURATION)] -= 0.5; }
+static IPA2VEC_MAYBE_UNUSED void mod_nosyl (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("duration", DIM_DURATION)] -= mod_spacing_step(0.5); }
 /* Voicing / devoicing is *contrast-aware*:
  *
  *   ◌̬ / ◌̥ on a segment that HAS a voicing counterpart (t ↔ d, s ↔ z …)
@@ -639,23 +669,23 @@ static IPA2VEC_MAYBE_UNUSED void mod_dental (double v[NDIM], const void *m) {
         v[dim_of_ok("tongue_tip_pos", DIM_TONGUE_TIP_POS)] = 1.0;
     else { v[dim_of_ok("tongue_tip_pos", DIM_TONGUE_TIP_POS)] = 1.0; if (v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] < 0.5) v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] = 0.5; }
 }
-static IPA2VEC_MAYBE_UNUSED void mod_raised (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] += 0.15; }
-static IPA2VEC_MAYBE_UNUSED void mod_lowered (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] -= 0.15; }
-static IPA2VEC_MAYBE_UNUSED void mod_advanced (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_tip_pos", DIM_TONGUE_TIP_POS)] += 0.15; }
-static IPA2VEC_MAYBE_UNUSED void mod_retracted (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_tip_pos", DIM_TONGUE_TIP_POS)] -= 0.15; }
-static IPA2VEC_MAYBE_UNUSED void mod_more_round (double v[NDIM], const void *m) { (void)m; if (v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] < 0.7) v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] += 0.25; }
-static IPA2VEC_MAYBE_UNUSED void mod_less_round (double v[NDIM], const void *m) { (void)m; if (v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] > -0.7) v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] -= 0.25; }
+static IPA2VEC_MAYBE_UNUSED void mod_raised (double v[NDIM], const void *m) { (void)m; double *p = &v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)]; *p -= mod_spacing_step(0.10); if (*p < 0.0) *p = 0.0; }
+static IPA2VEC_MAYBE_UNUSED void mod_lowered (double v[NDIM], const void *m) { (void)m; double *p = &v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)]; *p += mod_spacing_step(0.10); if (*p > 1.0) *p = 1.0; }
+static IPA2VEC_MAYBE_UNUSED void mod_advanced (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_tip_pos", DIM_TONGUE_TIP_POS)] += mod_spacing_step(0.15); }
+static IPA2VEC_MAYBE_UNUSED void mod_retracted (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_tip_pos", DIM_TONGUE_TIP_POS)] -= mod_spacing_step(0.15); }
+static IPA2VEC_MAYBE_UNUSED void mod_more_round (double v[NDIM], const void *m) { (void)m; double *p = &v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)]; if (*p > 0.3 && *p < 0.7) *p = 0.95; else if (*p < 0.7) *p += mod_spacing_step(0.25); }
+static IPA2VEC_MAYBE_UNUSED void mod_less_round (double v[NDIM], const void *m) { (void)m; double *p = &v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)]; if (*p > 0.3 && *p < 0.7) *p = 0.0; else if (*p > 0.0) *p -= mod_spacing_step(0.25); if (*p < 0.0) *p = 0.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_laminal (double v[NDIM], const void *m) { (void)m; if (v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] < 0.6) v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] = 0.6; }
 static IPA2VEC_MAYBE_UNUSED void mod_apical (double v[NDIM], const void *m) { (void)m; if (v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] < 0.65) v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] = 0.65; }
 static IPA2VEC_MAYBE_UNUSED void mod_midcent (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] = 0.5; }
-static IPA2VEC_MAYBE_UNUSED void mod_rhot (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("laryngeal_tension", DIM_LARYNGEAL_TENSION)] += 0.5; v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] += 0.1; }
+static IPA2VEC_MAYBE_UNUSED void mod_rhot (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("laryngeal_tension", DIM_LARYNGEAL_TENSION)] += mod_spacing_step(0.5); v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] += mod_spacing_step(0.1); }
 static IPA2VEC_MAYBE_UNUSED void mod_ejective (double v[NDIM], const void *m) { (void)m; mod_set_aperture(v, 0.0, 1.0); v[dim_of_ok("laryngeal_tension", DIM_LARYNGEAL_TENSION)] = 0.6; v[dim_of_ok("voiced", DIM_VOICED)] = 0.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_glottal_onset (double v[NDIM], const void *m){ (void)m; mod_set_aperture(v, 0.0, 1.0); }
 static IPA2VEC_MAYBE_UNUSED void mod_breathy_asp (double v[NDIM], const void *m){ (void)m; mod_set_aperture(v, 0.7, 0.2); v[dim_of_ok("voiced", DIM_VOICED)] = 1.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_lat_release (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("lateral_ratio", DIM_LATERAL_RATIO)] = 1.0; }
-static IPA2VEC_MAYBE_UNUSED void mod_nasal_rel (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("vel_open", DIM_VEL_OPEN)] = 0.8; v[dim_of_ok("duration", DIM_DURATION)] += 0.3; }
+static IPA2VEC_MAYBE_UNUSED void mod_nasal_rel (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("vel_open", DIM_VEL_OPEN)] = 0.8; v[dim_of_ok("duration", DIM_DURATION)] += mod_spacing_step(0.3); }
 static IPA2VEC_MAYBE_UNUSED void mod_schwa_rel (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 0.7; }
-static IPA2VEC_MAYBE_UNUSED void mod_fric_release (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 0.08; v[dim_of_ok("duration", DIM_DURATION)] += 0.2; }
+static IPA2VEC_MAYBE_UNUSED void mod_fric_release (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 0.08; v[dim_of_ok("duration", DIM_DURATION)] += mod_spacing_step(0.2); }
 static IPA2VEC_MAYBE_UNUSED void mod_offglide_lab (double v[NDIM], const void *m){ (void)m; mod_lab(v, m); v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.3; }
 static IPA2VEC_MAYBE_UNUSED void mod_centralized (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] *= 0.5; }
 /* superscript-letter modifiers (IPA letters used as diacritics) */
@@ -2933,33 +2963,95 @@ static IPA2VEC_MAYBE_UNUSED int opt_school(const char *arg)
     return 0;
 }
 
-/* transcription narrowness: --width <0-4>
- *   0 broadest: max 2 mods, >=25% gain
- *   1 broad:    max 3 mods, >=10% gain
- *   2 medium:   max 4 mods, >=4% gain
- *   3 narrow:   max 6 mods, >=1.5% gain (default)
- *   4 narrowest: max 10 mods, >=0.1% gain (keep almost everything)
- * Long form only (short -w is taken by vec4ipa's --weights).
+/* -i/--information: repository, copyleft, feature overview (CLI-friendly;
+ * not the full README, which is printed by -R/--readme).  The body is
+ * tailored per tool (ipa2vec / vec2ipa / vec4ipa) since each direction
+ * has its own feature set and input syntax. */
+static IPA2VEC_MAYBE_UNUSED void print_info(const char *tool)
+{
+    if (strcmp(tool, "ipa2vec") == 0) {
+        printf("ipa2vec — IPA/extIPA → 16-D articulatory vectors, v%s\n",
+               IPA2VEC_VERSION);
+        printf("Repository: https://github.com/csiroqa/vec4ipa.git\n");
+        printf("License   : MIT — see LICENSE (copyleft: free to use, modify, share)\n");
+        printf("Spec      : docs/SPEC.md · IPA_VECTORS.md · metric.json\n");
+        printf("Core      : src/ipa2vec_core.h (shared by all three tools)\n\n");
+        printf("ipa2vec is the forward converter of the vec4ipa suite:\n");
+        printf("  parses IPA/extIPA strings — combining marks, ligatures, tone\n");
+        printf("  letters, Chinese tone classes, clinical symbols — into 16-D\n");
+        printf("  articulatory vectors\n");
+        printf("  two-layer tier decomposition (layer 1 = character order,\n");
+        printf("  layer 2 = feature tier: airstream → laryngeal → place →\n");
+        printf("  manner → nasal → timing) with rebuild demo\n");
+        printf("  JSON output for scripting\n\n");
+        printf("Input   : an IPA/extIPA string, or stdin\n");
+        printf("Options : see 'ipa2vec --help' (-L/--layers, -j/--json,\n");
+        printf("           -x/-X/--layers-out, -o/--output, -N/-M/-D/-S/-P)\n");
+    } else if (strcmp(tool, "vec2ipa") == 0) {
+        printf("vec2ipa — 16-D articulatory vectors → IPA/extIPA, v%s\n",
+               IPA2VEC_VERSION);
+        printf("Repository: https://github.com/csiroqa/vec4ipa.git\n");
+        printf("License   : MIT — see LICENSE (copyleft: free to use, modify, share)\n");
+        printf("Spec      : docs/SPEC.md · IPA_VECTORS.md · metric.json\n");
+        printf("Core      : src/ipa2vec_core.h (shared by all three tools)\n\n");
+        printf("vec2ipa is the reverse converter of the vec4ipa suite:\n");
+        printf("  -r/--reverse : nearest base segment + modifier fit → IPA\n");
+        printf("  -n/--nearest : nearest base segment only (no modifiers)\n");
+        printf("  -d/--distance: weighted distance between two segments\n\n");
+        printf("Input   : a vector V0,...,V15, or stdin\n");
+        printf("Options : see 'vec2ipa --help' (-r/-n/-d, -o/--output,\n");
+        printf("           -N/-M/-S/-P)\n");
+    } else {
+        printf("vec4ipa — complete IPA vector inventory, both directions, v%s\n",
+               IPA2VEC_VERSION);
+        printf("Repository: https://github.com/csiroqa/vec4ipa.git\n");
+        printf("License   : MIT — see LICENSE (copyleft: free to use, modify, share)\n");
+        printf("Spec      : docs/SPEC.md · IPA_VECTORS.md · metric.json\n");
+        printf("Core      : src/ipa2vec_core.h (shared by all three tools)\n\n");
+        printf("vec4ipa is the full-featured entry point of the suite:\n");
+        printf("  forward : IPA → vectors (JSON, two-layer tiers)\n");
+        printf("  reverse : vectors → IPA (nearest segment, modifier fit)\n");
+        printf("  inventory: full base table, regional modules, symbol query,\n");
+        printf("             statistics, metric weights\n\n");
+        printf("Input   : an IPA string, a vector, or stdin\n");
+        printf("Options : see 'vec4ipa --help' (-j/-L/-x/-r/-n/-d/-t/-m/-q/-s/-w,\n");
+        printf("           -N/-M/-D/-S/-P, -o/--output)\n");
+    }
+    printf("\n16 dimensions: place, body, lips-closed, lips-rounded, tip-shape,\n");
+    printf("  tongue-root, vel-open, lateral-ratio, voiced, glottal-aperture,\n");
+    printf("  glottal-tension, larynx-height, duration, jet-focus,\n");
+    printf("  effective-oral-area, airflow-direction\n");
+    printf("Weights/lambda: metric.json (override with --metric; see --help)\n");
+}
+
+/* transcription narrowness: --narrowness <broadest|broad|medium|narrow|narrowest>
+ * (alias --width).  Legacy levels 0-4 are accepted too.  Long form only
+ * (short -w is taken by vec4ipa's --weights).
  * Returns 1 if matched (level set), -1 if malformed, 0 if not ours. */
 static IPA2VEC_MAYBE_UNUSED int opt_width(const char *arg, int argc, char **argv, int *i)
 {
     static const int maxmods[5] = { 2, 3, 4, 6, 10 };
     static const double mingain[5] = { 0.25, 0.10, 0.04, 0.015, 0.001 };
+    static const char *names[5] = { "broadest", "broad", "medium", "narrow", "narrowest" };
+    const char *v = NULL;
     int level = -1;
-    if (strcmp(arg, "--width") == 0) {
+    if (strcmp(arg, "-N") == 0 || strcmp(arg, "--narrowness") == 0 ||
+        strcmp(arg, "--width") == 0) {
         if (*i + 1 >= argc) return -1;
-        const char *v = argv[++*i];
-        if (v[0] >= '0' && v[0] <= '4' && v[1] == 0)
-            level = v[0] - '0';
-        else return -1;
+        v = argv[++*i];
+    } else if (strncmp(arg, "--narrowness=", 13) == 0) {
+        v = arg + 13;
     } else if (strncmp(arg, "--width=", 8) == 0) {
-        const char *v = arg + 8;
-        if (v[0] >= '0' && v[0] <= '4' && v[1] == 0)
-            level = v[0] - '0';
-        else return -1;
+        v = arg + 8;
     } else {
         return 0;
     }
+    if (v[0] >= '0' && v[0] <= '4' && v[1] == 0)
+        level = v[0] - '0';
+    else
+        for (int k = 0; k < 5; k++)
+            if (strcmp(v, names[k]) == 0) { level = k; break; }
+    if (level < 0) return -1;
     g_fit_max_mods = maxmods[level];
     g_fit_min_gain = mingain[level];
     return 1;
@@ -2972,15 +3064,18 @@ static IPA2VEC_MAYBE_UNUSED int opt_width(const char *arg, int argc, char **argv
 static IPA2VEC_MAYBE_UNUSED int opt_charset(const char *arg, int argc, char **argv, int *i)
 {
     const char *name = NULL;
-    if (strcmp(arg, "--charset") == 0) {
+    if (strcmp(arg, "-S") == 0 || strcmp(arg, "--symbols") == 0 ||
+        strcmp(arg, "--charset") == 0) {
         if (*i + 1 >= argc) return -1;
         name = argv[++*i];
+    } else if (strncmp(arg, "--symbols=", 10) == 0) {
+        name = arg + 10;
     } else if (strncmp(arg, "--charset=", 10) == 0) {
         name = arg + 10;
     } else {
         return 0;
     }
-    if (strcmp(name, "std") == 0) g_reverse_charset = 0;
+    if (strcmp(name, "std") == 0 || strcmp(name, "standard") == 0) g_reverse_charset = 0;
     else if (strcmp(name, "ext") == 0 || strcmp(name, "extipa") == 0)
         g_reverse_charset |= 1;
     else if (strcmp(name, "school") == 0 || strcmp(name, "sino") == 0 ||
@@ -2988,6 +3083,41 @@ static IPA2VEC_MAYBE_UNUSED int opt_charset(const char *arg, int argc, char **ar
         g_reverse_charset |= 2;
     else if (strcmp(name, "all") == 0) g_reverse_charset = 3;
     else return -1;
+    return 1;
+}
+
+/* --spacing=NAME (alias --mode): modifier spacing (see g_mod_spacing_x).
+ * Names: binary (X=0, i̞≡e̝), ternary (X=1), 2:1:2 (X=0.5);
+ * generic "1:x:1" or a bare X number also accepted.
+ * Returns 1 if matched, -1 if malformed, 0 if not ours. */
+static IPA2VEC_MAYBE_UNUSED int opt_mod_spacing(const char *arg, int argc, char **argv, int *i)
+{
+    const char *name = NULL;
+    if (strcmp(arg, "-P") == 0 || strcmp(arg, "--spacing") == 0 ||
+        strcmp(arg, "--mode") == 0) {
+        if (*i + 1 >= argc) return -1;
+        name = argv[++*i];
+    } else if (strncmp(arg, "--spacing=", 10) == 0) {
+        name = arg + 10;
+    } else if (strncmp(arg, "--mode=", 7) == 0) {
+        name = arg + 7;
+    } else {
+        return 0;
+    }
+    double x;
+    int n = 0;
+    if (strcmp(name, "binary") == 0) x = 0.0;
+    else if (strcmp(name, "ternary") == 0) x = 1.0;
+    else if (strcmp(name, "2:1:2") == 0) x = 0.5;
+    else if (sscanf(name, "1:%lf:1%n", &x, &n) == 1 && n == (int)strlen(name)
+             && x >= 0.0 && x <= 10.0) { }
+    else {
+        char *end = NULL;
+        x = strtod(name, &end);
+        if (end == name || *end != '\0' || x < 0.0 || x > 10.0)
+            return -1;
+    }
+    ipa2vec_set_mod_spacing(x);
     return 1;
 }
 
@@ -3228,7 +3358,7 @@ bad:
 static IPA2VEC_MAYBE_UNUSED int opt_metric(const char *arg, int argc, char **argv, int *i)
 {
     const char *path = NULL;
-    if (strcmp(arg, "--metric") == 0) {
+    if (strcmp(arg, "-M") == 0 || strcmp(arg, "--metric") == 0) {
         if (*i + 1 >= argc) return -1;
         path = argv[++*i];
     } else if (strncmp(arg, "--metric=", 9) == 0) {
@@ -3419,7 +3549,7 @@ bad_free:
 static IPA2VEC_MAYBE_UNUSED int opt_scheme(const char *arg, int argc, char **argv, int *i)
 {
     const char *path = NULL;
-    if (strcmp(arg, "--scheme") == 0) {
+    if (strcmp(arg, "-D") == 0 || strcmp(arg, "--scheme") == 0) {
         if (*i + 1 >= argc) return -1;
         path = argv[++*i];
     } else if (strncmp(arg, "--scheme=", 9) == 0) {
