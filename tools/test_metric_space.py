@@ -137,7 +137,7 @@ for ipa, want in SYL:
 
 SECONDARY = [
     ("tʷ", "t"), ("kʷ", "k"), ("lʷ", "l"), ("sʷ", "ʃ"),  # rounding → rounded sibilant
-    ("lˠ", "lˠ"), ("tʲ", "t"), ("sʲ", "s"), ("kʲ", "c"),
+    ("lˠ", "l"), ("tʲ", "t"), ("sʲ", "s"), ("kʲ", "k"),  # no base rows: anchor to the unmodified base
     ("tˤ", "t"), ("kˤ", "k"),
 ]
 for ipa, want in SECONDARY:
@@ -207,7 +207,7 @@ TONE_CASES = [
     ("ma˦˩˩",       "a˦˩˩"),
 ]
 def rebuilt_of(s):
-    r = run(EXE, ["-i", s])
+    r = run(EXE, ["-L", s])
     if r.returncode != 0:
         return None
     out = []

@@ -70,12 +70,14 @@ faces when the folder is absent; no font installation is required.
 ipa2vec <STRING>            parse each segment -> vectors
 ipa2vec -L <STRING>         two-layer tier decomposition, then rebuild IPA (inverse demo; alias --ir)
 ipa2vec -j <STRING>         JSON output
+ipa2vec -A <IPA1> <IPA2>    sequence (syllable/word) alignment distance
 ipa2vec -M FILE             load metric.json weights/lambda at runtime (or --metric FILE)
 ipa2vec -v                  version
 
 vec2ipa <V0,...,V15>        nearest segment + modifier fit -> IPA
 vec2ipa -n <V0,...,V15>     nearest base segment only
 vec2ipa -d <A> <B>          weighted distance (Mahalanobis + airstream penalty λ)
+vec2ipa -A <IPA1> <IPA2>    sequence (syllable/word) alignment distance
 vec2ipa -N <LEVEL>          transcription narrowness (broadest|broad|medium|narrow|narrowest, or 0-4; alias --width; default narrow)
 vec2ipa -M FILE             load metric.json weights/lambda at runtime (or --metric FILE)
 vec2ipa -S <CLASS>          reverse symbol class (standard|extipa|sinologist|all; aliases std, ext, school, sino; alias --charset; repeatable;
@@ -93,6 +95,7 @@ vec4ipa -L <STRING>         forward: two-layer tier decomposition (alias --ir)
 vec4ipa -r <V0,...,V15>     reverse: vectors -> IPA
 vec4ipa -n <V0,...,V15>     nearest base segment
 vec4ipa -d <A> <B>          weighted distance
+vec4ipa -A <IPA1> <IPA2>    sequence (syllable/word) alignment distance
 vec4ipa -M FILE             load metric.json weights/lambda at runtime (or --metric FILE)
 vec4ipa -D FILE             load custom dimension scheme (ndim/dim/weight/lambda; or --scheme FILE)
 vec4ipa -S <CLASS>          reverse symbol class (standard|extipa|sinologist|all; aliases std, ext, school, sino; alias --charset; repeatable)

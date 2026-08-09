@@ -642,9 +642,9 @@ namespace Vec4ipaUI
             {
                 string a = args[i];
                 if (a == "--help" || a == "-h") showHelp = true;
-                else if (a == "--width")
+                else if (a == "--width" || a == "--narrowness")
                 {
-                    if (i + 1 >= args.Length) { errs.Add("--width needs a value (0-4)"); }
+                    if (i + 1 >= args.Length) { errs.Add(a + " needs a value (0-4)"); }
                     else
                     {
                         string w = args[++i];
@@ -694,7 +694,7 @@ namespace Vec4ipaUI
                     Title = "vec4ipa Workbench - usage",
                     Content =
                         "vec4ipa_ui [OPTIONS] [IPA-STRING]\n\n" +
-                        "  --width 0-4         reverse-fit narrowness (default 3)\n" +
+                        "  --narrowness 0-4    reverse-fit narrowness (default 3; alias --width)\n" +
                         "  -q, --query SYM     query one symbol on startup\n" +
                         "  -r, --reverse VEC   16-D vector -> IPA on startup\n" +
                         "  --export-tools DIR  write the bundled CLI tools to DIR\n" +
@@ -3024,13 +3024,13 @@ namespace Vec4ipaUI
                 "# vec4ipa CLI commands\n" +
                 $"# app directory: {dir}\n\n" +
                 ":: ipa2vec - IPA -> 16-D vectors\n" +
-                $"\"{Path.Combine(dir, "tools", "ipa2vec.exe")}\" --width 3 -i \"\\\"\\u02c8t\\u02b0a\\\"\"\n\n" +
+                $"\"{Path.Combine(dir, "tools", "ipa2vec.exe")}\" --narrowness 3 -L \"\\\"\\u02c8t\\u02b0a\\\"\"\n\n" +
                 ":: vec2ipa - 16-D vector -> IPA\n" +
-                $"\"{Path.Combine(dir, "tools", "vec2ipa.exe")}\" --width 3 " +
+                $"\"{Path.Combine(dir, "tools", "vec2ipa.exe")}\" --narrowness 3 " +
                 "\"0.0,0.0,0.55,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,0.0,0.0,0.0,0.0,1.0\"\n\n" +
                 ":: vec4ipa - inventory / query / reverse\n" +
                 $"\"{Path.Combine(dir, "tools", "vec4ipa.exe")}\" -q \\u02b0\n" +
-                $"\"{Path.Combine(dir, "tools", "vec4ipa.exe")}\" --width 3 -r " +
+                $"\"{Path.Combine(dir, "tools", "vec4ipa.exe")}\" --narrowness 3 -r " +
                 "\"0.0,0.0,0.55,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,0.0,0.0,0.0,0.0,1.0\"\n";
             var dlg = new ContentDialog
             {

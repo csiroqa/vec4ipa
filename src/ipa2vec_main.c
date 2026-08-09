@@ -28,6 +28,7 @@ static void usage(void)
     printf("\noptions:\n");
     printf("  -L, --layers <STRING> two-layer tier decomposition + rebuild demo (alias --ir)\n");
     printf("  -j, --json <STRING>   JSON output\n");
+    printf("  -A, --align <IPA1> <IPA2> sequence (syllable/word) alignment distance\n");
     printf("  -o, --output FILE     write output to FILE\n");
     printf("  -x/-X, --layers-out BASE export layers to BASE.layer1/.layer2 (alias --ir-out)\n");
     printf("  -i, --information     repository, license, feature overview\n");
@@ -53,8 +54,9 @@ int wmain(int argc, wchar_t **wargv)
 int main(int argc, char **argv)
 {
 #endif
-    int json = 0, ir = 0;
+    int json = 0, ir = 0, align_mode = 0;
     const char *str = NULL;
+    const char *seg_a = NULL, *seg_b = NULL;
     const char *outfile = NULL;
     const char *irbase = NULL;
     int no_more_opts = 0;
@@ -90,6 +92,7 @@ int main(int argc, char **argv)
         }
         if (opt_match(argv[i], "-L", "--layers") || opt_match(argv[i], "-e", "--ir")) { ir = 1; if (i + 1 < argc) str = argv[++i]; else { fprintf(stderr, "ipa2vec: -L/--layers needs a string\n"); return 1; } continue; }
         if (opt_match(argv[i], "-j", "--json")) { json = 1; if (i + 1 < argc) str = argv[++i]; else { fprintf(stderr, "ipa2vec: -j/--json needs a string\n"); return 1; } continue; }
+        if (opt_match(argv[i], "-A", "--align")) { align_mode = 1; if (i + 2 < argc) { seg_a = argv[++i]; seg_b = argv[++i]; } else { fprintf(stderr, "ipa2vec: -A/--align needs two IPA strings\n"); return 1; } continue; }
         int r = opt_match_val(argv[i], "-o", "--output", &val, argc, argv, &i);
         if (r == 1) { outfile = val; continue; }
         if (r == -1) { fprintf(stderr, "ipa2vec: %s needs a file\n", argv[i]); return 1; }
@@ -106,8 +109,16 @@ int main(int argc, char **argv)
         fprintf(stderr, "ipa2vec: -L/--layers and -j/--json are mutually exclusive\n");
         return 1;
     }
+    if (align_mode && (ir || json)) {
+        fprintf(stderr, "ipa2vec: -A/--align conflicts with -L/--layers or -j/--json\n");
+        return 1;
+    }
     if (outfile && redirect_output(outfile, "ipa2vec") != 0)
         return 1;
+    if (align_mode) {
+        if (!seg_a || !seg_b) { usage(); return 1; }
+        return run_align(seg_a, seg_b, "ipa2vec");
+    }
     if (!str || strcmp(str, "-") == 0) {
         char *in = read_stdin("ipa2vec");
         if (!in) { usage(); return 1; }

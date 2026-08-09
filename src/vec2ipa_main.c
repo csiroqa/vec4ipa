@@ -29,6 +29,7 @@ static void usage(void)
     printf("  -r, --reverse <VEC>    nearest segment + modifier fit -> IPA (default)\n");
     printf("  -n, --nearest <VEC>    nearest base segment only\n");
     printf("  -d, --distance <A> <B> weighted distance\n");
+    printf("  -A, --align <IPA1> <IPA2> sequence (syllable/word) alignment distance\n");
     printf("  -o, --output FILE      write output to FILE\n");
     printf("  -N, --narrowness=LEVEL transcription narrowness: broadest|broad|medium|narrow (default)|narrowest (or 0-4; alias --width)\n");
     printf("  -M, --metric FILE     load metric.json weights/lambda at runtime\n");
@@ -55,6 +56,7 @@ int main(int argc, char **argv)
     const char *outfile = NULL;
     int nearest_only = 0;
     int dist_mode = 0;
+    int align_mode = 0;
     int reverse_given = 0;
     int no_more_opts = 0;
 
@@ -90,10 +92,14 @@ int main(int argc, char **argv)
         if (opt_match(argv[i], "-n", "--nearest")) { nearest_only = 1; if (i + 1 < argc) vecstr = argv[++i]; else { fprintf(stderr, "vec2ipa: -n/--nearest needs a vector\n"); return 1; } continue; }
         if (opt_match(argv[i], "-r", "--reverse")) { reverse_given = 1; if (i + 1 < argc) vecstr = argv[++i]; else { fprintf(stderr, "vec2ipa: -r/--reverse needs a vector\n"); return 1; } continue; }
         if (opt_match(argv[i], "-d", "--distance")) { dist_mode = 1; if (i + 2 < argc) { seg_a = argv[++i]; seg_b = argv[++i]; } else { fprintf(stderr, "vec2ipa: -d/--distance needs two segments\n"); return 1; } continue; }
+        if (opt_match(argv[i], "-A", "--align")) { align_mode = 1; if (i + 2 < argc) { seg_a = argv[++i]; seg_b = argv[++i]; } else { fprintf(stderr, "vec2ipa: -A/--align needs two IPA strings\n"); return 1; } continue; }
         int r = opt_match_val(argv[i], "-o", "--output", &val, argc, argv, &i);
         if (r == 1) { outfile = val; continue; }
         if (r == -1) { fprintf(stderr, "vec2ipa: %s needs a file\n", argv[i]); return 1; }
-        if ((no_more_opts || argv[i][0] != '-') && !vecstr && !dist_mode) { vecstr = argv[i]; continue; }
+        if ((no_more_opts || argv[i][0] != '-' ||
+             (argv[i][1] && (argv[i][1] == '.' ||
+              (argv[i][1] >= '0' && argv[i][1] <= '9')))) &&
+            !vecstr && !dist_mode) { vecstr = argv[i]; continue; }
         if (strcmp(argv[i], "-") == 0 && !vecstr) { vecstr = "-"; continue; }
         fprintf(stderr, "vec2ipa: unknown option: %s\n", argv[i]);
         return 1;
@@ -107,8 +113,17 @@ int main(int argc, char **argv)
         fprintf(stderr, "vec2ipa: -d/--distance conflicts with -r/--reverse or -n/--nearest\n");
         return 1;
     }
+    if (align_mode && (dist_mode || vecstr)) {
+        fprintf(stderr, "vec2ipa: -A/--align conflicts with -d/--distance, -r/--reverse or -n/--nearest\n");
+        return 1;
+    }
     if (outfile && redirect_output(outfile, "vec2ipa") != 0)
         return 1;
+
+    if (align_mode) {
+        if (!seg_a || !seg_b) { usage(); return 1; }
+        return run_align(seg_a, seg_b, "vec2ipa");
+    }
 
     if (dist_mode) {
         if (!seg_a || !seg_b) { usage(); return 1; }

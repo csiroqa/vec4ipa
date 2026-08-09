@@ -159,6 +159,7 @@ static void usage(void)
     printf("  -r, --reverse VEC      vectors -> IPA (nearest + modifier fit)\n");
     printf("  -n, --nearest VEC      nearest base segment only\n");
     printf("  -d, --distance A B     weighted distance\n");
+    printf("  -A, --align IPA1 IPA2  sequence (syllable/word) alignment distance\n");
     printf("  -j, --json STRING      forward IPA -> vectors, JSON\n");
     printf("  -e/-L, --layers STRING forward IPA -> vectors, two-layer tier decomposition (alias --ir)\n");
     printf("  -o, --output FILE      write output to FILE\n");
@@ -193,6 +194,7 @@ int main(int argc, char **argv)
     const char *seg_a = NULL, *seg_b = NULL;
     const char *query = NULL;
     int json = 0, ir = 0, nearest_only = 0, dist_mode = 0, reverse_given = 0;
+    int align_mode = 0;
     int no_more_opts = 0;
 
     for (int i = 1; i < argc; i++) {
@@ -233,6 +235,7 @@ int main(int argc, char **argv)
         if (opt_match(argv[i], "-n", "--nearest")) { nearest_only = 1; if (i + 1 < argc) vecstr = argv[++i]; else { fprintf(stderr, "vec4ipa: -n/--nearest needs a vector\n"); return 1; } continue; }
         if (opt_match(argv[i], "-r", "--reverse")) { reverse_given = 1; if (i + 1 < argc) vecstr = argv[++i]; else { fprintf(stderr, "vec4ipa: -r/--reverse needs a vector\n"); return 1; } continue; }
         if (opt_match(argv[i], "-d", "--distance")) { dist_mode = 1; if (i + 2 < argc) { seg_a = argv[++i]; seg_b = argv[++i]; } else { fprintf(stderr, "vec4ipa: -d/--distance needs two segments\n"); return 1; } continue; }
+        if (opt_match(argv[i], "-A", "--align")) { align_mode = 1; if (i + 2 < argc) { seg_a = argv[++i]; seg_b = argv[++i]; } else { fprintf(stderr, "vec4ipa: -A/--align needs two IPA strings\n"); return 1; } continue; }
         if (opt_match(argv[i], "-q", "--query")) { note_ignored_inputs(argv[i], dist_mode, vecstr, json, ir, query); if (i + 1 < argc) query = argv[++i]; else { fprintf(stderr, "vec4ipa: -q/--query needs a symbol\n"); return 1; } continue; }
         int r = opt_match_val(argv[i], "-o", "--output", &val, argc, argv, &i);
         if (r == 1) { outfile = val; continue; }
@@ -243,7 +246,10 @@ int main(int argc, char **argv)
         r = opt_match_val(argv[i], "-X", "--layers-out", &val, argc, argv, &i);
         if (r == 1) { irbase = val; continue; }
         if (r == -1) { fprintf(stderr, "vec4ipa: %s needs a base name\n", argv[i]); return 1; }
-        if ((no_more_opts || argv[i][0] != '-') && !str && !vecstr) { str = argv[i]; continue; }
+        if ((no_more_opts || argv[i][0] != '-' ||
+             (argv[i][1] && (argv[i][1] == '.' ||
+              (argv[i][1] >= '0' && argv[i][1] <= '9')))) &&
+            !str && !vecstr) { str = argv[i]; continue; }
         if (strcmp(argv[i], "-") == 0 && !str) { str = "-"; continue; }
         fprintf(stderr, "vec4ipa: unknown option: %s\n", argv[i]);
         return 1;
@@ -266,8 +272,17 @@ int main(int argc, char **argv)
         fprintf(stderr, "vec4ipa: -d/--distance conflicts with -r/--reverse, -n/--nearest, -j/--json or -e/--ir\n");
         return 1;
     }
+    if (align_mode && (dist_mode || vecstr || json || ir)) {
+        fprintf(stderr, "vec4ipa: -A/--align conflicts with -d/--distance, -r/--reverse, -n/--nearest, -j/--json or -e/--ir\n");
+        return 1;
+    }
     if (outfile && redirect_output(outfile, "vec4ipa") != 0)
         return 1;
+
+    if (align_mode) {
+        if (!seg_a || !seg_b) { usage(); return 1; }
+        return run_align(seg_a, seg_b, "vec4ipa");
+    }
 
     if (dist_mode) {
         if (!seg_a || !seg_b) { usage(); return 1; }

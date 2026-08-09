@@ -102,6 +102,27 @@ EXPORT int ipa2v_reverse(const double *v, int width,
     }
     const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
     int nm = fit_modifiers(vv, b, mods);
+
+    /* affricate decode competes when it beats the single-base fit
+     * (mirrors run_reverse in the CLI) */
+    const SegEntry *afc = NULL, *afr = NULL;
+    double afd = 0.0;
+    if (affricate_decode(vv, &afc, &afr, &afd) == 0) {
+        const ModRec *cur[IPA2VEC_FIT_MAX_MODS + 4];
+        int nc = 0;
+        for (int k = 0; k < nm; k++) cur[nc++] = mods[k];
+        double trial[NDIM];
+        apply_mod_set(trial, b, cur, nc);
+        double d_fit = seg_dist(vv, trial);
+        if (afd < d_fit * 0.85) {
+            char afipa[128];
+            snprintf(afipa, sizeof(afipa), "%s\xCD\xA1%s", afc->ipa, afr->ipa);
+            snprintf(out, outsz, "/%s/  (affricate %s+%s)  d=%.4f  ->  /%s/",
+                     afc->ipa, afc->ipa, afr->ipa, afd, afipa);
+            return 0;
+        }
+    }
+
     char ipa[128];
     build_ipa(b, mods, nm, ipa, sizeof(ipa));
 
@@ -270,7 +291,7 @@ EXPORT const char *ipa2v_docs(void)
     return EMBEDDED_README;
 }
 
-/* Apply CLI-style settings (school modules, --width) for the GUI.
+/* Apply CLI-style settings (school modules, --narrowness) for the GUI.
  * Unknown options are skipped. Returns 0. */
 EXPORT int ipa2v_set_args(int n, const char **argv)
 {
@@ -278,7 +299,7 @@ EXPORT int ipa2v_set_args(int n, const char **argv)
     while (i < n) {
         const char *a = argv[i];
         if (opt_school(a)) { i++; continue; }
-        if (strncmp(a, "--width", 7) == 0) {
+        if (strncmp(a, "--narrowness", 12) == 0 || strncmp(a, "--width", 7) == 0) {
             int lev = 3;
             if (i + 1 < n && argv[i + 1][0] >= '0' && argv[i + 1][0] <= '4')
                 lev = argv[i + 1][0] - '0', i++;

@@ -297,8 +297,8 @@ d_full = run(VEC2IPA, ["--metric", _full, "-d", "p", "t"]).stdout.strip()
 
 check("--metric equal file matches default", ["--metric", str(ROOT / "metric.json"), "ma"], expect_rc=0)
 check_cond("--metric uniform weights", d_default != d_alt
-           and abs(float(d_alt) - 1.25) <= 1e-3,   # plain Euclidean p-t distance
-           f"gave {d_alt}, want 1.2500 (default: {d_default})")
+           and abs(float(d_alt) - 1.3285) <= 1e-3,   # plain Euclidean p-t distance
+           f"gave {d_alt}, want 1.3285 (default: {d_default})")
 check_cond("--metric full matrix", d_default != d_full
            and abs(float(d_full) - float(d_alt) * (2 ** 0.5)) <= 1e-3,
            f"gave {d_full}, want {float(d_alt) * 2 ** 0.5:.4f} (default: {d_default})")

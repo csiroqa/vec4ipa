@@ -14,7 +14,7 @@
 #define IPA2VEC_CORE_H
 
 /* tool-suite version (single source of truth) */
-#define IPA2VEC_VERSION "1.1.0"
+#define IPA2VEC_VERSION "3.1.0"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -660,14 +660,21 @@ static IPA2VEC_MAYBE_UNUSED void mod_nasal_click (double v[NDIM], const void *m)
 /* dental (U+032A): on labials this is the labiodental plosive/nasal
  * (b̪ = vd labiodental plosive, p̪ = vl, m̪ = labiodental nasal — IPA
  * writes labiodental stops as p̪ b̪); on lingual segments it dentalises
- * the tip (t̪ d̪ n̪ …).  Labiodentals are described by the DENTAL
- * dimension (tongue_tip_pos 1.0, the same "at the teeth" value as t̪ θ ð), so
- * the derived spellings b̪ m̪ match the base rows /p̪/ /ɱ/. */
+ * the tip (t̪ d̪ n̪ …).  Labiodentals and dental stops are described by
+ * the scheme's own place values (p̪ ɱ -0.75, t̪ n̪ -0.6), so the derived
+ * spellings b̪ m̪ / t̪ n̪ match the base rows. */
 static IPA2VEC_MAYBE_UNUSED void mod_dental (double v[NDIM], const void *m) {
     (void)m;
-    if (v[dim_of_ok("lips_closed", DIM_LIPS_CLOSED)] > 0.5)  /* bilabial -> labiodental: contact at the teeth */
-        v[dim_of_ok("tongue_tip_pos", DIM_TONGUE_TIP_POS)] = 1.0;
-    else { v[dim_of_ok("tongue_tip_pos", DIM_TONGUE_TIP_POS)] = 1.0; if (v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] < 0.5) v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] = 0.5; }
+    int place = dim_of_ok("place", DIM_TONGUE_TIP_POS);
+    int tip   = dim_of_ok("tip_shape", DIM_TONGUE_TIP_HEIGHT);
+    int lip   = dim_of_ok("lips_closed", DIM_LIPS_CLOSED);
+    if (v[lip] > 0.5) {          /* bilabial -> labiodental: contact at the teeth */
+        v[place] = -0.75;
+        v[lip]   = 0.3;
+    } else {                     /* lingual dentalise: tip at the teeth */
+        v[place] = -0.6;
+        v[tip]   = 1.0;
+    }
 }
 static IPA2VEC_MAYBE_UNUSED void mod_raised (double v[NDIM], const void *m) { (void)m; double *p = &v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)]; *p -= mod_spacing_step(0.10); if (*p < 0.0) *p = 0.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_lowered (double v[NDIM], const void *m) { (void)m; double *p = &v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)]; *p += mod_spacing_step(0.10); if (*p > 1.0) *p = 1.0; }
@@ -684,7 +691,7 @@ static IPA2VEC_MAYBE_UNUSED void mod_glottal_onset (double v[NDIM], const void *
 static IPA2VEC_MAYBE_UNUSED void mod_breathy_asp (double v[NDIM], const void *m){ (void)m; mod_set_aperture(v, 0.7, 0.2); v[dim_of_ok("voiced", DIM_VOICED)] = 1.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_lat_release (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("lateral_ratio", DIM_LATERAL_RATIO)] = 1.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_nasal_rel (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("vel_open", DIM_VEL_OPEN)] = 0.8; v[dim_of_ok("duration", DIM_DURATION)] += mod_spacing_step(0.3); }
-static IPA2VEC_MAYBE_UNUSED void mod_schwa_rel (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 0.7; }
+static IPA2VEC_MAYBE_UNUSED void mod_schwa_rel (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 0.7; v[dim_of_ok("duration", DIM_DURATION)] *= 0.5; }
 static IPA2VEC_MAYBE_UNUSED void mod_fric_release (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 0.08; v[dim_of_ok("duration", DIM_DURATION)] += mod_spacing_step(0.2); }
 static IPA2VEC_MAYBE_UNUSED void mod_offglide_lab (double v[NDIM], const void *m){ (void)m; mod_lab(v, m); v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.3; }
 static IPA2VEC_MAYBE_UNUSED void mod_centralized (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] *= 0.5; }
@@ -1177,7 +1184,7 @@ static const Alias ALIAS_EQUIV[] = {
     { "\xE2\x97\x8C", "", "dotted circle (placeholder)", 0, 0   },
     /* MODS modifiers that also stand alone as superscript letters */
     { "\xE1\xB5\x89", "e", "superscript e", 0, 0   },
-    { "\xE1\xB5\x8A", "\xC9\x99", "superscript schwa", 0, 0   },
+    { "\xE1\xB5\x8A", "\xC9\x99\xCC\x86", "superscript schwa", 0, 0   },
     { "\xE1\xB5\xA4", "u", "subscript u", 0, 0   },
     { "\xE1\xB5\xA2", "i", "subscript i", 0, 0   },
     { "\xE1\xB4\xB0", "d", "superscript capital D", 0, 0   },
@@ -2561,6 +2568,45 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
     return n;
 }
 
+/* affricate decode: try closure+release synthesis (mirrors the forward
+ * ligature rule: release skeleton with duration +0.5, closure carries
+ * place/tip/voicing) as a competition to the single-base modifier fit.
+ * Emits C͡R (no diacritics) when it beats the single-base fit. */
+static IPA2VEC_MAYBE_UNUSED int affricate_decode (const double target[NDIM],
+                                                  const SegEntry **outc,
+                                                  const SegEntry **outr,
+                                                  double *outd)
+{
+    const SegEntry *bestc = NULL, *bestr = NULL;
+    double bestd = 1e300;
+    for (int i = 0; i < CUR_NSEG + N_EXTRA; i++) {
+        const SegEntry *c = (i < CUR_NSEG) ? &CUR_SEG[i] : &EXTRA_BASE[i - CUR_NSEG];
+        if (c->v[dim_of_ok("duration", DIM_DURATION)] > 0.01) continue;
+        for (int j = 0; j < CUR_NSEG + N_EXTRA; j++) {
+            const SegEntry *r = (j < CUR_NSEG) ? &CUR_SEG[j] : &EXTRA_BASE[j - CUR_NSEG];
+            if (r->v[dim_of_ok("duration", DIM_DURATION)] < 0.5 ||
+                r->v[dim_of_ok("duration", DIM_DURATION)] > 1.2) continue;
+            if (r->v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] < 0.05) continue;
+            double v[NDIM];
+            memcpy(v, c->v, sizeof(v));
+            v[dim_of_ok("duration", DIM_DURATION)] =
+                r->v[dim_of_ok("duration", DIM_DURATION)] + 0.5;
+            v[dim_of_ok("jet_focus", DIM_JET_FOCUS)] =
+                r->v[dim_of_ok("jet_focus", DIM_JET_FOCUS)];
+            v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] =
+                r->v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)];
+            v[dim_of_ok("lateral_ratio", DIM_LATERAL_RATIO)] =
+                (c->v[dim_of_ok("lateral_ratio", DIM_LATERAL_RATIO)] > 0.0 ||
+                 r->v[dim_of_ok("lateral_ratio", DIM_LATERAL_RATIO)] > 0.0) ? 1.0 : 0.0;
+            double d = seg_dist(target, v);
+            if (d < bestd - 1e-9) { bestd = d; bestc = c; bestr = r; }
+        }
+    }
+    if (!bestc) return -1;
+    *outc = bestc; *outr = bestr; *outd = bestd;
+    return 0;
+}
+
 /* rebuild an IPA string from (base, modifier cps): base then combining
  * marks in canonical-feature order; the result is a valid *composed* form */
 /* does the base letter have a descender (below-line stroke)?  On such
@@ -3321,6 +3367,12 @@ static IPA2VEC_MAYBE_UNUSED int load_metric_json (const char *path)
             } else {
                 if (json_num_array(&c, &g_metric_M[0][0], NDIM * NDIM) != 0)
                     goto bad;
+                /* M is MAXDIM x MAXDIM; the JSON array is NDIM x NDIM and
+                 * json_num_array fills it linearly, so fold it into the
+                 * top-left NDIM x NDIM block of M */
+                for (int r = NDIM; r-- > 0;)
+                    for (int cc = NDIM; cc-- > 0;)
+                        g_metric_M[r][cc] = g_metric_M[0][r * NDIM + cc];
                 g_metric_full = 1;
                 have_m = 1;
             }
@@ -3768,6 +3820,110 @@ static IPA2VEC_MAYBE_UNUSED int run_distance(const char *seg_a, const char *seg_
     return 0;
 }
 
+/* gap cost per insert/delete in sequence alignment (-A/--align).  Above
+ * typical segment-replacement distances (p~b 1.41, t~d 1.41, a~ə 1.12)
+ * so the DP prefers replacing a segment over gapping it. */
+#define IPA2VEC_ALIGN_GAP 2.0
+
+/* rebuilt IPA label for one segment (nearest base + modifier fit) */
+static IPA2VEC_MAYBE_UNUSED void seg_label(const SegVec *sv, char *buf, size_t sz)
+{
+    const SegEntry *b; double d;
+    nearest_base(sv->v, &b, &d);
+    const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
+    int nm = fit_modifiers(sv->v, b, mods);
+    order_mods(mods, nm);
+    build_ipa(b, mods, nm, buf, sz);
+}
+
+/* sequence (syllable/word) alignment: edit-distance DP over segments with
+ * seg_dist_full as replacement cost and IPA2VEC_ALIGN_GAP per gap.  Prints
+ * the alignment and the total distance. */
+static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
+                                          const char *toolname)
+{
+    ParseOut a, b;
+    char err[256];
+    if (lex(seq_a, a.layer1, &a.n1, err, sizeof(err)) ||
+        lex(seq_b, b.layer1, &b.n1, err, sizeof(err))) {
+        fprintf(stderr, "parse error: %s\n", err);
+        return 1;
+    }
+    canonicalise(a.layer1, a.n1, a.layer2, &a.n2);
+    canonicalise(b.layer1, b.n1, b.layer2, &b.n2);
+    if (apply_layer2(a.layer2, a.n2, a.segs, &a.nsegs, toolname) ||
+        apply_layer2(b.layer2, b.n2, b.segs, &b.nsegs, toolname))
+        return 1;
+    int na = a.nsegs, nb = b.nsegs;
+    if (na == 0 || nb == 0) {
+        fprintf(stderr, "need at least one segment per argument\n");
+        return 1;
+    }
+    if (na > MAX_TOKS || nb > MAX_TOKS) {
+        fprintf(stderr, "too many segments\n");
+        return 1;
+    }
+    size_t w = (size_t)(nb + 1);
+    double *dp = (double *)malloc((size_t)(na + 1) * w * sizeof(double));
+    unsigned char *bk = (unsigned char *)malloc((size_t)(na + 1) * w);
+    if (!dp || !bk) { free(dp); free(bk); fprintf(stderr, "out of memory\n"); return 1; }
+    for (int i = 0; i <= na; i++) dp[(size_t)i * w + 0] = i * IPA2VEC_ALIGN_GAP;
+    for (int j = 0; j <= nb; j++) dp[0 * w + (size_t)j] = j * IPA2VEC_ALIGN_GAP;
+    for (int i = 1; i <= na; i++) {
+        for (int j = 1; j <= nb; j++) {
+            double c = seg_dist_full(&a.segs[i - 1], &b.segs[j - 1]);
+            double di = dp[(size_t)(i - 1) * w + (size_t)(j - 1)] + c;
+            double up = dp[(size_t)(i - 1) * w + (size_t)j] + IPA2VEC_ALIGN_GAP;
+            double le = dp[(size_t)i * w + (size_t)(j - 1)] + IPA2VEC_ALIGN_GAP;
+            if (di <= up && di <= le) { dp[(size_t)i * w + (size_t)j] = di; bk[(size_t)i * w + (size_t)j] = 0; }
+            else if (up <= le) { dp[(size_t)i * w + (size_t)j] = up; bk[(size_t)i * w + (size_t)j] = 1; }
+            else { dp[(size_t)i * w + (size_t)j] = le; bk[(size_t)i * w + (size_t)j] = 2; }
+        }
+    }
+    double total = dp[(size_t)na * w + (size_t)nb];
+
+    /* trace back, print from the end of the alignment */
+    int i = na, j = nb;
+    char a1[128], b1[128];
+    char lines[256][160];
+    int nl = 0;
+    while (i > 0 || j > 0) {
+        unsigned char k = bk[(size_t)i * w + (size_t)j];
+        if (k == 0 && i > 0 && j > 0) {
+            seg_label(&a.segs[i - 1], a1, sizeof(a1));
+            seg_label(&b.segs[j - 1], b1, sizeof(b1));
+            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  d=%.4f",
+                     a1, b1, seg_dist_full(&a.segs[i - 1], &b.segs[j - 1]));
+            i--; j--;
+        } else if (k == 1 && i > 0) {
+            seg_label(&a.segs[i - 1], a1, sizeof(a1));
+            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
+                     a1, "-", IPA2VEC_ALIGN_GAP);
+            i--;
+        } else if (k == 2 && j > 0) {
+            seg_label(&b.segs[j - 1], b1, sizeof(b1));
+            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
+                     "-", b1, IPA2VEC_ALIGN_GAP);
+            j--;
+        } else if (j > 0) {   /* unreachable fallback */
+            seg_label(&b.segs[j - 1], b1, sizeof(b1));
+            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
+                     "-", b1, IPA2VEC_ALIGN_GAP);
+            j--;
+        } else {
+            seg_label(&a.segs[i - 1], a1, sizeof(a1));
+            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
+                     a1, "-", IPA2VEC_ALIGN_GAP);
+            i--;
+        }
+        if (nl >= (int)(sizeof(lines) / sizeof(lines[0]))) break;
+    }
+    printf("/%s/  vs  /%s/  aligned d=%.4f\n", seq_a, seq_b, total);
+    while (nl > 0) puts(lines[--nl]);
+    free(dp); free(bk);
+    return 0;
+}
+
 /* -r/-n VEC: nearest segment (+ modifier fit) for a vector */
 static IPA2VEC_MAYBE_UNUSED int run_reverse(const char *vecstr, int nearest_only)
 {
@@ -3787,6 +3943,24 @@ static IPA2VEC_MAYBE_UNUSED int run_reverse(const char *vecstr, int nearest_only
     }
     const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
     int nm = fit_modifiers(sv.v, b, mods);
+    /* affricate decode competes when it beats the single-base fit */
+    const SegEntry *afc = NULL, *afr = NULL;
+    double afd = 0.0;
+    if (affricate_decode(sv.v, &afc, &afr, &afd) == 0) {
+        const ModRec *cur[IPA2VEC_FIT_MAX_MODS + 4];
+        int nc = 0;
+        for (int k = 0; k < nm; k++) cur[nc++] = mods[k];
+        double trial[NDIM];
+        apply_mod_set(trial, b, cur, nc);
+        double d_fit = seg_dist(sv.v, trial);
+        if (afd < d_fit * 0.85) {
+            char afipa[128];
+            snprintf(afipa, sizeof(afipa), "%s\xCD\xA1%s", afc->ipa, afr->ipa);
+            printf("/%s/  (affricate %s+%s)  d=%.4f  ->  /%s/\n",
+                   afc->ipa, afc->ipa, afr->ipa, afd, afipa);
+            return 0;
+        }
+    }
     order_mods(mods, nm);   /* canonical order — same as the rebuilt IPA */
     char ipa[128];
     build_ipa(b, mods, nm, ipa, sizeof(ipa));
