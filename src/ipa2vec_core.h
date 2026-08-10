@@ -571,10 +571,10 @@ static IPA2VEC_MAYBE_UNUSED void mod_unrel (double v[NDIM], const void *m)
 static IPA2VEC_MAYBE_UNUSED void mod_asp (double v[NDIM], const void *m) { (void)m; mod_set_aperture(v, 0.9, 0.0); }
 static IPA2VEC_MAYBE_UNUSED void mod_creaky (double v[NDIM], const void *m) { (void)m; mod_set_aperture(v, 0.0, 0.7); v[dim_of_ok("laryngeal_tension", DIM_LARYNGEAL_TENSION)] = 0.7; }
 static IPA2VEC_MAYBE_UNUSED void mod_breathy (double v[NDIM], const void *m) { (void)m; mod_set_aperture(v, 0.55, 0.2); v[dim_of_ok("laryngeal_tension", DIM_LARYNGEAL_TENSION)] = -0.6; }
-static IPA2VEC_MAYBE_UNUSED void mod_phar (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_root", DIM_TONGUE_ROOT)] = 0.7; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.2; }
-static IPA2VEC_MAYBE_UNUSED void mod_velar (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.3; v[dim_of_ok("tongue_root", DIM_TONGUE_ROOT)] = 0.3; }
+static IPA2VEC_MAYBE_UNUSED void mod_phar (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_root", DIM_TONGUE_ROOT)] = 0.7; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.08; }
+static IPA2VEC_MAYBE_UNUSED void mod_velar (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.12; v[dim_of_ok("tongue_root", DIM_TONGUE_ROOT)] = 0.3; }
 static IPA2VEC_MAYBE_UNUSED void mod_pal (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] += mod_spacing_step(0.24); }
-static IPA2VEC_MAYBE_UNUSED void mod_lab (double v[NDIM], const void *m) { (void)m; if (v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] < 0.5) v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] = 0.5; }
+static IPA2VEC_MAYBE_UNUSED void mod_lab (double v[NDIM], const void *m) { (void)m; if (v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] < 0.8) v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] = 0.8; }
 static IPA2VEC_MAYBE_UNUSED void mod_nosyl (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("duration", DIM_DURATION)] -= mod_spacing_step(0.5); }
 /* Voicing / devoicing is *contrast-aware*:
  *
@@ -693,11 +693,12 @@ static IPA2VEC_MAYBE_UNUSED void mod_lat_release (double v[NDIM], const void *m)
 static IPA2VEC_MAYBE_UNUSED void mod_nasal_rel (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("vel_open", DIM_VEL_OPEN)] = 0.8; v[dim_of_ok("duration", DIM_DURATION)] += mod_spacing_step(0.3); }
 static IPA2VEC_MAYBE_UNUSED void mod_schwa_rel (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 0.7; v[dim_of_ok("duration", DIM_DURATION)] *= 0.5; }
 static IPA2VEC_MAYBE_UNUSED void mod_fric_release (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 0.08; v[dim_of_ok("duration", DIM_DURATION)] += mod_spacing_step(0.2); }
-static IPA2VEC_MAYBE_UNUSED void mod_offglide_lab (double v[NDIM], const void *m){ (void)m; mod_lab(v, m); v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.3; }
+static IPA2VEC_MAYBE_UNUSED void mod_offglide_lab (double v[NDIM], const void *m){ (void)m; mod_lab(v, m); v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.12; }
 static IPA2VEC_MAYBE_UNUSED void mod_centralized (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] *= 0.5; }
-/* superscript-letter modifiers (IPA letters used as diacritics) */
-static IPA2VEC_MAYBE_UNUSED void mod_sup_front (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = 1.0; }
-static IPA2VEC_MAYBE_UNUSED void mod_sup_back (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.5; }
+/* superscript-letter modifiers (IPA letters used as diacritics);
+ * body values on the spec_next scale (v8 x0.4, anchor i=1.0 -> 0.4) */
+static IPA2VEC_MAYBE_UNUSED void mod_sup_front (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = 0.4; }
+static IPA2VEC_MAYBE_UNUSED void mod_sup_back (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.2; }
 static IPA2VEC_MAYBE_UNUSED void mod_sup_mid (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] *= 0.5; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 0.7; }
 static IPA2VEC_MAYBE_UNUSED void mod_sup_open (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 1.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_sup_stop (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 0.0; v[dim_of_ok("duration", DIM_DURATION)] = 0.1; }

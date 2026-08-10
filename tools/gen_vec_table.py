@@ -65,17 +65,20 @@ for _line in open(V8_MD, encoding='utf-8'):
 # (adjacent differ 0.10; central: ɨ 0.40, ᵻ(=ɨ̞) 0.50, ɘ/ɵ 0.60, ə 0.70,
 #  ɜ/ɞ 0.80, ɐ 0.90, ᴀ(=ä) 1.00)
 VOWEL_COL = {  # vowel -> (body, area); body = tongue-body position
-    # (v8 semantics: front +, central 0, back -; v8 anchor i=1.0, u=-0.5)
-    'i': (0.40, 0.40), 'y': (0.40, 0.40), 'ɪ': (0.35, 0.50), 'ʏ': (0.35, 0.50),
-    'e': (0.35, 0.60), 'ɛ': (0.25, 0.80), 'æ': (0.20, 0.90),
-    'ɶ': (0.20, 0.90),
-    'ø': (0.25, 0.60), 'œ': (0.20, 0.80), 'a': (0.00, 1.00),
+    # (v8 semantics: front +, central 0, back -; uniform v8 scale x0.4,
+    #  anchor i=1.0 -> 0.40: front i/e = 1.0, back u = -0.5 -> -0.20;
+    #  vowel HEIGHT lives on area only, as in v8 -- body has no height
+    #  gradient within a column)
+    'i': (0.40, 0.40), 'y': (0.40, 0.40), 'ɪ': (0.36, 0.50), 'ʏ': (0.36, 0.50),
+    'e': (0.40, 0.60), 'ɛ': (0.32, 0.80), 'æ': (0.24, 0.90),
+    'ɶ': (0.16, 0.90),
+    'ø': (0.40, 0.60), 'œ': (0.32, 0.80), 'a': (0.00, 1.00),
     'ɨ': (0.00, 0.40), 'ʉ': (0.00, 0.40), 'ɘ': (0.00, 0.60), 'ɵ': (0.00, 0.60),
     'ə': (0.00, 0.70), 'ɜ': (0.00, 0.80), 'ɞ': (0.00, 0.80), 'ɐ': (0.00, 0.90),
-    'ɯ': (-0.40, 0.40), 'u': (-0.40, 0.40), 'ʊ': (-0.35, 0.50),
-    'ɤ': (-0.35, 0.60),
-    'o': (-0.35, 0.60), 'ʌ': (-0.25, 0.80), 'ɔ': (-0.25, 0.80),
-    'ɑ': (-0.30, 1.00), 'ɒ': (-0.30, 1.00),
+    'ɯ': (-0.20, 0.40), 'u': (-0.20, 0.40), 'ʊ': (-0.18, 0.50),
+    'ɤ': (-0.20, 0.60),
+    'o': (-0.20, 0.60), 'ʌ': (-0.20, 0.80), 'ɔ': (-0.20, 0.80),
+    'ɑ': (-0.20, 1.00), 'ɒ': (-0.20, 1.00),
 }
 
 # labiodentals: lip closure removed (chain-neutral)
@@ -108,17 +111,34 @@ def aperture_of(v):
 
 
 def body_of(seg):
-    """Secondary-constriction rule (SPEC-NEXT §3)."""
+    """Tongue-body position by PLACE FAMILY (SPEC-NEXT §3).
+
+    Uniform v8 scale x0.4 (anchor i=1.0 -> 0.40): the body axis carries
+    the front/back dimension of every dorsal segment, matching v8's
+    tongue_body_pos (palatal 1.0, velar -0.5, uvular -0.73, pharyngeal
+    -0.97, epiglottal -1.2).  Front vowels/glides inherit via VOWEL_COL
+    / GLIDE_PARTNER.  Only secondary-articulation deltas (ɧ, mod_*)
+    and clicks (velar secondary closure) add on top.
+    """
     if seg in ('ɧ',):
         return -0.4                      # postalveolar + VELAR secondary
                                          # (IPA: simultaneous postalv.+velar)
     if is_click(V8[seg]):
-        return -0.4                      # clicks: velar secondary closure
-    if seg in ('c', 'ɟ', 'ɲ', 'ç', 'ʝ', 'ʎ'):
-        return 0.4                       # palatal series: tongue-body raised
-                                         # to the hard palate (v8 body=1.0,
-                                         # same as /j/); spec_next j=0.4
-    return 0.0                           # default: no secondary constriction
+        return -0.2                      # clicks: velar secondary closure
+                                         # (v8 body=-0.5 = velar, x0.4)
+    if seg in ('c', 'ɟ', 'ɲ', 'ç', 'ʝ', 'ʎ', 'ʄ'):
+        return 0.4                       # palatal series (v8 body=1.0)
+    if seg in ('k', 'ɡ', 'ŋ', 'x', 'ɣ', 'kʼ', 'xʼ', 'ʟ', 'ɠ',
+               'k͡p', 'k͡x', 'ɡ͡b', 'ŋ͡m'):
+        return -0.2                      # velar series (v8 body=-0.5)
+    if seg in ('q', 'ɢ', 'χ', 'ʀ', 'ʁ', 'ɴ', 'ʛ', 'qʼ', 'q͡χ'):
+        return -0.29                     # uvular series (v8 body=-0.73)
+    if seg in ('ħ', 'ʕ'):
+        return -0.39                     # pharyngeal series (v8 body=-0.97)
+    if seg in ('ʡ', 'ʢ', 'ʜ'):
+        return -0.48                     # epiglottal series (v8 body=-1.2)
+    return 0.0                           # default: no tongue-body gesture
+                                         # (labial, coronal, glottal)
 
 
 def larynx_of(v, seg):
