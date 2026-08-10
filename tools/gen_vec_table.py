@@ -114,6 +114,10 @@ def body_of(seg):
                                          # (IPA: simultaneous postalv.+velar)
     if is_click(V8[seg]):
         return -0.4                      # clicks: velar secondary closure
+    if seg in ('c', 'ɟ', 'ɲ', 'ç', 'ʝ', 'ʎ'):
+        return 0.4                       # palatal series: tongue-body raised
+                                         # to the hard palate (v8 body=1.0,
+                                         # same as /j/); spec_next j=0.4
     return 0.0                           # default: no secondary constriction
 
 
