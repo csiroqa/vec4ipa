@@ -716,12 +716,12 @@ static IPA2VEC_MAYBE_UNUSED void mod_sliding (double v[NDIM], const void *m){ (v
 static const ModRec MODS[] = {
     /* --- postposed combining marks --- */
     { 0x0303, "◌̃",  "nas",       TIER_NASAL,     -1, mod_nasal,        0, {0,0} , NULL, 1  },
-    { 0x0304, "◌̄",  "macron_tone", TIER_COUNT,    -1, NULL, 0, {0,0} , NULL, 1  },
+    { 0x0304, "◌̄",  "macron_tone", TIER_COUNT,    -1, NULL, 1, {3, 0} , NULL, 1  },
     { 0x0324, "◌̤",  "breathy",   TIER_LARYNGEAL, -1, mod_breathy,      0, {0,0} , NULL, 1  },
     { 0x0306, "◌̆",  "short",     TIER_TIMING,    -1, mod_extra_short,  0, {0,0} , NULL, 1  },
     { 0x0308, "◌̈",  "centralized", TIER_MANNER,  -1, mod_centralized,  0, {0,0} , NULL, 1  },
     { 0x030A, "◌̊",  "vl",        TIER_LARYNGEAL, -1, mod_voiceless,    0, {0,0} , NULL, 1  },
-    { 0x030B, "◌̋",  "extra_high_tone", TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
+    { 0x030B, "◌̋",  "extra_high_tone", TIER_COUNT, -1, NULL, 1, {5, 0} , NULL, 1  },
     { 0x031A, "◌̚",  "unrel",     TIER_TIMING,    -1, mod_unrel,        0, {0,0} , NULL, 1  },
     { 0x031C, "◌̜",  "rnd_less",  TIER_PLACE,     -1, mod_less_round,   0, {0,0} , NULL, 1  },
     { 0x031D, "◌̝",  "raised",    TIER_MANNER,    -1, mod_raised,       0, {0,0} , NULL, 1  },
@@ -733,8 +733,8 @@ static const ModRec MODS[] = {
     { 0x0322, "◌̢",  "retroflex", TIER_PLACE,     -1, mod_retracted,    0, {0,0} , NULL, 1  },
     { 0x0321, "◌̡",  "pal_hook",  TIER_PLACE,     -1, mod_pal,          0, {0,0} , NULL, 1  },
     { 0x032B, "◌̫",  "lab_subw",  TIER_PLACE,     -1, mod_lab,          0, {0,0} , NULL, 1  },
-    { 0x0316, "◌̖",  "tone_lowfall", TIER_COUNT,  -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x0317, "◌̗",  "tone_lowrise", TIER_COUNT,  -1, NULL, 0, {0,0} , NULL, 1  },
+    { 0x0316, "◌̖",  "tone_lowfall", TIER_COUNT,  -1, NULL, 1, {1, 2} , NULL, 1  },
+    { 0x0317, "◌̗",  "tone_lowrise", TIER_COUNT,  -1, NULL, 1, {2, 1} , NULL, 1  },
     /* IPA 2018: fortis / lenis */
     { 0x0348, "◌͈",  "fortis",    TIER_LARYNGEAL, -1, mod_fortis,      0, {0,0} , NULL, 1  },
     { 0x0349, "◌͉",  "lenis",     TIER_LARYNGEAL, -1, mod_lenis,       0, {0,0} , NULL, 1  },
@@ -758,13 +758,13 @@ static const ModRec MODS[] = {
     { 0x033D, "◌̽",  "midcent",   TIER_MANNER,    -1, mod_midcent,      0, {0,0} , NULL, 1  },
     { 0x0346, "◌͆",  "lam",       TIER_MANNER,    -1, mod_laminal,      0, {0,0} , NULL, 1  },
     /* pitch/tone diacritics — no articulatory effect */
-    { 0x0300, "◌̀",  "tone_low",      TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x0301, "◌́",  "tone_high",     TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x0302, "◌̂",  "tone_fall",     TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x030C, "◌̌",  "tone_rise",     TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x030F, "◌̏",  "tone_extralow",TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x030D, "◌̍",  "tone_highv",   TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x030E, "◌̎",  "tone_lowv",    TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
+    { 0x0300, "◌̀",  "tone_low",      TIER_COUNT, -1, NULL, 1, {1, 0} , NULL, 1  },
+    { 0x0301, "◌́",  "tone_high",     TIER_COUNT, -1, NULL, 1, {5, 0} , NULL, 1  },
+    { 0x0302, "◌̂",  "tone_fall",     TIER_COUNT, -1, NULL, 1, {5, 1} , NULL, 1  },
+    { 0x030C, "◌̌",  "tone_rise",     TIER_COUNT, -1, NULL, 1, {1, 5} , NULL, 1  },
+    { 0x030F, "◌̏",  "tone_extralow",TIER_COUNT, -1, NULL, 1, {1, 0} , NULL, 1  },
+    { 0x030D, "◌̍",  "tone_highv",   TIER_COUNT, -1, NULL, 1, {5, 0} , NULL, 1  },
+    { 0x030E, "◌̎",  "tone_lowv",    TIER_COUNT, -1, NULL, 1, {1, 0} , NULL, 1  },
     /* --- ligature ties (no apply; handled by parser) --- */
     { 0x035C, "◌͜",  "tie",       TIER_COUNT,     -1, NULL, 0, {0,0} , NULL, 1  },
     { 0x0360, "◌͠",  "tie",       TIER_COUNT,     -1, NULL, 0, {0,0} , NULL, 1  },
@@ -1991,10 +1991,30 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
         }
 
         /* precomposed combining marks: emit as postposed modifier tokens
-         * (character-composition layer keeps the decomposed order) */
+         * (character-composition layer keeps the decomposed order);
+         * tone diacritics (◌́ etc.) join the segment's tone state instead,
+         * exactly like directly typed combining marks */
         for (int i = 0; i < n_precomp; i++) {
             const ModRec *m = find_mod(precomp_mods[i]);
             if (!m) continue;
+            if (m->tone_kind != 0) {
+                if (m->tone_kind == 1) {
+                    if (ntone < TONE_BUF_MAX) {
+                        tonebuf[ntone++] = (int)m->val[0];
+                        if (m->val[1] > 0 && ntone < TONE_BUF_MAX)
+                            tonebuf[ntone++] = (int)m->val[1];
+                        tone_letter = 1;
+                    }
+                } else if (m->tone_kind == 5) {
+                    if (nsandhi < TONE_BUF_MAX) sandhibuf[nsandhi++] = (int)m->val[0];
+                } else {
+                    if (m->tone_kind == 3) pre_vec3[0] = m->val[0];
+                    else if (m->tone_kind == 4) pre_vec3[1] = m->val[1];
+                    else pre_vec3[2] = m->val[0];
+                    pre_vec3_set = 1;
+                }
+                continue;
+            }
             if (n >= MAX_TOKS) goto full;
             IrTok t;
             t.kind = TK_MOD;
@@ -2037,6 +2057,8 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                 if (m->tone_kind == 1) {           /* 5-level letter -> vec 1 */
                     if (ntone < TONE_BUF_MAX) {
                         tonebuf[ntone++] = (int)m->val[0];
+                        if (m->val[1] > 0 && ntone < TONE_BUF_MAX)
+                            tonebuf[ntone++] = (int)m->val[1];
                         if (m->latin && strncmp(m->latin, "pitch_", 6) == 0)
                             tone_digit = 1;
                         else
