@@ -2548,7 +2548,7 @@ namespace Vec4ipaUI
                 { "pitch_6", "音高6" }, { "pitch_7", "音高7" },
                 { "pitch_8", "音高8" }, { "pitch_9", "音高9" },
                 { "pitch_highrise", "高升" }, { "pitch_highfall", "高降" },
-                { "pitch_midrise", "中升" }, { "pitch_midfall", "中降" },
+                { "pitch_lowrise", "低升" },
                 { "pitch_risefall", "升降" }, { "pitch_fallrise", "降升" },
                 { "sandhi_5", "变调5" }, { "sandhi_4", "变调4" },
                 { "sandhi_3", "变调3" }, { "sandhi_2", "变调2" },

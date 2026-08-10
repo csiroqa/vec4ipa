@@ -104,7 +104,7 @@ z	vd.alv.frc	pulmonic
 ɹ	vd.alv.apx	pulmonic
 ɺ	vd.alv.lat.tap	pulmonic
 ɻ	vd.rfl.apx	pulmonic
-ɽ	vd.rfl.tap	pulmonic
+ɽ	vd.rfl.flp	pulmonic
 ɾ	vd.alv.tap	pulmonic
 ʀ	vd.uvu.trl	pulmonic
 ʁ	vd.uvu.frc	pulmonic
@@ -117,7 +117,7 @@ z	vd.alv.frc	pulmonic
 ʊ	back.ncls.rnd.vwl	pulmonic
 ʋ	vd.lbd.apx	pulmonic
 ʌ	back.omid.unr.vwl	pulmonic
-ʍ	vl.lab.vel.apx	pulmonic
+ʍ	vl.lab.vel.frc	pulmonic
 ʎ	vd.pal.lat.apx	pulmonic
 ʏ	front.ncls.rnd.vwl	pulmonic
 ʐ	vd.rfl.frc	pulmonic
@@ -137,4 +137,4 @@ z	vd.alv.frc	pulmonic
 θ	vl.den.frc	pulmonic
 θʼ	vl.den.ejt	glottalic egressive
 χ	vl.uvu.frc	pulmonic
-ⱱ	vd.lbd.tap	pulmonic
+ⱱ	vd.lbd.flp	pulmonic

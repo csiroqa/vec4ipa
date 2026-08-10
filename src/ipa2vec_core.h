@@ -414,7 +414,7 @@ typedef struct {
      * 2 = Chinese tone class (index 0..7 in val[0]);
      * 3 = upstep/downstep (dir in val[0]); 4 = global rise/fall. */
     int tone_kind;
-    double val[2];
+    double val[3];
     const char *infer;    /* non-NULL: applying this modifier is an inference
                            * (symbol reinterpretation); report to stderr */
     int reverse;          /* 1 = usable in reverse fitting (vec2ipa);
@@ -758,13 +758,13 @@ static const ModRec MODS[] = {
     { 0x033D, "◌̽",  "midcent",   TIER_MANNER,    -1, mod_midcent,      0, {0,0} , NULL, 1  },
     { 0x0346, "◌͆",  "lam",       TIER_MANNER,    -1, mod_laminal,      0, {0,0} , NULL, 1  },
     /* pitch/tone diacritics — no articulatory effect */
-    { 0x0300, "◌̀",  "tone_low",      TIER_COUNT, -1, NULL, 1, {1, 0} , NULL, 1  },
-    { 0x0301, "◌́",  "tone_high",     TIER_COUNT, -1, NULL, 1, {5, 0} , NULL, 1  },
+    { 0x0300, "◌̀",  "tone_low",      TIER_COUNT, -1, NULL, 1, {2, 0} , NULL, 1  },
+    { 0x0301, "◌́",  "tone_high",     TIER_COUNT, -1, NULL, 1, {4, 0} , NULL, 1  },
     { 0x0302, "◌̂",  "tone_fall",     TIER_COUNT, -1, NULL, 1, {5, 1} , NULL, 1  },
     { 0x030C, "◌̌",  "tone_rise",     TIER_COUNT, -1, NULL, 1, {1, 5} , NULL, 1  },
     { 0x030F, "◌̏",  "tone_extralow",TIER_COUNT, -1, NULL, 1, {1, 0} , NULL, 1  },
-    { 0x030D, "◌̍",  "tone_highv",   TIER_COUNT, -1, NULL, 1, {5, 0} , NULL, 1  },
-    { 0x030E, "◌̎",  "tone_lowv",    TIER_COUNT, -1, NULL, 1, {1, 0} , NULL, 1  },
+    { 0x030D, "◌̍",  "tone_highv",   TIER_COUNT, -1, NULL, 1, {4, 0} , NULL, 1  },
+    { 0x030E, "◌̎",  "tone_lowv",    TIER_COUNT, -1, NULL, 1, {2, 0} , NULL, 1  },
     /* --- ligature ties (no apply; handled by parser) --- */
     { 0x035C, "◌͜",  "tie",       TIER_COUNT,     -1, NULL, 0, {0,0} , NULL, 1  },
     { 0x0360, "◌͠",  "tie",       TIER_COUNT,     -1, NULL, 0, {0,0} , NULL, 1  },
@@ -862,11 +862,11 @@ static const ModRec MODS[] = {
     { 0x2197, "↗", "global_up",   TIER_COUNT, -1, NULL, 4, {NAN, 1}, NULL, 1  },
     { 0x2198, "↘", "global_down", TIER_COUNT, -1, NULL, 4, {NAN, -1}, NULL, 1  },
     /* --- pitch contour marks (diacritics) — no articulatory effect --- */
-    { 0x1DC4, "◌᷄", "pitch_midrise",  TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x1DC5, "◌᷅", "pitch_midfall",  TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
+    { 0x1DC4, "◌᷄", "pitch_highrise",  TIER_COUNT, -1, NULL, 1, {3, 5} , NULL, 1  },
+    { 0x1DC5, "◌᷅", "pitch_lowrise",  TIER_COUNT, -1, NULL, 1, {1, 3} , NULL, 1  },
     { 0x1DC6, "◌᷆", "pitch_highfall", TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x1DC7, "◌᷇", "pitch_highrise", TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x1DC8, "◌᷈", "pitch_risefall", TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
+    { 0x1DC7, "◌᷇", "pitch_midrise",  TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
+    { 0x1DC8, "◌᷈", "pitch_risefall", TIER_COUNT, -1, NULL, 1, {3, 4, 2} , NULL, 1  },
     { 0x1DC9, "◌᷉", "pitch_fallrise", TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
     /* --- undertie (linking) — ignored --- */
     { 0x203F, "‿",   "link",     TIER_COUNT,     -1, NULL, 0, {0,0} , NULL, 1  },
@@ -2021,6 +2021,8 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                         tonebuf[ntone++] = (int)m->val[0];
                         if (m->val[1] > 0 && ntone < TONE_BUF_MAX)
                             tonebuf[ntone++] = (int)m->val[1];
+                        if (m->val[2] > 0 && ntone < TONE_BUF_MAX)
+                            tonebuf[ntone++] = (int)m->val[2];
                         tone_letter = 1;
                     }
                 } else if (m->tone_kind == 5) {
@@ -2077,6 +2079,8 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                         tonebuf[ntone++] = (int)m->val[0];
                         if (m->val[1] > 0 && ntone < TONE_BUF_MAX)
                             tonebuf[ntone++] = (int)m->val[1];
+                        if (m->val[2] > 0 && ntone < TONE_BUF_MAX)
+                            tonebuf[ntone++] = (int)m->val[2];
                         if (m->latin && strncmp(m->latin, "pitch_", 6) == 0)
                             tone_digit = 1;
                         else

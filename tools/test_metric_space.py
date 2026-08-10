@@ -206,21 +206,27 @@ TONE_CASES = [
     ("ma˧ꜛ↗꜂",      "a˧ꜛ↗꜂"),
     ("ma˦˩˩",       "a˦˩˩"),
     # precomposed tone vowels -> base + 5-level tone letters
-    ("má",          "a˥"),
-    ("mà",          "a˩"),
+    # (IPA convention: ́=high ˦, ̀=low ˨, ̂=falling ˥˩, ̌=rising ˩˥,
+    #  ̏=extra-low ˩, ̄=mid ˧, ̋=extra-high ˥)
+    ("má",          "a˦"),
+    ("mà",          "a˨"),
     ("mâ",          "a˥˩"),
     ("mǎ",          "a˩˥"),
     ("mȁ",          "a˩"),
     ("mā",          "a˧"),
-    ("mé",          "e˥"),
-    ("mí",          "i˥"),
-    ("mó",          "o˥"),
-    ("mú",          "u˥"),
-    ("mý",          "y˥"),
+    ("ma\u030B",    "a˥"),
+    ("mé",          "e˦"),
+    ("mí",          "i˦"),
+    ("mó",          "o˦"),
+    ("mú",          "u˦"),
+    ("mý",          "y˦"),
     ("mǒ",          "o˩˥"),
+    ("ma\u1DC4",    "a˧˥"),   # ᷄ high rising
+    ("ma\u1DC5",    "a˩˧"),   # ᷅ low rising
+    ("ma\u1DC8",    "a˧˦˨"),  # ᷈ rising-falling
     # decomposed tone diacritics behave identically
-    ("ma\u0301",    "a˥"),
-    ("ma\u0300",    "a˩"),
+    ("ma\u0301",    "a˦"),
+    ("ma\u0300",    "a˨"),
     ("ma\u0302",    "a˥˩"),
     ("ma\u030c",    "a˩˥"),
     ("ma\u030f",    "a˩"),
