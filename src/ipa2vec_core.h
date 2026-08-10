@@ -238,6 +238,16 @@ static double g_metric_lambda;
 static int    g_metric_full = 0;   /* 1: use the full 16x16 matrix form */
 static int    g_metric_ready = 0;  /* 0: seg_dist must sync defaults */
 
+/* transcription narrowness level (--narrowness 0-4, default 3 = narrow).
+ * Level 4 (narrowest) prints the fitted IPA in double square brackets
+ * ⟦…⟧ (U+27E6/U+27E7) instead of phonemic slashes. */
+static int g_width_level = 3;
+
+static IPA2VEC_MAYBE_UNUSED const char *ipabrk_o(void)
+{ return g_width_level >= 4 ? "\xe2\x9f\xa6" : "/"; }
+static IPA2VEC_MAYBE_UNUSED const char *ipabrk_c(void)
+{ return g_width_level >= 4 ? "\xe2\x9f\xa7" : "/"; }
+
 /* runtime dimension count & names (scheme); defaults = v8 */
 static int    g_ndim = NDIM;
 static const char *g_dimname[MAXDIM];
@@ -3168,6 +3178,7 @@ static IPA2VEC_MAYBE_UNUSED int opt_width(const char *arg, int argc, char **argv
     if (level < 0) return -1;
     g_fit_max_mods = maxmods[level];
     g_fit_min_gain = mingain[level];
+    g_width_level = level;
     return 1;
 }
 
@@ -4144,8 +4155,8 @@ static IPA2VEC_MAYBE_UNUSED int run_reverse(const char *vecstr, int nearest_only
     const SegEntry *b; double d;
     nearest_base(sv.v, &b, &d);
     if (nearest_only) {
-        printf("/%s/  %s  d=%.4f  (%s)\n", b->ipa, base_name(b),
-               d, AIRSTREAM_LABELS[b->airstream]);
+        printf("%s%s%s  %s  d=%.4f  (%s)\n", ipabrk_o(), b->ipa, ipabrk_c(),
+               base_name(b), d, AIRSTREAM_LABELS[b->airstream]);
         return 0;
     }
     const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
@@ -4163,8 +4174,9 @@ static IPA2VEC_MAYBE_UNUSED int run_reverse(const char *vecstr, int nearest_only
         if (afd < d_fit * 0.85) {
             char afipa[128];
             snprintf(afipa, sizeof(afipa), "%s\xCD\xA1%s", afc->ipa, afr->ipa);
-            printf("/%s/  (affricate %s+%s)  d=%.4f  ->  /%s/\n",
-                   afc->ipa, afc->ipa, afr->ipa, afd, afipa);
+            printf("%s%s%s  (affricate %s+%s)  d=%.4f  ->  %s%s%s\n",
+                   ipabrk_o(), afc->ipa, ipabrk_c(), afc->ipa, afr->ipa, afd,
+                   ipabrk_o(), afipa, ipabrk_c());
             return 0;
         }
     }
@@ -4173,9 +4185,9 @@ static IPA2VEC_MAYBE_UNUSED int run_reverse(const char *vecstr, int nearest_only
     build_ipa(b, mods, nm, ipa, sizeof(ipa));
     char tb[48];
     tone_rebuild(&sv, tb, sizeof(tb));
-    printf("/%s/  (%s", b->ipa, base_name(b));
+    printf("%s%s%s  (%s", ipabrk_o(), b->ipa, ipabrk_c(), base_name(b));
     for (int j = 0; j < nm; j++) printf(" +%s", mods[j]->latin);
-    printf(")  d=%.4f  ->  /%s%s/\n", d, ipa, tb);
+    printf(")  d=%.4f  ->  %s%s%s%s\n", d, ipabrk_o(), ipa, tb, ipabrk_c());
     return 0;
 }
 
