@@ -61,7 +61,7 @@ def nearest_base(ipa):
             _base_cache[ipa] = "ERR"
         else:
             nb = nearest_vec(v)
-            _base_cache[ipa] = nb if nb == "ERR" else nb.split("/")[1]
+            _base_cache[ipa] = nb if nb == "ERR" else nb[1:-1]
     return _base_cache[ipa]
 
 # ------------------------------------------------------------------
@@ -164,7 +164,7 @@ for ipa, want in DOC:
 check("documented x̃ -> /x/ under default std charset",
       nearest_base("x̃") == "x", f"-> {nearest_base('x̃')}")
 check("documented x̃ -> /ʩ/ with --symbols extipa",
-      nearest_vec(vector_of("x̃"), ("extipa",)) == "/ʩ/", "")
+      nearest_vec(vector_of("x̃"), ("extipa",)) == "[ʩ]", "")
 
 # ------------------------------------------------------------------
 # 4. rebuilt spellings re-parse to the same vector
@@ -267,31 +267,31 @@ for inp, want in TIMING_CASES:
 # ᴇ (lowered e, small-cap display letter) -> standard spelling e̞
 E_VEC = [0.0, 0.35, 0.0, 0.0, 0.25, -0.2, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0]
 check("ᴇ vector nearest is e", nearest_base("e̞") != "ERR" and
-      nearest_vec(E_VEC) == "/e/",
+      nearest_vec(E_VEC) == "[e]",
       run(VEC2IPA, ["-n", fmt_vec(E_VEC)]).stdout.splitlines()[0][:40])
 check("ᴇ vector rebuilds as e̞",
       parse_rebuilt(run(VEC2IPA, [fmt_vec(E_VEC)]).stdout) == "e̞",
       run(VEC2IPA, [fmt_vec(E_VEC)]).stdout.splitlines()[0][:60])
 # Sinologist curl letters are never reverse targets by default; their
 # standard spelling is t̠ʲ/d̠ʲ/n̠ʲ/l̠ʲ, so the fallback must be t/d/n/l
-for curl, fallback in (("ȶ", "/t/"), ("ȡ", "/d/"), ("ȵ", "/n/"), ("ȴ", "/l/")):
+for curl, fallback in (("ȶ", "[t]"), ("ȡ", "[d]"), ("ȵ", "[n]"), ("ȴ", "[l]")):
     nb = nearest_vec(vector_of(curl))
-    check(f"{curl} vector not rebuilt as {curl} by default", nb != f"/{curl}/", nb)
+    check(f"{curl} vector not rebuilt as {curl} by default", nb != f"[{curl}]", nb)
     check(f"{curl} vector falls back to {fallback}", nb == fallback, nb)
 # --symbols is repeatable and accumulates; any combination is allowed
 check("--symbols sinologist allows ȶ",
-      nearest_vec(vector_of("ȶ"), ("sinologist",)) == "/ȶ/", "")
+      nearest_vec(vector_of("ȶ"), ("sinologist",)) == "[ȶ]", "")
 check("--symbols sinologist allows ᴇ (small-cap is Sinologist)",
-      nearest_vec(E_VEC, ("sinologist",)) == "/ᴇ/", "")
+      nearest_vec(E_VEC, ("sinologist",)) == "[ᴇ]", "")
 check("standard rhotacised ɝ kept under any charset",
-      nearest_vec(vector_of("ɝ")) == "/ɝ/"
-      and nearest_vec(vector_of("ɝ"), ("std",)) == "/ɝ/", "")
+      nearest_vec(vector_of("ɝ")) == "[ɝ]"
+      and nearest_vec(vector_of("ɝ"), ("std",)) == "[ɝ]", "")
 check("extIPA ʬ gated by default (std), enabled by --symbols extipa",
-      nearest_vec(vector_of("ʬ")) != "/ʬ/"
-      and nearest_vec(vector_of("ʬ"), ("extipa",)) == "/ʬ/", "")
+      nearest_vec(vector_of("ʬ")) != "[ʬ]"
+      and nearest_vec(vector_of("ʬ"), ("extipa",)) == "[ʬ]", "")
 check("--charset std + sinologist: combo without extIPA",
-      nearest_vec(E_VEC, ("std", "sinologist")) == "/ᴇ/"
-      and nearest_vec(vector_of("ʬ"), ("std", "sinologist")) != "/ʬ/", "")
+      nearest_vec(E_VEC, ("std", "sinologist")) == "[ᴇ]"
+      and nearest_vec(vector_of("ʬ"), ("std", "sinologist")) != "[ʬ]", "")
 check("--charset bad value rejected",
       run(VEC2IPA, ["--charset", "bogus", fmt_vec(E_VEC)]).returncode == 1, "")
 
@@ -314,7 +314,7 @@ for line in VECTORS_H.read_text(encoding="utf-8").splitlines():
         check(f"base {ipa} parses", False, "parse failed")
         continue
     got = nearest_vec(v)
-    check(f"base {ipa} is its own nearest base", got == f"/{ipa}/", got)
+    check(f"base {ipa} is its own nearest base", got == f"[{ipa}]", got)
 for derived, base in (("p̪", "p\u032a"), ("m̪", "ɱ")):
     v1, v2 = vector_of(derived), vector_of(base)
     dv = max(abs(a - b) for a, b in zip(v1, v2)) if v1 and v2 else None

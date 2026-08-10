@@ -29,8 +29,9 @@ def run(exe, args):
 
 
 def parse_rebuilt(out):
-    """Vector spelled by vec2ipa after '->  /' (trailing slash/linefeeds off)."""
-    return out.split("->  /")[-1].rstrip("/\n")
+    """Vector spelled by vec2ipa after '->  [' / '->  ⟦' (bracket off)."""
+    s = out.split("->  ")[-1].rstrip("\n")
+    return s[1:-1]
 
 
 def parse_vector(s):

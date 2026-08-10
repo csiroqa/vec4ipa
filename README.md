@@ -145,7 +145,7 @@ vector[0]: (... vel_open 0.6000 ...)  pulmonic  [nas
 rebuilt[0]: /ã/
 
 $ vec2ipa "-0.45,0,0,0,1,0,0,0,0,0.4,0,0,0,0,0,1"
-/t/  (vl.alv.pls)  d=0.0000  ->  /t/
+[t]  (vl.alv.pls)  d=0.0000  ->  [t]
 
 $ vec4ipa -q "ʃ"
 base: /ʃ/  vl.pst.frc  (pulmonic)
@@ -156,6 +156,11 @@ Vectors are in SPEC-NEXT 16-D order — `place, body, lips_closed,
 lips_rounded, tip_shape, tongue_root, vel_open, lateral_ratio, voiced,
 glottal_aperture, glottal_tension, larynx_height, duration, jet_focus,
 effective_oral_area, airflow_direction` (see `docs/SPEC.md`).
+
+Transcription brackets: `/…/` marks the phonemic level (input /
+alignment display); the reverse fit is phonetic `[…]`, and
+`--narrowness narrowest` (level 4) prints the narrowest transcription
+in `⟦…⟧`.
 
 ## Internal logic (two-layer IR)
 

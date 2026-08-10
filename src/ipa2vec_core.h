@@ -238,15 +238,16 @@ static double g_metric_lambda;
 static int    g_metric_full = 0;   /* 1: use the full 16x16 matrix form */
 static int    g_metric_ready = 0;  /* 0: seg_dist must sync defaults */
 
-/* transcription narrowness level (--narrowness 0-4, default 3 = narrow).
- * Level 4 (narrowest) prints the fitted IPA in double square brackets
- * ⟦…⟧ (U+27E6/U+27E7) instead of phonemic slashes. */
+/* transcription brackets for the reverse (phonetic) direction:
+ * /…/ marks the PHONEMIC level (alignment/forward display), so the
+ * phonetic fit prints [ … ] (U+005B/U+005D) and the narrowest level
+ * (4) prints ⟦…⟧ (U+27E6/U+27E7). */
 static int g_width_level = 3;
 
 static IPA2VEC_MAYBE_UNUSED const char *ipabrk_o(void)
-{ return g_width_level >= 4 ? "\xe2\x9f\xa6" : "/"; }
+{ return g_width_level >= 4 ? "\xe2\x9f\xa6" : "["; }
 static IPA2VEC_MAYBE_UNUSED const char *ipabrk_c(void)
-{ return g_width_level >= 4 ? "\xe2\x9f\xa7" : "/"; }
+{ return g_width_level >= 4 ? "\xe2\x9f\xa7" : "]"; }
 
 /* runtime dimension count & names (scheme); defaults = v8 */
 static int    g_ndim = NDIM;
