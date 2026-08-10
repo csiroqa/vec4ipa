@@ -3836,9 +3836,73 @@ static IPA2VEC_MAYBE_UNUSED void seg_label(const SegVec *sv, char *buf, size_t s
     build_ipa(b, mods, nm, buf, sz);
 }
 
+/* seg_dist_full ignoring one dimension (glottal aperture for Cʰ ~ (C, h)) */
+static IPA2VEC_MAYBE_UNUSED double seg_dist_full_skip (const SegVec *a,
+                                                        const SegVec *b,
+                                                        int skip)
+{
+    metric_ensure();
+    double s = 0.0;
+    if (g_metric_full) {
+        for (int i = 0; i < g_ndim; i++) {
+            if (i == skip) continue;
+            double di = a->v[i] - b->v[i];
+            if (di == 0.0) continue;
+            for (int j = 0; j < g_ndim; j++) {
+                if (j == skip) continue;
+                double dj = a->v[j] - b->v[j];
+                if (dj == 0.0) continue;
+                s += g_metric_M[i][j] * di * dj;
+            }
+        }
+    } else {
+        for (int i = 0; i < g_ndim; i++) {
+            if (i == skip) continue;
+            double d = a->v[i] - b->v[i];
+            s += g_metric_w[i] * d * d;
+        }
+    }
+    double d = sqrt(s);
+    if (a->airstream != b->airstream)
+        d += METRIC_LAMBDA;
+    return d;
+}
+
+/* h-like segment: glottal fricative with release-like duration */
+static IPA2VEC_MAYBE_UNUSED int seg_is_hlike (const SegVec *s, int apdim,
+                                              int placedim, int durdim)
+{
+    return s->v[apdim] >= 0.6 && s->v[placedim] >= 0.5 &&
+           s->v[durdim] <= 1.2;
+}
+
+/* aspirated obstruent: raised glottal aperture on a non-glottal base */
+static IPA2VEC_MAYBE_UNUSED int seg_is_asp (const SegVec *s, int apdim,
+                                            int placedim)
+{
+    return s->v[apdim] >= 0.6 && s->v[placedim] < 0.5;
+}
+
+/* compressed Cʰ ~ (C, h) distance: the base consonants are compared with
+ * the glottal-aperture dim skipped, and the aspiration residue — the
+ * gap between Cʰ's own aperture and h's aperture — is added back. */
+static IPA2VEC_MAYBE_UNUSED double seg_dist_compress (const SegVec *a,
+                                                       const SegVec *b,
+                                                       const SegVec *h,
+                                                       int apdim)
+{
+    metric_ensure();
+    double d1 = seg_dist_full_skip(a, b, apdim);
+    double da = a->v[apdim] - h->v[apdim];
+    return sqrt(d1 * d1 + g_metric_w[apdim] * da * da);
+}
+
 /* sequence (syllable/word) alignment: edit-distance DP over segments with
- * seg_dist_full as replacement cost and IPA2VEC_ALIGN_GAP per gap.  Prints
- * the alignment and the total distance. */
+ * seg_dist_full as replacement cost and IPA2VEC_ALIGN_GAP per gap.  A
+ * 1:2 / 2:1 compression folds Cʰ against (C, h): the h-like segment
+ * carries the glottal-aperture component, so the compressed pair is
+ * compared with that dimension skipped (same aspiration counted once).
+ * Prints the alignment and the total distance. */
 static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
                                           const char *toolname)
 {
@@ -3863,6 +3927,9 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
         fprintf(stderr, "too many segments\n");
         return 1;
     }
+    int apdim = dim_of_ok("glottal_aperture", DIM_SPREAD_GLOTTIS);
+    int placedim = dim_of_ok("place", DIM_TONGUE_BODY_POS);
+    int durdim = dim_of_ok("duration", DIM_DURATION);
     size_t w = (size_t)(nb + 1);
     double *dp = (double *)malloc((size_t)(na + 1) * w * sizeof(double));
     unsigned char *bk = (unsigned char *)malloc((size_t)(na + 1) * w);
@@ -3875,16 +3942,35 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
             double di = dp[(size_t)(i - 1) * w + (size_t)(j - 1)] + c;
             double up = dp[(size_t)(i - 1) * w + (size_t)j] + IPA2VEC_ALIGN_GAP;
             double le = dp[(size_t)i * w + (size_t)(j - 1)] + IPA2VEC_ALIGN_GAP;
-            if (di <= up && di <= le) { dp[(size_t)i * w + (size_t)j] = di; bk[(size_t)i * w + (size_t)j] = 0; }
-            else if (up <= le) { dp[(size_t)i * w + (size_t)j] = up; bk[(size_t)i * w + (size_t)j] = 1; }
-            else { dp[(size_t)i * w + (size_t)j] = le; bk[(size_t)i * w + (size_t)j] = 2; }
+            double best = di;
+            unsigned char bkbest = 0;
+            if (up < best) { best = up; bkbest = 1; }
+            if (le < best) { best = le; bkbest = 2; }
+            /* 1:2 compression — one aspirated stop on A against (C, h) on B */
+            if (j >= 2 && seg_is_asp(&a.segs[i - 1], apdim, placedim) &&
+                seg_is_hlike(&b.segs[j - 1], apdim, placedim, durdim)) {
+                double comp = dp[(size_t)(i - 1) * w + (size_t)(j - 2)] +
+                    seg_dist_compress(&a.segs[i - 1], &b.segs[j - 2],
+                                      &b.segs[j - 1], apdim);
+                if (comp < best) { best = comp; bkbest = 3; }
+            }
+            /* 2:1 compression — (C, h) on A against one aspirated stop on B */
+            if (i >= 2 && seg_is_hlike(&a.segs[i - 1], apdim, placedim, durdim) &&
+                seg_is_asp(&b.segs[j - 1], apdim, placedim)) {
+                double comp = dp[(size_t)(i - 2) * w + (size_t)(j - 1)] +
+                    seg_dist_compress(&b.segs[j - 1], &a.segs[i - 2],
+                                      &a.segs[i - 1], apdim);
+                if (comp < best) { best = comp; bkbest = 4; }
+            }
+            dp[(size_t)i * w + (size_t)j] = best;
+            bk[(size_t)i * w + (size_t)j] = bkbest;
         }
     }
     double total = dp[(size_t)na * w + (size_t)nb];
 
     /* trace back, print from the end of the alignment */
     int i = na, j = nb;
-    char a1[128], b1[128];
+    char a1[128], b1[128], a2[128], b2[128];
     char lines[256][160];
     int nl = 0;
     while (i > 0 || j > 0) {
@@ -3905,6 +3991,24 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
             snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
                      "-", b1, IPA2VEC_ALIGN_GAP);
             j--;
+        } else if (k == 3 && i > 0 && j >= 2) {   /* 1:2  A[i] ~ (B[j-1], B[j]) */
+            seg_label(&a.segs[i - 1], a1, sizeof(a1));
+            seg_label(&b.segs[j - 2], b1, sizeof(b1));
+            seg_label(&b.segs[j - 1], b2, sizeof(b2));
+            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s+%-8s d=%.4f",
+                     a1, b1, b2,
+                     seg_dist_compress(&a.segs[i - 1], &b.segs[j - 2],
+                                       &b.segs[j - 1], apdim));
+            i--; j -= 2;
+        } else if (k == 4 && i >= 2 && j > 0) {   /* 2:1  (A[i-1], A[i]) ~ B[j] */
+            seg_label(&a.segs[i - 2], a1, sizeof(a1));
+            seg_label(&a.segs[i - 1], a2, sizeof(a2));
+            seg_label(&b.segs[j - 1], b1, sizeof(b1));
+            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s+%-8s ~ %-8s d=%.4f",
+                     a1, a2, b1,
+                     seg_dist_compress(&b.segs[j - 1], &a.segs[i - 2],
+                                       &a.segs[i - 1], apdim));
+            i -= 2; j--;
         } else if (j > 0) {   /* unreachable fallback */
             seg_label(&b.segs[j - 1], b1, sizeof(b1));
             snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
