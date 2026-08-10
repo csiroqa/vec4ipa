@@ -45,7 +45,7 @@ def check_forms(name, forms, **kw):
 # symbols the tool does not support yet (all of the article's marks
 # are in these characters; anything containing them is a gap item)
 # ------------------------------------------------------------------
-UNSUPPORTED_SYMS = "◌̑˖˗◌͑◌͗ȏä"    # U+0311 U+02D6 U+02D7 U+0351 U+0357 U+020F U+00E4
+UNSUPPORTED_SYMS = "◌̑˖˗◌͑◌͗ȏ"    # U+0311 U+02D6 U+02D7 U+0351 U+0357 U+020F
 
 def is_gap(form):
     """True when the article's spelling cannot be parsed by the tool
@@ -263,7 +263,7 @@ for name, ipa, tone in TONES:
 # ------------------------------------------------------------------
 # 4. syllables & sentences in narrow transcription (中派), with
 #    expected segment counts (catches accidental cross-boundary merges)
-#    — precomposed ä is NFD-normalised (identical a+◌̈)
+#    — precomposed ä expands to a+◌̈ (centralised a)
 # ------------------------------------------------------------------
 def nfd(s):
     return unicodedata.normalize("NFD", s)
@@ -435,7 +435,6 @@ GAP_ITEMS = [
     ("half-ring ◌͑",        "a͑"),
     ("half-ring ◌͗",        "a͗"),
     ("precomposed ȏ",       "ȏ"),
-    ("precomposed ä",       "mä"),
     ("preposed laminal ◌̻", "̻a"),
     ("ï₂ 新派 preposed laminal", "̻ɻ̺̍͡ɻ̻̍"),
     ("glide preposed laminal",   "̻ʲj"),

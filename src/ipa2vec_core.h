@@ -928,8 +928,17 @@ static const PrecompEntry PRECOMPOSED[] = {
     { 0x1EF9, 0x0079, { 0x0303 }, 1 },   /* ỹ */
     { 0x1EA1, 0x0061, { 0x0323 }, 1 },   /* ạ = a + ◌̣ */
     { 0x1EB9, 0x0065, { 0x0323 }, 1 },   /* ẹ */
+    { 0x1ECB, 0x0069, { 0x0323 }, 1 },   /* ị */
     { 0x1ECD, 0x006F, { 0x0323 }, 1 },   /* ọ */
-    { 0x1EE9, 0x0075, { 0x0323 }, 1 },   /* ụ */
+    { 0x1EE5, 0x0075, { 0x0323 }, 1 },   /* ụ */
+    { 0x1EF5, 0x0079, { 0x0323 }, 1 },   /* ỵ */
+    /* precomposed diaeresis vowels -> base + ◌̈ (centralised) */
+    { 0x00E4, 0x0061, { 0x0308 }, 1 },   /* ä = a + ◌̈ */
+    { 0x00EB, 0x0065, { 0x0308 }, 1 },   /* ë */
+    { 0x00EF, 0x0069, { 0x0308 }, 1 },   /* ï */
+    { 0x00F6, 0x006F, { 0x0308 }, 1 },   /* ö */
+    { 0x00FC, 0x0075, { 0x0308 }, 1 },   /* ü */
+    { 0x00FF, 0x0079, { 0x0308 }, 1 },   /* ÿ */
     /* precomposed vowels with pitch/tone diacritics -> base + tone mark */
     { 0x00E1, 0x0061, { 0x0301 }, 1 },   /* á = a + ◌́ (high tone) */
     { 0x00E9, 0x0065, { 0x0301 }, 1 },   /* é = e + ◌́ (high tone) */
@@ -937,6 +946,8 @@ static const PrecompEntry PRECOMPOSED[] = {
     { 0x00F3, 0x006F, { 0x0301 }, 1 },   /* ó = o + ◌́ */
     { 0x00FA, 0x0075, { 0x0301 }, 1 },   /* ú = u + ◌́ */
     { 0x00FD, 0x0079, { 0x0301 }, 1 },   /* ý = y + ◌́ */
+    { 0x01FD, 0x00E6, { 0x0301 }, 1 },   /* ǽ = æ + ◌́ */
+    { 0x01FF, 0x00F8, { 0x0301 }, 1 },   /* ǿ = ø + ◌́ */
     { 0x00E0, 0x0061, { 0x0300 }, 1 },   /* à = a + ◌̀ (low tone) */
     { 0x00E8, 0x0065, { 0x0300 }, 1 },   /* è = e + ◌̀ (low tone) */
     { 0x00EC, 0x0069, { 0x0300 }, 1 },   /* ì = i + ◌̀ */
@@ -964,6 +975,13 @@ static const PrecompEntry PRECOMPOSED[] = {
     { 0x012B, 0x0069, { 0x0304 }, 1 },   /* ī = i + ◌̄ */
     { 0x014D, 0x006F, { 0x0304 }, 1 },   /* ō = o + ◌̄ */
     { 0x016B, 0x0075, { 0x0304 }, 1 },   /* ū = u + ◌̄ */
+    { 0x0233, 0x0079, { 0x0304 }, 1 },   /* ȳ = y + ◌̄ */
+    /* precomposed short vowels -> base + ◌̆ (breve = extra-short timing) */
+    { 0x0103, 0x0061, { 0x0306 }, 1 },   /* ă = a + ◌̆ */
+    { 0x0115, 0x0065, { 0x0306 }, 1 },   /* ĕ = e + ◌̆ */
+    { 0x012D, 0x0069, { 0x0306 }, 1 },   /* ĭ = i + ◌̆ */
+    { 0x014F, 0x006F, { 0x0306 }, 1 },   /* ŏ = o + ◌̆ */
+    { 0x016D, 0x0075, { 0x0306 }, 1 },   /* ŭ = u + ◌̆ */
 };
 #define NPRECOMP ((int)(sizeof(PRECOMPOSED) / sizeof(PRECOMPOSED[0])))
 

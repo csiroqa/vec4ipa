@@ -243,6 +243,18 @@ for inp, want in TONE_CASES:
         continue
     check(f"tone rebuild {inp}", rb[1] == want, f"got {rb[1]}")
 
+# precomposed timing / centralisation marks
+TIMING_CASES = [
+    ("mă",  "ă"), ("mĕ", "ĕ"), ("mĭ", "ĭ"), ("mŏ", "ŏ"), ("mŭ", "ŭ"),
+    ("mä",  "a"),  ("më", "ë"), ("mö", "ö"), ("mü", "ʊ̝̈"),
+]
+for inp, want in TIMING_CASES:
+    rb = rebuilt_of(inp)
+    if not rb or len(rb) != 2:
+        check(f"timing rebuild {inp}", False, f"unexpected -i output: {rb!r}")
+        continue
+    check(f"timing rebuild {inp}", rb[1] == want, f"got {rb[1]}")
+
 # ------------------------------------------------------------------
 # 6. reverse uses standard IPA only (no ȶ ȡ ȵ ȴ ᴇ)
 # ------------------------------------------------------------------
