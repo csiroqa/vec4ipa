@@ -431,7 +431,7 @@ static const SegEntry EXTRA_BASE[] = {
      * DIM_NAMES order the binary is compiled with (see vectors.h).
      * ᴇ U+1D07: small-cap E = lowered e [e̞] (front mid unrounded);
      * lowered acts on effective_oral_area: e 0.6 -> 0.7, tip stays at rest */
-    { "\xe1\xb4\x87", { 0.15, 0.0, 0.0, 0.0, 0.25, -0.2, 0.0, 0.0,
+    { "\xe1\xb4\x87", { 0.0, 0.35, 0.0, 0.0, 0.25, -0.2, 0.0, 0.0,
                         1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0 }, 0 },
     /* ɚ U+025A: rhotacised schwa (tip 0.45 rhotic bunch, tension 0.3) */
     { "\xc9\x9a", { 0.0, 0.0, 0.0, 0.0, 0.45, 0.0, 0.0, 0.0,
@@ -454,7 +454,7 @@ static const SegEntry EXTRA_BASE[] = {
      * velopharyngeal port requires full nasal airflow, so vel_open is
      * 1.0 (a "half-nasal" 0.5 would make it the accidental nearest
      * neighbour of every nasalised voiceless fricative) */
-    { "\xca\xa9", { 0.3, -0.5, 0.0, 0.0, 0.25, 0.0, 1.0, 0.0,
+    { "\xca\xa9", { 0.3, 0.0, 0.0, 0.0, 0.25, 0.0, 1.0, 0.0,
                     0.0, 0.4, 0.0, 0.0, 0.6, 0.0, 0.09, 1.0 }, 0 },
     /* ꞎ U+A78E: voiceless retroflex lateral fricative (IPA 2018) */
     { "\xea\x9e\x8e", { 0.0, 0.0, 0.0, 0.0, 0.8, 0.0, 0.0, 1.0,
@@ -3836,72 +3836,103 @@ static IPA2VEC_MAYBE_UNUSED void seg_label(const SegVec *sv, char *buf, size_t s
     build_ipa(b, mods, nm, buf, sz);
 }
 
-/* seg_dist_full ignoring one dimension (glottal aperture for Cʰ ~ (C, h)) */
-static IPA2VEC_MAYBE_UNUSED double seg_dist_full_skip (const SegVec *a,
-                                                        const SegVec *b,
-                                                        int skip)
+/* assimilation pairs: a secondary-articulation modifier written on a
+ * segment (Cʰ Cʲ Cʷ Cˠ Cˤ ...) is the same component as the glide segment
+ * that follows the base in the spelled-out form (C+h C+j C+w ...).
+ * Only SECONDARY ARTICULATION qualifies: release diacritics (ˡ ˢ ˣ ʳ ...)
+ * are excluded — tˡ is a lateral release, not t+l.  Applies to vowels too
+ * (aʷ ~ a+w, aʲ ~ a+j).  Each pair lists the dimensions the glide absorbs:
+ * the compressed distance skips those dims between the two bases, then
+ * adds the residue between the modified segment and the glide. */
+typedef struct {
+    const char *mod;       /* modifier latin name (in SegVec.note) */
+    const char *base;      /* glide segment base symbol */
+    const char *dims[4];   /* absorbed dimension names (NULL-terminated) */
+} AssimPair;
+
+static const AssimPair ASSIM_PAIRS[] = {
+    { "asp",         "h",  { "glottal_aperture", NULL } },
+    { "weak_asp",    "h",  { "glottal_aperture", NULL } },
+    { "breathy_asp", "ɦ",  { "glottal_aperture", "voiced", NULL } },
+    { "pal",         "j",  { "tongue_body_pos", NULL } },
+    { "lab",         "w",  { "lips_rounded", NULL } },
+    { "vel",         "ɣ",  { "tongue_body_pos", "tongue_root", NULL } },
+    { "phar",        "ʕ",  { "tongue_root", "tongue_body_pos", NULL } },
+};
+#define NASSIM ((int)(sizeof(ASSIM_PAIRS) / sizeof(ASSIM_PAIRS[0])))
+
+/* does the segment's note carry the modifier `mod` (comma-separated)? */
+static IPA2VEC_MAYBE_UNUSED int note_has (const SegVec *s, const char *mod)
+{
+    const char *n = s->note;
+    size_t len = strlen(mod);
+    while (*n) {
+        const char *e = strchr(n, ',');
+        size_t t = e ? (size_t)(e - n) : strlen(n);
+        if (t == len && strncmp(n, mod, len) == 0) return 1;
+        if (!e) break;
+        n = e + 1;
+    }
+    return 0;
+}
+
+/* nearest base symbol of a segment (glide family test) */
+static IPA2VEC_MAYBE_UNUSED const char *seg_base_sym (const SegVec *s)
+{
+    const SegEntry *b; double d;
+    nearest_base(s->v, &b, &d);
+    return b->ipa;
+}
+
+/* find the assimilation pair for (modified seg, glide seg); -1 if none */
+static IPA2VEC_MAYBE_UNUSED int find_assim (const SegVec *a, const SegVec *g)
+{
+    for (int k = 0; k < NASSIM; k++) {
+        if (note_has(a, ASSIM_PAIRS[k].mod) &&
+            strcmp(seg_base_sym(g), ASSIM_PAIRS[k].base) == 0)
+            return k;
+    }
+    return -1;
+}
+
+/* compressed C^mod ~ (C, glide) distance: the base consonants are compared
+ * with the absorbed dims skipped, and the residue — the gap between the
+ * modified segment and the glide on those dims — is added back. */
+static IPA2VEC_MAYBE_UNUSED double seg_dist_assim (const SegVec *a,
+                                                   const SegVec *b,
+                                                   const SegVec *g,
+                                                   int pair)
 {
     metric_ensure();
     double s = 0.0;
-    if (g_metric_full) {
-        for (int i = 0; i < g_ndim; i++) {
-            if (i == skip) continue;
-            double di = a->v[i] - b->v[i];
-            if (di == 0.0) continue;
-            for (int j = 0; j < g_ndim; j++) {
-                if (j == skip) continue;
-                double dj = a->v[j] - b->v[j];
-                if (dj == 0.0) continue;
-                s += g_metric_M[i][j] * di * dj;
-            }
-        }
-    } else {
-        for (int i = 0; i < g_ndim; i++) {
-            if (i == skip) continue;
-            double d = a->v[i] - b->v[i];
-            s += g_metric_w[i] * d * d;
-        }
+    for (int i = 0; i < g_ndim; i++) {
+        int skip = 0;
+        for (int k = 0; k < 3 && ASSIM_PAIRS[pair].dims[k]; k++)
+            if (i == dim_of_ok(ASSIM_PAIRS[pair].dims[k], i)) { skip = 1; break; }
+        if (skip) continue;
+        double d = a->v[i] - b->v[i];
+        s += g_metric_w[i] * d * d;
     }
-    double d = sqrt(s);
+    double base = sqrt(s);
+    double r = 0.0;
+    for (int k = 0; k < 3 && ASSIM_PAIRS[pair].dims[k]; k++) {
+        int di = dim_of_ok(ASSIM_PAIRS[pair].dims[k], 0);
+        double d = a->v[di] - g->v[di];
+        r += g_metric_w[di] * d * d;
+    }
+    double d = sqrt(base * base + r);
     if (a->airstream != b->airstream)
         d += METRIC_LAMBDA;
     return d;
 }
 
-/* h-like segment: glottal fricative with release-like duration */
-static IPA2VEC_MAYBE_UNUSED int seg_is_hlike (const SegVec *s, int apdim,
-                                              int placedim, int durdim)
-{
-    return s->v[apdim] >= 0.6 && s->v[placedim] >= 0.5 &&
-           s->v[durdim] <= 1.2;
-}
-
-/* aspirated obstruent: raised glottal aperture on a non-glottal base */
-static IPA2VEC_MAYBE_UNUSED int seg_is_asp (const SegVec *s, int apdim,
-                                            int placedim)
-{
-    return s->v[apdim] >= 0.6 && s->v[placedim] < 0.5;
-}
-
-/* compressed Cʰ ~ (C, h) distance: the base consonants are compared with
- * the glottal-aperture dim skipped, and the aspiration residue — the
- * gap between Cʰ's own aperture and h's aperture — is added back. */
-static IPA2VEC_MAYBE_UNUSED double seg_dist_compress (const SegVec *a,
-                                                       const SegVec *b,
-                                                       const SegVec *h,
-                                                       int apdim)
-{
-    metric_ensure();
-    double d1 = seg_dist_full_skip(a, b, apdim);
-    double da = a->v[apdim] - h->v[apdim];
-    return sqrt(d1 * d1 + g_metric_w[apdim] * da * da);
-}
-
 /* sequence (syllable/word) alignment: edit-distance DP over segments with
  * seg_dist_full as replacement cost and IPA2VEC_ALIGN_GAP per gap.  A
- * 1:2 / 2:1 compression folds Cʰ against (C, h): the h-like segment
- * carries the glottal-aperture component, so the compressed pair is
- * compared with that dimension skipped (same aspiration counted once).
+ * 1:2 / 2:1 compression folds a secondary-articulated segment against
+ * (C, glide) — Cʰ~C+h, Cʲ~C+j, Cʷ~C+w, ... (ASSIM_PAIRS): the glide
+ * absorbs its dimensions, so the compressed pair is compared with those
+ * dims skipped and the residue against the glide added back (the same
+ * component counted once).  Release diacritics are not pairs (tˡ ≠ t+l).
  * Prints the alignment and the total distance. */
 static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
                                           const char *toolname)
@@ -3927,9 +3958,6 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
         fprintf(stderr, "too many segments\n");
         return 1;
     }
-    int apdim = dim_of_ok("glottal_aperture", DIM_SPREAD_GLOTTIS);
-    int placedim = dim_of_ok("place", DIM_TONGUE_BODY_POS);
-    int durdim = dim_of_ok("duration", DIM_DURATION);
     size_t w = (size_t)(nb + 1);
     double *dp = (double *)malloc((size_t)(na + 1) * w * sizeof(double));
     unsigned char *bk = (unsigned char *)malloc((size_t)(na + 1) * w);
@@ -3946,21 +3974,26 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
             unsigned char bkbest = 0;
             if (up < best) { best = up; bkbest = 1; }
             if (le < best) { best = le; bkbest = 2; }
-            /* 1:2 compression — one aspirated stop on A against (C, h) on B */
-            if (j >= 2 && seg_is_asp(&a.segs[i - 1], apdim, placedim) &&
-                seg_is_hlike(&b.segs[j - 1], apdim, placedim, durdim)) {
-                double comp = dp[(size_t)(i - 1) * w + (size_t)(j - 2)] +
-                    seg_dist_compress(&a.segs[i - 1], &b.segs[j - 2],
-                                      &b.segs[j - 1], apdim);
-                if (comp < best) { best = comp; bkbest = 3; }
+            /* 1:2 compression — one secondary-articulated segment on A
+             * against (C, glide) on B, for every assimilation pair. */
+            if (j >= 2) {
+                int pk = find_assim(&a.segs[i - 1], &b.segs[j - 1]);
+                if (pk >= 0) {
+                    double comp = dp[(size_t)(i - 1) * w + (size_t)(j - 2)] +
+                        seg_dist_assim(&a.segs[i - 1], &b.segs[j - 2],
+                                       &b.segs[j - 1], pk);
+                    if (comp < best) { best = comp; bkbest = 3; }
+                }
             }
-            /* 2:1 compression — (C, h) on A against one aspirated stop on B */
-            if (i >= 2 && seg_is_hlike(&a.segs[i - 1], apdim, placedim, durdim) &&
-                seg_is_asp(&b.segs[j - 1], apdim, placedim)) {
-                double comp = dp[(size_t)(i - 2) * w + (size_t)(j - 1)] +
-                    seg_dist_compress(&b.segs[j - 1], &a.segs[i - 2],
-                                      &a.segs[i - 1], apdim);
-                if (comp < best) { best = comp; bkbest = 4; }
+            /* 2:1 compression — (C, glide) on A against one articulated seg on B */
+            if (i >= 2) {
+                int pk = find_assim(&b.segs[j - 1], &a.segs[i - 1]);
+                if (pk >= 0) {
+                    double comp = dp[(size_t)(i - 2) * w + (size_t)(j - 1)] +
+                        seg_dist_assim(&b.segs[j - 1], &a.segs[i - 2],
+                                       &a.segs[i - 1], pk);
+                    if (comp < best) { best = comp; bkbest = 4; }
+                }
             }
             dp[(size_t)i * w + (size_t)j] = best;
             bk[(size_t)i * w + (size_t)j] = bkbest;
@@ -3992,22 +4025,24 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
                      "-", b1, IPA2VEC_ALIGN_GAP);
             j--;
         } else if (k == 3 && i > 0 && j >= 2) {   /* 1:2  A[i] ~ (B[j-1], B[j]) */
+            int pk = find_assim(&a.segs[i - 1], &b.segs[j - 1]);
             seg_label(&a.segs[i - 1], a1, sizeof(a1));
             seg_label(&b.segs[j - 2], b1, sizeof(b1));
             seg_label(&b.segs[j - 1], b2, sizeof(b2));
             snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s+%-8s d=%.4f",
                      a1, b1, b2,
-                     seg_dist_compress(&a.segs[i - 1], &b.segs[j - 2],
-                                       &b.segs[j - 1], apdim));
+                     seg_dist_assim(&a.segs[i - 1], &b.segs[j - 2],
+                                    &b.segs[j - 1], pk));
             i--; j -= 2;
         } else if (k == 4 && i >= 2 && j > 0) {   /* 2:1  (A[i-1], A[i]) ~ B[j] */
+            int pk = find_assim(&b.segs[j - 1], &a.segs[i - 1]);
             seg_label(&a.segs[i - 2], a1, sizeof(a1));
             seg_label(&a.segs[i - 1], a2, sizeof(a2));
             seg_label(&b.segs[j - 1], b1, sizeof(b1));
             snprintf(lines[nl++], sizeof(lines[0]), "  %-8s+%-8s ~ %-8s d=%.4f",
                      a1, a2, b1,
-                     seg_dist_compress(&b.segs[j - 1], &a.segs[i - 2],
-                                       &a.segs[i - 1], apdim));
+                     seg_dist_assim(&b.segs[j - 1], &a.segs[i - 2],
+                                    &a.segs[i - 1], pk));
             i -= 2; j--;
         } else if (j > 0) {   /* unreachable fallback */
             seg_label(&b.segs[j - 1], b1, sizeof(b1));

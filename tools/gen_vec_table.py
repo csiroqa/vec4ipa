@@ -64,16 +64,18 @@ for _line in open(V8_MD, encoding='utf-8'):
 # height 7 uniform cells: 0.40 0.50 0.60 0.70 0.80 0.90 1.00
 # (adjacent differ 0.10; central: ɨ 0.40, ᵻ(=ɨ̞) 0.50, ɘ/ɵ 0.60, ə 0.70,
 #  ɜ/ɞ 0.80, ɐ 0.90, ᴀ(=ä) 1.00)
-VOWEL_COL = {  # vowel -> (place, area)
-    'i': (0.15, 0.40), 'y': (0.15, 0.40), 'ɪ': (0.15, 0.50), 'ʏ': (0.15, 0.50),
-    'e': (0.15, 0.60), 'ɛ': (0.15, 0.80), 'æ': (0.15, 0.90),
-    'ɶ': (0.15, 0.90),
-    'ø': (0.00, 0.60), 'œ': (0.00, 0.80), 'a': (0.03, 1.00),
+VOWEL_COL = {  # vowel -> (body, area); body = tongue-body position
+    # (v8 semantics: front +, central 0, back -; v8 anchor i=1.0, u=-0.5)
+    'i': (0.40, 0.40), 'y': (0.40, 0.40), 'ɪ': (0.35, 0.50), 'ʏ': (0.35, 0.50),
+    'e': (0.35, 0.60), 'ɛ': (0.25, 0.80), 'æ': (0.20, 0.90),
+    'ɶ': (0.20, 0.90),
+    'ø': (0.25, 0.60), 'œ': (0.20, 0.80), 'a': (0.00, 1.00),
     'ɨ': (0.00, 0.40), 'ʉ': (0.00, 0.40), 'ɘ': (0.00, 0.60), 'ɵ': (0.00, 0.60),
-    'ə': (0.00, 0.70), 'ɜ': (0.00, 0.80), 'ɞ': (0.00, 0.80), 'ɐ': (-0.03, 0.90),
-    'ɯ': (0.30, 0.40), 'u': (0.30, 0.40), 'ʊ': (0.30, 0.50), 'ɤ': (0.30, 0.60),
-    'o': (0.30, 0.60), 'ʌ': (0.30, 0.80), 'ɔ': (0.30, 0.80), 'ɑ': (0.30, 1.00),
-    'ɒ': (0.30, 1.00),
+    'ə': (0.00, 0.70), 'ɜ': (0.00, 0.80), 'ɞ': (0.00, 0.80), 'ɐ': (0.00, 0.90),
+    'ɯ': (-0.40, 0.40), 'u': (-0.40, 0.40), 'ʊ': (-0.35, 0.50),
+    'ɤ': (-0.35, 0.60),
+    'o': (-0.35, 0.60), 'ʌ': (-0.25, 0.80), 'ɔ': (-0.25, 0.80),
+    'ɑ': (-0.30, 1.00), 'ɒ': (-0.30, 1.00),
 }
 
 # labiodentals: lip closure removed (chain-neutral)
@@ -138,22 +140,31 @@ AFFRICATE_FRIC = {'t͡s': 's', 'd͡z': 'z', 't͡ʃ': 'ʃ', 'd͡ʒ': 'ʒ',
 # glides (semi-vowels) are the NON-SYLLABIC forms of their vowel partner:
 # same tongue root (ATR) and lip shape, slightly narrower constriction
 # (physical: approximant < vowel area).  j=i, ɥ=y, w=u, ɰ=ɯ.
-GLIDE_PARTNER = {'j': 'i', 'ɥ': 'y', 'w': 'u', 'ɰ': 'ɯ'}
+GLIDE_PARTNER = {'j': 'i', 'ɥ': 'y', 'w': 'u', 'ɰ': 'ɯ', 'ʍ': 'u'}
 
 
 def build():
     out = {}
     for seg, v in V8.items():
         x = np.zeros(NDIM)
-        # --- place: anchor table for consonants; 3-column layout for vowels
-        if seg in PLACE:
+        # --- place: anchor table for consonants; vowels and GLIDES have NO
+        # tip gesture -> 0.0 (v8: j/w rest tongue_tip_pos at 0.55; their
+        # palatal/velar identity lives on body, front/back respectively)
+        if seg in PLACE and seg not in GLIDE_PARTNER:
             x[0] = PLACE[seg]
         elif seg in VOWEL_COL:
-            x[0] = VOWEL_COL[seg][0]
+            x[0] = 0.0
+        elif seg in GLIDE_PARTNER:
+            x[0] = 0.0
         else:
             raise KeyError(f'no place for {seg!r}')
-        # --- body: secondary constriction
-        x[1] = body_of(seg)
+        # --- body: tongue-BODY position (v8 semantics: front +, back -);
+        # vowels carry their front/central/back column here; consonants
+        # keep only true secondary constrictions (clicks, ɧ)
+        if seg in VOWEL_COL:
+            x[1] = VOWEL_COL[seg][0]
+        else:
+            x[1] = body_of(seg)
         is_vowel = seg in VOWEL_COL
         # --- lips_closed: bilabials 1.0; labiodentals 0.3 (lower lip on
         # upper teeth -- partial lip involvement, not closure); rest 0
@@ -221,6 +232,7 @@ def build():
             pv = out[GLIDE_PARTNER[seg]]
             x[5] = pv[5]                    # tongue_root (ATR)
             x[3] = pv[3]                    # lip shape
+            x[1] = pv[1]                    # tongue-body position (front/back)
             # velar glide ɰ is wider than the others (v8 0.45): keep its
             # extra openness rather than the uniform -0.10
             x[14] = 0.35 if seg == 'ɰ' else pv[14] - 0.10

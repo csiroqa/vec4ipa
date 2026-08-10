@@ -148,18 +148,20 @@ def main():
 
     # ---- 7. vowel grid ----
     print('\n== 7. vowel grid ==')
+    # front/central/back live on BODY (tongue-body position; v8 semantics),
+    # not on place (tip gesture) -- vowels have no tip gesture.
     FRONT = {'i', 'y', 'ɪ', 'ʏ', 'e', 'ɛ', 'æ', 'ɶ'}
     CENT = {'ɨ', 'ʉ', 'ɘ', 'ɵ', 'ə', 'ɜ', 'ɐ'}
     BACK = {'ɯ', 'u', 'ʊ', 'ɤ', 'o', 'ʌ', 'ɔ', 'ɑ', 'ɒ'}
     for v in FRONT:
         if v in tbl:
-            check(f'{v} front col', tbl[v][0] > 0.10, f'{tbl[v][0]}')
+            check(f'{v} front body', tbl[v][1] > 0.15, f'{tbl[v][1]}')
     for v in CENT:
         if v in tbl:
-            check(f'{v} central col', abs(tbl[v][0]) < 0.06, f'{tbl[v][0]}')
+            check(f'{v} central body', abs(tbl[v][1]) < 0.06, f'{tbl[v][1]}')
     for v in BACK:
         if v in tbl:
-            check(f'{v} back col', tbl[v][0] > 0.25, f'{tbl[v][0]}')
+            check(f'{v} back body', tbl[v][1] < -0.15, f'{tbl[v][1]}')
     # height monotone within front column
     front_h = [tbl[v][14] for v in ['i', 'ɪ', 'e', 'ɛ', 'æ'] if v in tbl]
     check('front height monotone', front_h == sorted(front_h))
@@ -170,8 +172,8 @@ def main():
     ROUND = {'y': 'i', 'ʉ': 'ɨ', 'u': 'ɯ', 'o': 'ɤ', 'ɔ': 'ʌ', 'ɒ': 'ɑ'}
     for rv, uv in ROUND.items():
         if rv in tbl and uv in tbl:
-            check(f'{rv} place == {uv}', tbl[rv][0] == tbl[uv][0],
-                  f'{tbl[rv][0]} vs {tbl[uv][0]}')
+            check(f'{rv} body == {uv}', tbl[rv][1] == tbl[uv][1],
+                  f'{tbl[rv][1]} vs {tbl[uv][1]}')
             check(f'{rv} area == {uv}', tbl[rv][14] == tbl[uv][14],
                   f'{tbl[rv][14]} vs {tbl[uv][14]}')
 

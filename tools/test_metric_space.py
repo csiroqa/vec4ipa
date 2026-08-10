@@ -227,7 +227,7 @@ for inp, want in TONE_CASES:
 # 6. reverse uses standard IPA only (no ȶ ȡ ȵ ȴ ᴇ)
 # ------------------------------------------------------------------
 # ᴇ (lowered e, small-cap display letter) -> standard spelling e̞
-E_VEC = [0.15, 0.0, 0.0, 0.0, 0.25, -0.2, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0]
+E_VEC = [0.0, 0.35, 0.0, 0.0, 0.25, -0.2, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0]
 check("ᴇ vector nearest is e", nearest_base("e̞") != "ERR" and
       nearest_vec(E_VEC) == "/e/",
       run(VEC2IPA, ["-n", fmt_vec(E_VEC)]).stdout.splitlines()[0][:40])
