@@ -773,7 +773,7 @@ static const ModRec MODS[] = {
     { 0x02B0, "ʰ",   "asp",       TIER_LARYNGEAL, -1, mod_asp,          0, {0,0} , NULL, 1  },
     { 0x02B2, "ʲ",   "pal",       TIER_PLACE,     -1, mod_pal,         0, {0,0} , NULL, 1  },
     { 0x02B7, "ʷ",   "lab",       TIER_PLACE,     -1, mod_lab,         0, {0,0} , NULL, 1  },
-    { 0x02BC, "ʼ",   "ej",        TIER_AIRSTREAM, 1,  mod_ejective,    0, {0,0} , NULL, 1  },
+    { 0x02BC, "ʼ",   "ej",        TIER_AIRSTREAM, 0,  mod_ejective,    0, {0,0} , NULL, 1  },
     { 0x02BD, "ʽ",   "weak_asp",  TIER_LARYNGEAL, -1, mod_weak_asp,    0, {0,0} , "quote ʽ reinterpreted as weak aspiration", 0  },
     { 0x2018, "‘",   "weak_asp",  TIER_LARYNGEAL, -1, mod_weak_asp,    0, {0,0} , "quote ‘ reinterpreted as weak aspiration", 0  },
     { 0x201B, "‛",   "weak_asp",  TIER_LARYNGEAL, -1, mod_weak_asp,    0, {0,0} , "quote ‛ reinterpreted as weak aspiration", 0  },
@@ -931,15 +931,38 @@ static const PrecompEntry PRECOMPOSED[] = {
     { 0x1ECD, 0x006F, { 0x0323 }, 1 },   /* ọ */
     { 0x1EE9, 0x0075, { 0x0323 }, 1 },   /* ụ */
     /* precomposed vowels with pitch/tone diacritics -> base + tone mark */
+    { 0x00E1, 0x0061, { 0x0301 }, 1 },   /* á = a + ◌́ (high tone) */
     { 0x00E9, 0x0065, { 0x0301 }, 1 },   /* é = e + ◌́ (high tone) */
+    { 0x00ED, 0x0069, { 0x0301 }, 1 },   /* í = i + ◌́ */
+    { 0x00F3, 0x006F, { 0x0301 }, 1 },   /* ó = o + ◌́ */
+    { 0x00FA, 0x0075, { 0x0301 }, 1 },   /* ú = u + ◌́ */
+    { 0x00FD, 0x0079, { 0x0301 }, 1 },   /* ý = y + ◌́ */
+    { 0x00E0, 0x0061, { 0x0300 }, 1 },   /* à = a + ◌̀ (low tone) */
     { 0x00E8, 0x0065, { 0x0300 }, 1 },   /* è = e + ◌̀ (low tone) */
+    { 0x00EC, 0x0069, { 0x0300 }, 1 },   /* ì = i + ◌̀ */
+    { 0x00F2, 0x006F, { 0x0300 }, 1 },   /* ò = o + ◌̀ */
+    { 0x00F9, 0x0075, { 0x0300 }, 1 },   /* ù = u + ◌̀ */
+    { 0x1EF3, 0x0079, { 0x0300 }, 1 },   /* ỳ = y + ◌̀ */
+    { 0x00E2, 0x0061, { 0x0302 }, 1 },   /* â = a + ◌̂ (falling tone) */
     { 0x00EA, 0x0065, { 0x0302 }, 1 },   /* ê = e + ◌̂ (falling tone) */
+    { 0x00EE, 0x0069, { 0x0302 }, 1 },   /* î = i + ◌̂ */
+    { 0x00F4, 0x006F, { 0x0302 }, 1 },   /* ô = o + ◌̂ */
+    { 0x00FB, 0x0075, { 0x0302 }, 1 },   /* û = u + ◌̂ */
+    { 0x0177, 0x0079, { 0x0302 }, 1 },   /* ŷ = y + ◌̂ */
+    { 0x01CE, 0x0061, { 0x030C }, 1 },   /* ǎ = a + ◌̌ (rising tone) */
     { 0x011B, 0x0065, { 0x030C }, 1 },   /* ě = e + ◌̌ (rising tone) */
+    { 0x01D0, 0x0069, { 0x030C }, 1 },   /* ǐ = i + ◌̌ */
+    { 0x01D2, 0x006F, { 0x030C }, 1 },   /* ǒ = o + ◌̌ */
+    { 0x01D4, 0x0075, { 0x030C }, 1 },   /* ǔ = u + ◌̌ */
+    { 0x0201, 0x0061, { 0x030F }, 1 },   /* ȁ = a + ◌̏ (extra-low tone) */
     { 0x0205, 0x0065, { 0x030F }, 1 },   /* ȅ = e + ◌̏ (extra-low tone) */
-    { 0x0113, 0x0065, { 0x0304 }, 1 },   /* ē = e + ◌̄ (macron = level tone) */
-    { 0x0101, 0x0061, { 0x0304 }, 1 },   /* ā = a + ◌̄ */
-    { 0x014D, 0x006F, { 0x0304 }, 1 },   /* ō = o + ◌̄ */
+    { 0x0209, 0x0069, { 0x030F }, 1 },   /* ȉ = i + ◌̏ */
+    { 0x020D, 0x006F, { 0x030F }, 1 },   /* ȍ = o + ◌̏ */
+    { 0x0215, 0x0075, { 0x030F }, 1 },   /* ȕ = u + ◌̏ */
+    { 0x0101, 0x0061, { 0x0304 }, 1 },   /* ā = a + ◌̄ (macron = level tone) */
+    { 0x0113, 0x0065, { 0x0304 }, 1 },   /* ē = e + ◌̄ */
     { 0x012B, 0x0069, { 0x0304 }, 1 },   /* ī = i + ◌̄ */
+    { 0x014D, 0x006F, { 0x0304 }, 1 },   /* ō = o + ◌̄ */
     { 0x016B, 0x0075, { 0x0304 }, 1 },   /* ū = u + ◌̄ */
 };
 #define NPRECOMP ((int)(sizeof(PRECOMPOSED) / sizeof(PRECOMPOSED[0])))
