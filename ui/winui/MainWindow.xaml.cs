@@ -1145,8 +1145,8 @@ namespace Vec4ipaUI
             /* feature names */
             var featSwitch = new ToggleSwitch
             {
-                Header = _zh ? "向量输出显示特征名（tongue_tip_pos=0.55）"
-                             : "Vector output shows feature names (tongue_tip_pos=0.55)",
+                Header = _zh ? "向量输出显示特征名（place, body, …）"
+                             : "Vector output shows feature names (place, body, ...)",
                 IsOn = _featureNames,
             };
 
@@ -1177,8 +1177,8 @@ namespace Vec4ipaUI
 
             var metricText = new TextBlock
             {
-                Text = _zh ? "度量：编译内置默认值（metric.json v4）"
-                           : "Metric: compiled-in defaults (metric.json v4)",
+                Text = _zh ? "度量：编译内置默认值（metric16.json v10）"
+                           : "Metric: compiled-in defaults (metric16.json v10)",
                 FontSize = 13,
                 Margin = new Thickness(0, 4, 0, 0),
             };
@@ -3025,13 +3025,17 @@ namespace Vec4ipaUI
                 $"# app directory: {dir}\n\n" +
                 ":: ipa2vec - IPA -> 16-D vectors\n" +
                 $"\"{Path.Combine(dir, "tools", "ipa2vec.exe")}\" --narrowness 3 -L \"\\\"\\u02c8t\\u02b0a\\\"\"\n\n" +
-                ":: vec2ipa - 16-D vector -> IPA\n" +
+                ":: vec2ipa - 16-D vector -> IPA (SPEC-NEXT order:\n" +
+                "::   place, body, lips_closed, lips_rounded, tip_shape,\n" +
+                "::   tongue_root, vel_open, lateral_ratio, voiced,\n" +
+                "::   glottal_aperture, glottal_tension, larynx_height,\n" +
+                "::   duration, jet_focus, effective_oral_area, airflow)\n" +
                 $"\"{Path.Combine(dir, "tools", "vec2ipa.exe")}\" --narrowness 3 " +
-                "\"0.0,0.0,0.55,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,0.0,0.0,0.0,0.0,1.0\"\n\n" +
+                "\"-0.45,0,0,0,1,0,0,0,0,0.4,0,0,0,0,0,1\"\n\n" +
                 ":: vec4ipa - inventory / query / reverse\n" +
                 $"\"{Path.Combine(dir, "tools", "vec4ipa.exe")}\" -q \\u02b0\n" +
                 $"\"{Path.Combine(dir, "tools", "vec4ipa.exe")}\" --narrowness 3 -r " +
-                "\"0.0,0.0,0.55,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.9,0.0,0.0,0.0,0.0,1.0\"\n";
+                "\"-0.45,0,0,0,1,0,0,0,0,0.4,0,0,0,0,0,1\"\n";
             var dlg = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot,
