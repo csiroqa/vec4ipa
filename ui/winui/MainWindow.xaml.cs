@@ -331,7 +331,7 @@ namespace Vec4ipaUI
                   "   选择转录宽度（0-4）。\n\n" +
                   "提示：悬停键盘按键可查看名称，双击查看详情；\n" +
                   "用过的符号会收集在 最近使用 页。\n\n" +
-                   "示例：t\u02b0a（送气塞音 + 开元音）\n"
+                   "示例：t\u02b0a（送气爆发音 + 开元音）\n"
                 : "Welcome to vec4ipa Workbench\n" +
                   "---------------------------------\n\n" +
                   "1. Type or click an IPA string below (or pick an example\n" +
@@ -341,7 +341,7 @@ namespace Vec4ipaUI
                   "   choosing the transcription width (0-4).\n\n" +
                   "Tip: hover a keyboard key for its name, double-click for\n" +
                   "details; symbols you use are collected on the Recent tab.\n\n" +
-                   "Example to try:  t\u02b0a  (aspirated stop + open vowel)\n";
+                   "Example to try:  t\u02b0a  (aspirated plosive + open vowel)\n";
             OutputSet(welcome);
             _programmatic = true;
             IpaInputRight.Text = "t\u02b0a";
@@ -2488,16 +2488,17 @@ namespace Vec4ipaUI
             {
                 { "vl", "清" }, { "vd", "浊" }, { "asp", "送气" },
                 { "blab", "双唇" }, { "bil", "双唇" }, { "lab", "唇" },
-                { "lab.dnt", "唇齿" }, { "lbd", "唇齿" },
+                { "lab.dnt", "唇齿" }, { "lab.vel", "唇–软腭" },
+                { "lab.pal", "唇–硬腭" }, { "lbd", "唇齿" },
                 { "dnt", "齿" }, { "den", "齿" },
-                { "alv", "齿龈" }, { "rfl", "卷舌" }, { "alvpal", "龈腭" },
+                { "alv", "龈" }, { "rfl", "卷舌" }, { "alvpal", "龈–腭" },
                 { "pst", "龈后" }, { "pal", "腭" }, { "vel", "软腭" },
                 { "uvu", "小舌" }, { "pha", "咽" }, { "epl", "会厌" },
                 { "phr", "咽" }, { "epi", "会厌" }, { "glo", "喉" },
                 { "glt", "喉" },
-                { "pls", "塞音" }, { "nas", "鼻" }, { "frc", "擦音" },
+                { "pls", "爆发音" }, { "nas", "鼻" }, { "frc", "擦音" },
                 { "appr", "近音" }, { "apx", "近音" },
-                { "lat", "边音" }, { "tap", "闪音" }, { "flp", "拍音" },
+                { "lat", "边音" }, { "tap", "拍音" }, { "flp", "闪音" },
                 { "trl", "颤音" }, { "trill", "颤音" },
                 { "afc", "塞擦音" }, { "afr", "塞擦音" },
                 { "per", "敲击" },
@@ -2508,10 +2509,10 @@ namespace Vec4ipaUI
                 { "cnt", "央" }, { "cent", "央" },
                 { "fr", "前" }, { "front", "前" },
                 { "bk", "后" }, { "back", "后" },
-                { "rhot", "卷舌化" }, { "ej", "挤喉" }, { "ejt", "挤喉音" },
-                { "clk", "搭嘴音" }, { "imp", "内爆音" },
-                { "pulmonic", "肺部气流" }, { "glottalic egressive", "挤喉音" },
-                { "glottalic ingressive", "内爆音" }, { "lingual", "搭嘴音" },
+                { "rhot", "r 色彩" }, { "ej", "喷" }, { "ejt", "喷音" },
+                { "clk", "啧音" }, { "imp", "内爆音" },
+                { "pulmonic", "肺部气流" }, { "glottalic egressive", "喷音" },
+                { "glottalic ingressive", "内爆音" }, { "lingual", "啧音" },
                 { "percussive", "敲击音" },
                 /* modifier-detail framework words */
                 { "modifier: ", "修饰符：" },
@@ -2523,8 +2524,8 @@ namespace Vec4ipaUI
                 { "[sets airstream]", "[设置气流]" },
                 { "[inference]", "[推断]" },
                 /* superscript / subscript letters */
-                { "sup_rhot_ʢ", "卷舌化上标ʢ" }, { "sup_rhot_ʕ", "卷舌化上标ʕ" },
-                { "sup_rhot_ʁ", "卷舌化上标ʁ" }, { "sup_rhot_r", "卷舌化上标r" },
+                { "sup_rhot_ʢ", "r 色彩上标ʢ" }, { "sup_rhot_ʕ", "r 色彩上标ʕ" },
+                { "sup_rhot_ʁ", "r 色彩上标ʁ" }, { "sup_rhot_r", "r 色彩上标r" },
                 { "sup_e", "上标e" }, { "sup_u", "上标u" },
                 { "sup_O", "上标O" }, { "sup_U", "上标U" },
                 { "sup_W", "上标W" }, { "sup_ɛ", "上标ɛ" },
@@ -2562,7 +2563,7 @@ namespace Vec4ipaUI
                 /* common modifier names */
                 { "short", "短" }, { "long", "长" },
                 { "lengthened", "延长" }, { "gemination", "重叠" },
-                { "half", "半长" }, { "unrel", "未除阻" },
+                { "half", "半长" }, { "unrel", "无闻除阻" },
                 { "fric_release", "擦除阻" }, { "lat_release", "边除阻" },
                 { "nasal_rel", "鼻除阻" }, { "nas_rel", "鼻化除阻" },
                 { "adv", "前移" }, { "retr", "后移" },
@@ -2580,10 +2581,10 @@ namespace Vec4ipaUI
                 { "pal_hook", "腭化钩" }, { "pal_prime", "腭化撇" },
                 { "lab_subw", "唇化下标w" }, { "labiodental", "唇齿" },
                 { "linguolabial", "舌唇" }, { "dental", "齿" },
-                { "alveolar", "齿龈" }, { "apical", "舌尖" },
+                { "alveolar", "龈" }, { "apical", "舌尖" },
                 { "laminal", "舌叶" }, { "retroflex", "卷舌" },
                 { "phar", "咽化" }, { "glottal_onset", "喉塞起始" },
-                { "nas_click", "鼻搭嘴" },
+                { "nas_click", "鼻啧音" },
                 { "schwa_rel", "ə化" }, { "offglide", "滑音" },
                 { "rnd_less", "少圆唇" }, { "rnd_more", "多圆唇" },
                 { "lam", "舌叶" },
@@ -2598,6 +2599,16 @@ namespace Vec4ipaUI
 
         private static string TranslateTerms(string text)
         {
+            /* consonant names read 部位.清浊.方法 (vl.bil.pls -> bil.vl.pls),
+             * never 清浊.部位.方法 */
+            const string place = @"(?:blab|bil|lab\.dnt|lbd|lab|dnt|den|alv|alvpal|pst|rfl|pal|vel|uvu|pha|epl|glo|phr|epi|glt)";
+            const string manner = @"(?:pls|nas|frc|apx|appr|lat|tap|flp|trl|afc|afr|per|clk|ejt|imp)";
+            text = System.Text.RegularExpressions.Regex.Replace(text,
+                @"\b(vl|vd)\.(" + place + @"(?:\.(?:" + place + @"))*)((?:\.(?:" + manner + @"))+)\b",
+                "$2.$1$3");
+            text = System.Text.RegularExpressions.Regex.Replace(text,
+                @"\b(?<!\.)(" + place + @"(?:\.(?:" + place + @"))*)((?:\.(?:" + manner + @"))+)(\.(?:vl|vd))\b",
+                "$1$3$2");
             foreach (var kv in TermSorted)
             {
                 text = System.Text.RegularExpressions.Regex.Replace(

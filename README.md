@@ -133,23 +133,29 @@ vec4ipa -v                  version
 
 ```sh
 $ ipa2vec "tʰeɪk"
-[0]    (0.0000, 0.0000, 0.5500, 1.0000, ...)  pulmonic  [asp
+[0]    (-0.4500, 0.0000, 0.0000, 0.0000, 1.0000, ...)  pulmonic  [asp
 [1]    ...
+[2]    ...
 [3]    ...
 
 $ ipa2vec -L "ã"           # precomposed char decomposed like a + ◌̃
   layer1 (char order) : [a:front.opn.unr.vwl] → [◌̃:nas/nasal]
   layer2 (feature order): [a:front.opn.unr.vwl] → [◌̃:nas/nasal]
-vector[0]: (... vel_open 0.8000 ...)  pulmonic  [nas
-rebuilt[0]: /a◌̃/
+vector[0]: (... vel_open 0.6000 ...)  pulmonic  [nas
+rebuilt[0]: /ã/
 
-$ vec2ipa "1.0000, 0.0000, 0.5500, 0.2500, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.9000, 0.0000, 0.0000, 0.0000, 0.0000, 1.0000"
-/p/  (vl.bil.pls +asp)  d=0.8849  ->  /pʰ/
+$ vec2ipa "-0.45,0,0,0,1,0,0,0,0,0.4,0,0,0,0,0,1"
+/t/  (vl.alv.pls)  d=0.0000  ->  /t/
 
 $ vec4ipa -q "ʃ"
 base: /ʃ/  vl.pst.frc  (pulmonic)
-  (0.0000, 0.2500, 0.2500, 0.6500, ...)
+  (-0.3000, 0.0000, 0.0000, 0.2500, 0.6500, ...)
 ```
+
+Vectors are in SPEC-NEXT 16-D order — `place, body, lips_closed,
+lips_rounded, tip_shape, tongue_root, vel_open, lateral_ratio, voiced,
+glottal_aperture, glottal_tension, larynx_height, duration, jet_focus,
+effective_oral_area, airflow_direction` (see `docs/SPEC.md`).
 
 ## Internal logic (two-layer IR)
 
@@ -160,7 +166,7 @@ The parser follows a strict pipeline:
    vectors.
 2. **Character composition** — the lexer emits tokens in the order they
    appear in the input string (layer 1): base segments (longest-prefix match
-   against the 132-entry table), modifier letters, ligature ties (`͡`, `͜`,
+   against the 133-entry table), modifier letters, ligature ties (`͡`, `͜`,
    `͠`), and preposed modifiers (`ᵑǃ`, `ˀa`).
 3. **Feature ordering** — tokens are re-sorted into the natural-language
    (layer 2) order by feature tier:
@@ -200,7 +206,7 @@ and re-run `make gen`.
 
 `vec2ipa` maps a vector back to IPA: find the nearest base segment
 (weighted Mahalanobis, including `EXTRA_BASE` entries), then greedily add
-the modifier that most reduces the residual distance. Verified: **all 132
+the modifier that most reduces the residual distance. Verified: **all 133
 base segments round-trip losslessly** (forward → reverse → forward
 reproduces the vector to ≤ 0.02 per dimension). Modifier reconstruction
 is approximate for combinations the greedy search cannot separate (e.g.
@@ -259,11 +265,12 @@ are not affected.
   creaky `̰`, breathy `̤` (U+0324), pharyngealised `ˤ/̴`, velarised `ˠ`,
   palatalised `ʲ`, labialised `ʷ`, syllabic `̩`, non‑syllabic `̯`,
   unreleased `̚`, voiceless `̥`, voiced `̬`, nasal‑click `ᵑ` (preposed),
-  ejective `ʼ` (U+02BC, sets `constricted_glottis=1 spread_glottis=0 laryngeal_tension=0.6 voiced=0` and airstream =
-  glottalic egressive), macron `◌̄` (U+0304, level tone).
+  ejective `ʼ` (U+02BC, sets `glottal_aperture=-1 laryngeal_tension=0.6 voiced=0`
+  and `larynx_height=+1`; no airstream forcing — the contrast with the base
+  stop lives in the vector, like v8), macron `◌̄` (U+0304, level tone).
 - extIPA/clinical marks: dental `̪` (lingual: dentalise; labial: the
-  labiodental stop/nasal `p̪ b̪ m̪` / `ɱ`, encoded on the dental
-  dimension `tongue_tip_pos = 1.0` like `t̪ θ ð`), linguolabial `̼`, laminal `̻`, raised
+  labiodental stop/nasal `p̪ b̪ m̪` / `ɱ`, encoded on the `place` axis
+  like `t̪ θ ð`), linguolabial `̼`, laminal `̻`, raised
   `̝`/`˔`, lowered `̞`, advanced `̟`, retracted `̠`, more/less rounded
   `̹/̜`, bridged `͆`, apical `̺`, ATR `̘`, RTR `̙`, denasal `̻`,
   mid‑centralised `̽`, rhotacised `˞`, extra‑short `̆`, fortis `͈`,
@@ -400,14 +407,14 @@ precomposed accented vowels, labiodental plosives (ȹ ȸ), alveolo-palatal
 | `src/ipa2vec_main.c` | `ipa2vec` — IPA → vectors (parse, IR, JSON) |
 | `src/vec2ipa_main.c` | `vec2ipa` — vectors → IPA (nearest, reverse fit, distance) |
 | `src/vec4ipa_main.c` | `vec4ipa` — inventory + both directions |
-| `src/vectors.h` | generated: 132 base segments + metric weights + latin names |
+| `src/vectors.h` | generated: 133 base segments + metric weights + latin names |
 | `src/names.tsv` | data: symbol → scholarly feature name (edit + `make gen`) |
 | `src/readme_embed.h` | generated: this README embedded for `vec4ipa -h` |
 | `tools/gen_vectors_h.py` | regenerates `src/vectors.h` |
 | `tools/gen_readme_embed.py` | regenerates `src/readme_embed.h` |
 | `tools/test_suite.py` | 122-check regression suite (incl. the stress string) |
 | `docs/SPEC.md` | the 16-D vector specification |
-| `IPA_VECTORS.md` | the 132-segment vector table (data for the generator) |
+| `IPA_VECTORS.md` | the 133-segment vector table (data for the generator) |
 | `METRIC.md` | metric derivation (weights, λ) |
 | `metric.json` | machine-readable weights + λ (v9) |
 | `Makefile` | build all three tools (auto `-municode` on Windows) |
