@@ -31,3 +31,5 @@ ui/winui/*.zip
 
 ui/winui/wap/bin/
 ui/winui/wap/obj/
+
+ui/winui/AppPackages/

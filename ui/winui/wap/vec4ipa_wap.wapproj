@@ -40,6 +40,7 @@
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
   </PropertyGroup>
   <ItemGroup>
+    <AppxManifest Include="AppxManifest.xml" />
     <ProjectReference Include="..\vec4ipa_ui.csproj">
       <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
     </ProjectReference>
