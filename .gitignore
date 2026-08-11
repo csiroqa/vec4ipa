@@ -28,3 +28,6 @@ ui/winui/*.user
 ui/winui/singlefile-dist/
 ui/winui/*.zip
 
+
+ui/winui/wap/bin/
+ui/winui/wap/obj/
