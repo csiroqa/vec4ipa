@@ -41,6 +41,12 @@
   </PropertyGroup>
   <ItemGroup>
     <AppxManifest Include="AppxManifest.xml" />
+    <Content Include="..\bin\x64\Release\net9.0-windows10.0.19041.0\win-x64\App.xbf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\bin\x64\Release\net9.0-windows10.0.19041.0\win-x64\MainWindow.xbf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <ProjectReference Include="..\vec4ipa_ui.csproj">
       <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
     </ProjectReference>

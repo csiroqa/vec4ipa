@@ -30,7 +30,7 @@
   <Applications>
     <Application Id="App"
                  Executable="vec4ipa_ui.exe"
-                 EntryPoint="Vec4ipaUI.App">
+                 EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements DisplayName="vec4ipa Workbench"
                           Description="vec4ipa - IPA &lt;-&gt; 16-D articulatory vectors"
                           BackgroundColor="transparent"
