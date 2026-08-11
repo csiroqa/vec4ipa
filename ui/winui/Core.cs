@@ -447,11 +447,19 @@ namespace Vec4ipaUI
             /* split into the numeric head and the tone annotation.  The
              * annotation uses the CLI print_tone format: slots separated
              * by '?', an empty slot prints '?' — "(1,2)?(4,5)",
-             * "?(5,5)", "??(0,0,1)".  The vector may also be wrapped:
-             * "(0.5,-0.9,...)". */
+             * "?(5,5)", "??(0,0,1)".  It starts at the FIRST '(' OR '?':
+             * the '?' separators glue onto the last number
+             * ("...1.0000??(0,0,1)") and must not stay in the head —
+             * otherwise the group lands in slot 0 and renders as ⁰⁰¹. */
             int firstParen = input.IndexOf('(');
-            string head = firstParen >= 0 ? input[..firstParen] : input;
-            string annot = firstParen >= 0 ? input[firstParen..] : "";
+            int firstQ = input.IndexOf('?');
+            int annotStart = -1;
+            if (firstParen >= 0 && (firstQ < 0 || firstParen < firstQ))
+                annotStart = firstParen;
+            else if (firstQ >= 0)
+                annotStart = firstQ;
+            string head = annotStart >= 0 ? input[..annotStart] : input;
+            string annot = annotStart >= 0 ? input[annotStart..] : "";
 
             double[]? v = TryParseVector(head);
             if (v == null && firstParen >= 0)
@@ -528,32 +536,41 @@ namespace Vec4ipaUI
             return v;
         }
 
-        /* tone annotation slots: '(' groups fill the current slot in
-         * order; '?' advances to the next (empty) slot; "()" is ignored */
+        /* tone annotation slots.  The annotation is '?'-separated: each
+         * field is one slot (an empty slot is an empty field, e.g.
+         * "(3)??(-1,1,2)" = slot0 (3), slot1 empty, slot2 (-1,1,2));
+         * a legacy field may hold several groups "(3)(0)" which fill
+         * consecutive slots. */
         private static double[][] ParseToneSlots(string annot)
         {
             var slots = new double[3][];
             int slot = 0;
-            for (int i = 0; i < annot.Length && slot < 3; i++)
+            foreach (var field in annot.Split('?'))
             {
-                if (annot[i] == '?') { slot++; continue; }
-                if (annot[i] != '(') continue;
-                int close = annot.IndexOf(')', i);
-                if (close < 0) break;
-                var vals = new List<double>();
-                foreach (var tok in annot[(i + 1)..close].Split(',',
-                             StringSplitOptions.RemoveEmptyEntries))
-                    if (double.TryParse(tok,
-                            System.Globalization.NumberStyles.Float,
-                            System.Globalization.CultureInfo.InvariantCulture,
-                            out var d))
-                        vals.Add(d);
-                if (vals.Count > 0 && vals.Count <= 3)
+                int groups = 0;
+                int i = 0;
+                while (i < field.Length && slot < 3)
                 {
-                    slots[slot] = vals.ToArray();
-                    slot++;
+                    if (field[i] != '(') { i++; continue; }
+                    int close = field.IndexOf(')', i);
+                    if (close < 0) break;
+                    var vals = new List<double>();
+                    foreach (var tok in field[(i + 1)..close].Split(',',
+                                 StringSplitOptions.RemoveEmptyEntries))
+                        if (double.TryParse(tok,
+                                System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture,
+                                out var d))
+                            vals.Add(d);
+                    if (vals.Count > 0 && vals.Count <= 3)
+                    {
+                        slots[slot] = vals.ToArray();
+                        slot++;
+                        groups++;
+                    }
+                    i = close + 1;
                 }
-                i = close;
+                if (groups == 0) slot++;   /* empty field = one empty slot */
             }
             return slots;
         }
@@ -612,6 +629,7 @@ namespace Vec4ipaUI
              * downstep, falling, negative tone classes).  dim 0 (upstep/
              * downstep) goes PREPOSED; dims 1-2 (global, class) postposed */
             var pre = new StringBuilder();
+            string postHead = "";
             if (slots.Length > 2 && slots[2] != null && slots[2].Length >= 1)
             {
                 double u = slots[2][0];
@@ -624,16 +642,24 @@ namespace Vec4ipaUI
                 if (slots[2].Length >= 3)
                 {
                     int c = (int)Math.Round(slots[2][2]);
+                    /* traditional four-corner placement: 平 (꜀꜁) and
+                     * 上 (꜂꜃) classes go BEFORE the syllable; 去 (꜄꜅)
+                     * and 入 (꜆꜇) right AFTER the base, ahead of the
+                     * 5-level/sandhi letters (ꜛa꜆˧ not ꜛa˧꜆) */
                     char cls = c switch
                     {
                         1 => '\uA700', -1 => '\uA701', 2 => '\uA702',
                         -2 => '\uA703', 3 => '\uA704', -3 => '\uA705',
                         4 => '\uA706', -4 => '\uA707', _ => '\0',
                     };
-                    if (cls != '\0') sb.Append(cls);
+                    if (cls != '\0')
+                    {
+                        if (Math.Abs(c) <= 2) pre.Append(cls);
+                        else postHead = cls.ToString();
+                    }
                 }
             }
-            return (pre.ToString(), sb.ToString(), warn);
+            return (pre.ToString(), postHead + sb.ToString(), warn);
         }
 
         public static string Query(string sym)

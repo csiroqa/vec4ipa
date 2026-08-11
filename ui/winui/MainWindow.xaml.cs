@@ -2547,7 +2547,7 @@ namespace Vec4ipaUI
                 { "sup_rhot_ʁ", "r 色彩上标ʁ" }, { "sup_rhot_r", "r 色彩上标r" },
                 { "sup_e", "上标e" }, { "sup_u", "上标u" },
                 { "sup_O", "上标O" }, { "sup_U", "上标U" },
-                { "sup_W", "上标W" }, { "sup_ɛ", "上标ɛ" },
+                { "sup_W", "上标W" }, { "sup_eps", "上标ɛ" },
                 { "sup_d", "上标d" }, { "sup_B", "上标B" },
                 { "sup_P", "上标P" }, { "sup_N", "上标N" },
                 { "sup_A", "上标A" },

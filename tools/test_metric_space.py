@@ -249,11 +249,24 @@ TONE_CASES = [
     ("ma˩˨꜓꜒",     "a˩˨꜓꜒"),
     ("maꜛ",         "ꜛa"),   # upstep is PREPOSED (marks the following syllable)
     ("maꜜ",         "ꜜa"),
+    # traditional four-corner placement: 平 ꜀꜁ / 上 ꜂꜃ BEFORE the
+    # syllable, 去 ꜄꜅ / 入 ꜆꜇ after it
+    ("ma꜀",         "꜀a"),
+    ("ma꜁",         "꜁a"),
+    ("ma꜂",         "꜂a"),
+    ("ma꜃",         "꜃a"),
+    ("ma꜄",         "a꜄"),
+    ("ma꜅",         "a꜅"),
+    ("ma꜆",         "a꜆"),
+    ("ma꜇",         "a꜇"),
+    # postposed 去/入 class comes right after the base, before the
+    # 5-level letters (ꜛa꜆˧, not ꜛa˧꜆)
+    ("ma˧ꜛ꜂꜆",      "ꜛa꜆˧"),
     ("ma↗",         "a↗"),
     ("ma↘",         "a↘"),
     ("ma꜅",         "a꜅"),
-    ("ma꜆˩",        "a˩꜆"),
-    ("ma˧ꜛ↗꜂",      "ꜛa˧↗꜂"),
+    ("ma꜆˩",        "a꜆˩"),   # postposed class first, then the letter
+    ("ma˧ꜛ↗꜂",      "ꜛ꜂a˧↗"),
     ("ma˦˩˩",       "a˦˩˩"),
     # precomposed tone vowels -> base + 5-level tone letters
     # (IPA convention: ́=high ˦, ̀=low ˨, ̂=falling ˥˩, ̌=rising ˩˥,

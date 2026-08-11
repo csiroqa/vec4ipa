@@ -406,6 +406,105 @@ static IPA2VEC_MAYBE_UNUSED double seg_dist_full (const SegVec *a, const SegVec 
     return d;
 }
 
+/* the edit-distance null element: the NEUTRAL VOWEL ə of the active
+ * table — the syllable's obligatory core, the phonetically right "no
+ * information" point (inserting/deleting a vowel near it is cheap, a
+ * full consonant far from it is expensive).  Falls back to the table
+ * centroid when the table has no ə row. */
+static double g_null[MAXDIM];
+static int g_null_ready = 0;
+static IPA2VEC_MAYBE_UNUSED void null_ensure(void)
+{
+    if (g_null_ready) return;
+    const double *src = NULL;
+    for (int i = 0; i < CUR_NSEG; i++)
+        if (strcmp(CUR_SEG[i].ipa, "\xc9\x99") == 0) {   /* ə */
+            src = CUR_SEG[i].v;
+            break;
+        }
+    if (!src) {
+        /* fallback: the least-informative point — the table centroid
+         * (the metric weights cancel in the argmin, so the plain mean) */
+        static double c[MAXDIM];
+        static int c_ready = 0;
+        if (!c_ready) {
+            for (int k = 0; k < MAXDIM; k++) c[k] = 0.0;
+            if (CUR_NSEG > 0) {
+                for (int i = 0; i < CUR_NSEG; i++)
+                    for (int k = 0; k < g_ndim; k++)
+                        c[k] += CUR_SEG[i].v[k];
+                for (int k = 0; k < g_ndim; k++) c[k] /= CUR_NSEG;
+            }
+            c_ready = 1;
+        }
+        src = c;
+    }
+    for (int k = 0; k < MAXDIM; k++) g_null[k] = src[k];
+    g_null_ready = 1;
+}
+
+/* indel: a segment's distance to the null (the neutral vowel) */
+static IPA2VEC_MAYBE_UNUSED double seg_indel(const SegVec *s)
+{
+    metric_ensure();
+    null_ensure();
+    double d2 = 0.0;
+    for (int k = 0; k < g_ndim; k++) {
+        double d = s->v[k] - g_null[k];
+        d2 += g_metric_w[k] * d * d;
+    }
+    return sqrt(d2);
+}
+
+/* how strongly a segment "owns" a dimension: |v[k]| > this means the
+ * dimension is the segment's own gesture; otherwise it is neutral there
+ * and the other member of an absorbed pair may interpolate through it */
+#define IPA2VEC_ABSORB_TAU 0.3
+
+/* absorbed 1:2 match — the cost of the point a being the coarticulated
+ * union of the pair (b1, b2) (ã ~ (a, n), Cʰ ~ (C, h), ɛ ~ (a, i)):
+ * on the dimensions the ANCHOR b1 owns (|b1| > TAU) a must match b1;
+ * on the free dimensions a may sit anywhere on the b1→b2 interpolation
+ * (the trajectory), paying the distance to the closest point.  Returns
+ * -1 (move not allowed) when a is trivially the anchor — it matches b1
+ * exactly on b1's dims AND its closest trajectory point is an endpoint
+ * (t* = 0 or 1) — otherwise b~(b,c) would absorb any c for free. */
+static IPA2VEC_MAYBE_UNUSED int absorb_dist(const double a[MAXDIM],
+                                            const double b1[MAXDIM],
+                                            const double b2[MAXDIM],
+                                            double *out)
+{
+    metric_ensure();
+    double locked = 0.0, s0 = 0.0, s1 = 0.0, s2 = 0.0;
+    for (int k = 0; k < g_ndim; k++) {
+        double w = g_metric_w[k];
+        double alpha = a[k] - b1[k];
+        double beta  = b1[k] - b2[k];
+        if (fabs(b1[k]) > IPA2VEC_ABSORB_TAU) {
+            locked += w * alpha * alpha;
+        } else {
+            s0 += w * alpha * alpha;
+            s1 += w * alpha * beta;
+            s2 += w * beta * beta;
+        }
+    }
+    double best = s0;
+    double tstar = 0.0;
+    if (s2 > 1e-12) {
+        tstar = -s1 / s2;
+        double t = tstar;
+        if (t < 0.0) t = 0.0;
+        else if (t > 1.0) t = 1.0;
+        best = s0 + 2.0 * t * s1 + t * t * s2;
+    }
+    int meaningful = locked > 1e-9;
+    if (!meaningful && s2 > 1e-12)
+        meaningful = (tstar > 0.0 && tstar < 1.0);
+    if (!meaningful) return -1;
+    *out = sqrt(locked + best);
+    return 0;
+}
+
 /* the airstream gap penalty: pulmonic <-> glottalic-egressive pairs are
  * exempt.  An ejective (kʼ) is its own base segment — the fit hits the
  * kʼ row directly and its contrast lives in the laryngeal dims
@@ -969,7 +1068,7 @@ static const ModRec MODS[] = {
     { 0x1D47, "ᵇ",   "sup_b",        TIER_MANNER, -1, mod_sup_stop,     0, {0,0} , NULL, 0  },
     { 0x1D58, "ᵘ",   "sup_u",        TIER_PLACE,  -1, mod_sup_back,     0, {0,0} , NULL, 0  },
     { 0x1D5D, "ᵝ",   "sup_beta",     TIER_PLACE,  -1, mod_lab_comp,     0, {0,0} , NULL, 1  },
-    { 0x1D4C, "ᵌ",   "sup_ɛ",        TIER_MANNER, -1, mod_sup_mid,     0, {0,0} , NULL, 0  },
+    { 0x1D4C, "ᵌ",   "sup_eps",        TIER_MANNER, -1, mod_sup_mid,     0, {0,0} , NULL, 0  },
     { 0x1D64, "ᵤ",   "sup_u",        TIER_PLACE,  -1, mod_sup_back,    0, {0,0} , NULL, 0  },
     { 0x1D62, "ᵢ",   "sub_i",        TIER_PLACE,  -1, mod_sup_front,   0, {0,0} , NULL, 0  },
     { 0x1D63, "ᵣ",   "sub_r",        TIER_MANNER, -1, mod_rhot,         0, {0,0} , NULL, 0  },
@@ -4162,6 +4261,18 @@ static IPA2VEC_MAYBE_UNUSED void tone_rebuild (const SegVec *sv, char *pre, size
     if (_u + (n) + 1 < pre_sz) { memcpy(pre + _u, _s, (n)); pre[_u + (n)] = 0; } \
     } while (0)
 
+    /* the 去/入 classes (꜄꜅꜆꜇) are postposed RIGHT AFTER the base,
+     * before the 5-level/sandhi letters (ꜛa꜆˧ not ꜛa˧꜆) */
+    if (sv->tkind[2] == 2) {
+        double c2 = sv->tone[2][2];
+        if (!isnan(c2)) {
+            int cls = (int)(c2 < 0 ? c2 - 0.5 : c2 + 0.5);
+            if (cls == 3 || cls == -3 || cls == 4 || cls == -4) {
+                int idx = cls == 3 ? 4 : cls == -3 ? 5 : cls == 4 ? 6 : 7;
+                TONE_APPENDN(CLS + idx * 3, 3);
+            }
+        }
+    }
     if (sv->tkind[0] == 1) {
         /* a level tone is stored doubled (v,v) — collapse it; contours
          * hold 2-3 distinct values followed by NAN */
@@ -4201,7 +4312,12 @@ static IPA2VEC_MAYBE_UNUSED void tone_rebuild (const SegVec *sv, char *pre, size
             if (cls != 0) {
                 int idx = cls == 1 ? 0 : cls == -1 ? 1 : cls == 2 ? 2 : cls == -2 ? 3
                         : cls == 3 ? 4 : cls == -3 ? 5 : cls == 4 ? 6 : 7;
-                TONE_APPENDN(CLS + idx * 3, 3);
+                /* traditional four-corner placement: the 平 (꜀꜁) and
+                 * 上 (꜂꜃) classes are written BEFORE the syllable (with
+                 * the upstep), the 去 (꜄꜅) and 入 (꜆꜇) classes right
+                 * after the base (already emitted above) */
+                if (cls == 1 || cls == -1 || cls == 2 || cls == -2)
+                    TONE_APPENDPRE(CLS + idx * 3, 3);
             }
         }
     }
@@ -4760,6 +4876,7 @@ static IPA2VEC_MAYBE_UNUSED void scheme_invalidate_caches (void)
     g_voice_counter_ready = 0;
     g_base_bucket_ready = 0;
     g_metric_ready = 1;
+    g_null_ready = 0;   /* the null point moves with the table */
 }
 
 static IPA2VEC_MAYBE_UNUSED int load_scheme_file (const char *path)
@@ -5138,10 +5255,11 @@ static IPA2VEC_MAYBE_UNUSED int parse_vector_arg(const char *s, double out[NDIM]
 
 /* parse trailing tone groups like "(3)?(0)" or "(4,5)?(1,3)" into the
  * segment's extra vectors (slot 0 -> vec 0, slot 1 -> vec 1, slot 2 ->
- * 3-D vec 2).  The printed annotation separates slots with '?' (an empty
- * slot prints '?', e.g. "?(5,5)" is sandhi-only, "??(0,0,1)" is the 3-D
- * vector) — empty slots must advance the slot position or a bare group
- * lands in the wrong vector.  Bare "(3)(0)" input is also accepted. */
+ * 3-D vec 2).  The printed annotation separates slots with '?': each
+ * field is one slot, an empty slot is an empty field ("?(5,5)" is
+ * sandhi-only, "??(0,0,1)" is the 3-D vector, "(3)??(-1,1,2)" has an
+ * empty slot 1); a legacy field may hold several bare groups "(3)(0)"
+ * which fill consecutive slots. */
 static IPA2VEC_MAYBE_UNUSED void parse_tone_groups(const char *s, SegVec *sv)
 {
     for (int g = 0; g < 3; g++) {
@@ -5149,30 +5267,42 @@ static IPA2VEC_MAYBE_UNUSED void parse_tone_groups(const char *s, SegVec *sv)
         sv->tone[g][0] = sv->tone[g][1] = sv->tone[g][2] = NAN;
     }
     int slot = 0;
-    for (const char *p = s; *p && slot < 3; p++) {
-        if (*p == '?') { slot++; continue; }
-        if (*p != '(') continue;
-        p++;
-        double vals[3] = { 0, 0, 0 };
-        int n = 0;
-        while (*p && *p != ')') {
-            char *endp = NULL;
-            double x = strtod(p, &endp);
-            if (endp == p) break;
-            if (n < 3) vals[n] = x;
-            n++;
-            p = endp;
-            while (*p == ',' || *p == ' ' || *p == '\t') p++;
+    const char *p = s;
+    while (*p && slot < 3) {
+        const char *q = strchr(p, '?');
+        size_t flen = q ? (size_t)(q - p) : strlen(p);
+        int groups = 0;
+        const char *f = p;
+        const char *fe = p + flen;
+        while (f < fe && slot < 3) {
+            const char *open = strchr(f, '(');
+            if (!open || open >= fe) break;
+            f = open + 1;
+            double vals[3] = { 0, 0, 0 };
+            int n = 0;
+            while (f < fe && *f != ')') {
+                char *endp = NULL;
+                double x = strtod(f, &endp);
+                if (endp == f) break;
+                if (n < 3) vals[n] = x;
+                n++;
+                f = endp;
+                while (f < fe && (*f == ',' || *f == ' ' || *f == '\t')) f++;
+            }
+            if (f < fe && *f == ')') f++;
+            if (n < 1 || n > 3) continue;
+            sv->tkind[slot] = slot == 2 ? 2 : 1;
+            for (int k = 0; k < n; k++) sv->tone[slot][k] = vals[k];
+            /* level tones are stored doubled (v,v) — but only in the
+             * contour slots: doubling into the 3-D slot would set the
+             * global (↗/↘) component from a single upstep/downstep value */
+            if (n == 1 && slot < 2) sv->tone[slot][1] = vals[0];
+            slot++;
+            groups++;
         }
-        if (*p == ')') p++;
-        if (n < 1 || n > 3) continue;
-        sv->tkind[slot] = slot == 2 ? 2 : 1;
-        for (int k = 0; k < n; k++) sv->tone[slot][k] = vals[k];
-        /* level tones are stored doubled (v,v) — but only in the contour
-         * slots: doubling into the 3-D slot would set the global (↗/↘)
-         * component from a single upstep/downstep value */
-        if (n == 1 && slot < 2) sv->tone[slot][1] = vals[0];
-        slot++;
+        if (groups == 0) slot++;   /* empty field = one empty slot */
+        if (!q) break;
+        p = q + 1;
     }
 }
 
@@ -5414,14 +5544,15 @@ static IPA2VEC_MAYBE_UNUSED double seg_block_dist(const SegVec *A, int na,
     return d0;
 }
 
-/* sequence (syllable/word) alignment: edit-distance DP over segments with
- * seg_dist_full as replacement cost and IPA2VEC_ALIGN_GAP per gap.  A
- * 1:2 / 2:1 compression folds a secondary-articulated segment against
- * (C, glide) — Cʰ~C+h, Cʲ~C+j, Cʷ~C+w, ... (ASSIM_PAIRS): the glide
- * absorbs its dimensions, so the compressed pair is compared with those
- * dims skipped and the residue against the glide added back (the same
- * component counted once).  Release diacritics are not pairs (tˡ ≠ t+l).
- * A second rule compresses any all-vowel block on A against any
+/* sequence (syllable/word) alignment: edit-distance DP over segments.
+ * Every cost comes from the metric itself — no hand-tuned constants:
+ *   substitution (1:1)  seg_dist_full(a, b)          (metric + airstream)
+ *   absorption  (1:2/2:1) absorb_dist(a, b1, b2)     a as the coarticulated
+ *     union of the pair (ã~(a,n), Cʰ~(C,h), ɛ~(a,i)) — the anchor's own
+ *     dims stay fixed, the free dims interpolate along the trajectory;
+ *     the move is disallowed when a is trivially the anchor
+ *   indel (1:0/0:1)     seg_indel(x) = d(x, centroid)  (null-element)
+ * A further move compresses any all-vowel block on A against any
  * all-vowel block on B via the trajectory distance — mono/di-phthongs
  * and vowel clusters: /ai/ ~ /ɛ/ (ɛ is the intermediate quality of
  * the a→i glide), /ai/ ~ /ɛe/, /aieu/ ~ /eou/ — keeping the contour's
@@ -5464,36 +5595,45 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
         ra[i] = seg_is_vowel(&a.segs[i - 1]) ? ra[i - 1] + 1 : 0;
     for (int j = 1; j <= nb; j++)
         rb[j] = seg_is_vowel(&b.segs[j - 1]) ? rb[j - 1] + 1 : 0;
-    for (int i = 0; i <= na; i++) dp[(size_t)i * w + 0] = i * IPA2VEC_ALIGN_GAP;
-    for (int j = 0; j <= nb; j++) dp[0 * w + (size_t)j] = j * IPA2VEC_ALIGN_GAP;
+    /* borders: the indel of every unmatched segment (d(·, centroid)) */
+    for (int i = 0; i <= na; i++) {
+        double acc = 0.0;
+        for (int k = 0; k < i; k++) acc += seg_indel(&a.segs[k]);
+        dp[(size_t)i * w + 0] = acc;
+    }
+    for (int j = 0; j <= nb; j++) {
+        double acc = 0.0;
+        for (int k = 0; k < j; k++) acc += seg_indel(&b.segs[k]);
+        dp[0 * w + (size_t)j] = acc;
+    }
     for (int i = 1; i <= na; i++) {
         for (int j = 1; j <= nb; j++) {
             double c = seg_dist_full(&a.segs[i - 1], &b.segs[j - 1]);
             double di = dp[(size_t)(i - 1) * w + (size_t)(j - 1)] + c;
-            double up = dp[(size_t)(i - 1) * w + (size_t)j] + IPA2VEC_ALIGN_GAP;
-            double le = dp[(size_t)i * w + (size_t)(j - 1)] + IPA2VEC_ALIGN_GAP;
+            double up = dp[(size_t)(i - 1) * w + (size_t)j] +
+                        seg_indel(&a.segs[i - 1]);
+            double le = dp[(size_t)i * w + (size_t)(j - 1)] +
+                        seg_indel(&b.segs[j - 1]);
             double best = di;
             unsigned char bkbest = 0;
             if (up < best) { best = up; bkbest = 1; }
             if (le < best) { best = le; bkbest = 2; }
-            /* 1:2 compression — one secondary-articulated segment on A
-             * against (C, glide) on B, for every assimilation pair. */
+            /* 1:2 absorption — one segment as the coarticulated union of
+             * a pair: ã~(a,n), Cʰ~(C,h), ɛ~(a,i) */
             if (j >= 2) {
-                int pk = find_assim(&a.segs[i - 1], &b.segs[j - 1]);
-                if (pk >= 0) {
-                    double comp = dp[(size_t)(i - 1) * w + (size_t)(j - 2)] +
-                        seg_dist_assim(&a.segs[i - 1], &b.segs[j - 2],
-                                       &b.segs[j - 1], pk);
+                double ad;
+                if (absorb_dist(a.segs[i - 1].v, b.segs[j - 2].v,
+                                b.segs[j - 1].v, &ad) == 0) {
+                    double comp = dp[(size_t)(i - 1) * w + (size_t)(j - 2)] + ad;
                     if (comp < best) { best = comp; bkbest = 3; }
                 }
             }
-            /* 2:1 compression — (C, glide) on A against one articulated seg on B */
+            /* 2:1 absorption — the mirror */
             if (i >= 2) {
-                int pk = find_assim(&b.segs[j - 1], &a.segs[i - 1]);
-                if (pk >= 0) {
-                    double comp = dp[(size_t)(i - 2) * w + (size_t)(j - 1)] +
-                        seg_dist_assim(&b.segs[j - 1], &a.segs[i - 2],
-                                       &a.segs[i - 1], pk);
+                double ad;
+                if (absorb_dist(b.segs[j - 1].v, a.segs[i - 2].v,
+                                a.segs[i - 1].v, &ad) == 0) {
+                    double comp = dp[(size_t)(i - 2) * w + (size_t)(j - 1)] + ad;
                     if (comp < best) { best = comp; bkbest = 4; }
                 }
             }
@@ -5536,33 +5676,33 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
             i--; j--;
         } else if (k == 1 && i > 0) {
             seg_label(&a.segs[i - 1], a1, sizeof(a1));
-            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
-                     a1, "-", IPA2VEC_ALIGN_GAP);
+            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  indel %.4f",
+                     a1, "-", seg_indel(&a.segs[i - 1]));
             i--;
         } else if (k == 2 && j > 0) {
             seg_label(&b.segs[j - 1], b1, sizeof(b1));
-            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
-                     "-", b1, IPA2VEC_ALIGN_GAP);
+            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  indel %.4f",
+                     "-", b1, seg_indel(&b.segs[j - 1]));
             j--;
         } else if (k == 3 && i > 0 && j >= 2) {   /* 1:2  A[i] ~ (B[j-1], B[j]) */
-            int pk = find_assim(&a.segs[i - 1], &b.segs[j - 1]);
+            double ad;
+            absorb_dist(a.segs[i - 1].v, b.segs[j - 2].v,
+                        b.segs[j - 1].v, &ad);
             seg_label(&a.segs[i - 1], a1, sizeof(a1));
             seg_label(&b.segs[j - 2], b1, sizeof(b1));
             seg_label(&b.segs[j - 1], b2, sizeof(b2));
             snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s+%-8s d=%.4f",
-                     a1, b1, b2,
-                     seg_dist_assim(&a.segs[i - 1], &b.segs[j - 2],
-                                    &b.segs[j - 1], pk));
+                     a1, b1, b2, ad);
             i--; j -= 2;
         } else if (k == 4 && i >= 2 && j > 0) {   /* 2:1  (A[i-1], A[i]) ~ B[j] */
-            int pk = find_assim(&b.segs[j - 1], &a.segs[i - 1]);
+            double ad;
+            absorb_dist(b.segs[j - 1].v, a.segs[i - 2].v,
+                        a.segs[i - 1].v, &ad);
             seg_label(&a.segs[i - 2], a1, sizeof(a1));
             seg_label(&a.segs[i - 1], a2, sizeof(a2));
             seg_label(&b.segs[j - 1], b1, sizeof(b1));
             snprintf(lines[nl++], sizeof(lines[0]), "  %-8s+%-8s ~ %-8s d=%.4f",
-                     a1, a2, b1,
-                     seg_dist_assim(&b.segs[j - 1], &a.segs[i - 2],
-                                    &a.segs[i - 1], pk));
+                     a1, a2, b1, ad);
             i -= 2; j--;
         } else if (k >= 5) {   /* vowel block (k1, m1): A[i-k1..i-1] ~ B[j-m1..j-1] */
             int k1 = (k - 5) / 8 + 1, m1 = (k - 5) % 8 + 1;
@@ -5589,24 +5729,24 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
                 j -= m1;
             } else if (j > 0) {
                 seg_label(&b.segs[j - 1], b1, sizeof(b1));
-                snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
-                         "-", b1, IPA2VEC_ALIGN_GAP);
+                snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  indel %.4f",
+                         "-", b1, seg_indel(&b.segs[j - 1]));
                 j--;
             } else {
                 seg_label(&a.segs[i - 1], a1, sizeof(a1));
-                snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
-                         a1, "-", IPA2VEC_ALIGN_GAP);
+                snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  indel %.4f",
+                         a1, "-", seg_indel(&a.segs[i - 1]));
                 i--;
             }
         } else if (j > 0) {   /* unreachable fallback */
             seg_label(&b.segs[j - 1], b1, sizeof(b1));
-            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
-                     "-", b1, IPA2VEC_ALIGN_GAP);
+            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  indel %.4f",
+                     "-", b1, seg_indel(&b.segs[j - 1]));
             j--;
         } else {
             seg_label(&a.segs[i - 1], a1, sizeof(a1));
-            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
-                     a1, "-", IPA2VEC_ALIGN_GAP);
+            snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  indel %.4f",
+                     a1, "-", seg_indel(&a.segs[i - 1]));
             i--;
         }
         if (nl >= (int)(sizeof(lines) / sizeof(lines[0]))) break;

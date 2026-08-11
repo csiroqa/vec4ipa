@@ -397,7 +397,7 @@ def align_d(a, b):
 
 d, r = align_d("ai", "\u025b")          # ai vs ɛ
 check_cond("-A /ai/~/ɛ/ close (intermediate)",
-           abs(d - 1.26) <= 0.05 and "a + i ~ \u025b" in r.stdout,
+           abs(d - 1.01) <= 0.05 and "\u025b" in r.stdout.splitlines()[1],
            f"d={d}")
 d, r = align_d("ai", "\u025be")          # ai vs ɛe: sub-glide of ai
 check_cond("-A /ai/~/ɛe/ ≤ /ai/~/ɛ/ (containment)",
@@ -408,6 +408,24 @@ d, _ = align_d("aieu", "eou")           # vowel cluster 4 vs 3
 check_cond("-A /aieu/~/eou/", 2.0 < d < 4.0, f"d={d}")
 d, _ = align_d("aa", "a")               # geminate: one mora
 check_cond("-A /aa/~/a/ one mora", abs(d - 1.0) <= 0.05, f"d={d}")
+
+# curve-distance alignments: feature absorption + null-element indel
+d, _ = align_d("a\u0303", "an")          # nasalised vowel ~ VN
+check_cond("-A /\u00e3/~/an/ nasality = coda (absorbed)",
+           abs(d - 1.16) <= 0.05, f"d={d}")
+d, _ = align_d("ka\u014b", "k\u00e3")    # nasal coda = nasalisation
+check_cond("-A /ka\u014b/~/k\u00e3/ coda absorbed",
+           abs(d - 0.89) <= 0.05, f"d={d}")
+d, _ = align_d("t\u02b0", "th")          # aspirated stop ~ C+h
+check_cond("-A /t\u02b0/~/t+h/ absorbed", abs(d - 0.52) <= 0.05, f"d={d}")
+d, _ = align_d("pa", "a")                # onset deletion = the consonant's
+check_cond("-A /pa/~/a/ absorbed onset (d(p, a) on p's dims)",
+           abs(d - 5.00) <= 0.05, f"d={d}")
+d, _ = align_d("na", "an")               # reversal: two vowel indels
+check_cond("-A /na/~/an/ cheap vowel indels (null = neutral vowel)",
+           abs(d - 3.71) <= 0.05, f"d={d}")
+d, _ = align_d("ai", "ia")               # reversal must not collapse
+check_cond("-A /ai/~/ia/ > 2.5 (order kept)", d > 2.5, f"d={d}")
 
 # ------------------------------------------------------------------
 print(f"\n{_common.total - _common.fails}/{_common.total} checks passed")
