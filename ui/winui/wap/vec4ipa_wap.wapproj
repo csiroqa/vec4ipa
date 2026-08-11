@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" DefaultTargets="Build"
+         xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A3F5D2E4-7C19-4B0A-9E2D-1F8C6B5A4D3E}</ProjectGuid>
+    <ProjectName>vec4ipa_wap</ProjectName>
+    <RootNamespace>vec4ipa_wap</RootNamespace>
+    <MinimumVisualStudioVersion>16.0</MinimumVisualStudioVersion>
+    <AppxPackage>true</AppxPackage>
+    <AppxBundle>Never</AppxBundle>
+    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
+    <AppxAutoIncrementPackageRevision>true</AppxAutoIncrementPackageRevision>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformMinVersion>10.0.17763.0</WindowsTargetPlatformMinVersion>
+    <TargetPlatformVersion>10.0.19041.0</TargetPlatformVersion>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <AppxPackageDir>$(MSBuildProjectDirectory)\..\AppPackages\</AppxPackageDir>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OutputPath>$(MSBuildProjectDirectory)\bin\$(Configuration)\$(Platform)\</OutputPath>
+    <IntermediateOutputPath>$(MSBuildProjectDirectory)\obj\$(Configuration)\$(Platform)\</IntermediateOutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"
+          Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\vec4ipa_ui.csproj">
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\AppxPackage\Microsoft.AppxPackage.Targets" />
+</Project>

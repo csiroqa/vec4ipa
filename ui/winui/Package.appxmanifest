@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+         xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+         xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+         IgnorableNamespaces="uap rescap">
+  <Identity Name="vec4ipaWorkbench"
+            Publisher="CN=vec4ipa contributors"
+            Version="1.0.0.0"/>
+  <Properties>
+    <DisplayName>vec4ipa Workbench</DisplayName>
+    <PublisherDisplayName>vec4ipa contributors</PublisherDisplayName>
+    <Logo>Assets\final_ink.png</Logo>
+    <Description>WinUI 3 workbench for the vec4ipa tool suite (IPA &lt;-&gt; 16-D articulatory vectors).</Description>
+  </Properties>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Universal"
+                        MinVersion="10.0.17763.0"
+                        MaxVersionTested="10.0.19041.0"/>
+  </Dependencies>
+  <Resources>
+    <Resource Language="en-US"/>
+    <Resource Language="zh-Hans"/>
+  </Resources>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust"/>
+  </Capabilities>
+  <Applications>
+    <Application Id="App"
+                 Executable="vec4ipa_ui.exe"
+                 EntryPoint="Vec4ipaUI.App">
+      <uap:VisualElements DisplayName="vec4ipa Workbench"
+                          Description="vec4ipa - IPA &lt;-&gt; 16-D articulatory vectors"
+                          BackgroundColor="transparent"
+                          Square150x150Logo="Assets\final_ink.png"
+                          Square44x44Logo="Assets\final_ink.png"/>
+    </Application>
+  </Applications>
+</Package>

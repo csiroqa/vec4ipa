@@ -28,6 +28,9 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Assets\final_ink.png" Link="Assets\final_ink.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="..\vec_ipa.ico" Link="vec_ipa.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
