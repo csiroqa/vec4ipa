@@ -1,8 +1,8 @@
-# SPEC‑NEXT：物理推导 16 维方案设计草案（v0.3）
+# SPEC‑NEXT：物理推导 16 维方案（v1.0 — 已实施）
 
-> **状态：DRAFT v0.3 — 设计讨论稿，未实施。** 本文件不改变任何代码、向量表或度量文件；
-> 所有数值为草案锚点，最终值由拟合流程（`tools/fit_metric.py`）决定。
-> 目标版本号：`metric.json` version 10（现为 9）。
+> **状态：已实施。** 本方案即当前默认构建（`tools/data/spec_next.scheme` →
+> `src/vectors.h`，`Makefile` 默认 `SCHEME`），三个 CLI 与两个 GUI 均运行此
+> 16 维表与权重。旧 v8 方案见 `docs/SPEC.md`（历史文档）。
 > 版本沿革：v0.1 13 维（等距部位轴）→ v0.2 发现协同发音需次收缩轴（14 维）、
 > 喉部需 aperture×tension 正交（15 维）→ v0.3 声学参数核对补 `larynx_height`（16 维，当前）。
 
@@ -271,7 +271,7 @@ larynx_height, duration, jet_focus, effective_oral_area, airflow_direction)`，
 | 2 | 全表最近邻下限 | min NN ≥ 0.35（v8 为 0.215） | 同上 |
 | 3 | 方式链步距 | 以 d 为基准的 9 种方式步距 CV ≤ 30% | 同上 |
 | 4 | 混淆拟合 | LOCO held-out NLL ≤ v8 22,316 × 1.05 | `tools/fit_metric.py`（改造 16 维） |
-| 5 | 132 段往返重建 | 每维误差 ≤ 0.02（现状水平） | `tools/test_suite.py` |
+| 5 | 133 段往返重建 | 每维误差 ≤ 0.02（现状水平） | `tools/test_suite.py` |
 | 6 | 修饰符重建 | 全修饰符测试通过（现状水平） | `tools/test_suite.py` |
 | 7 | 韩语 k/kʰ/k͈/k͉ 四向 | 四者两两距离 ≥ 0.35 | `tools/fit_distribution.py` 扩展 |
 | 8 | 协同发音段 | ɧ 与 ʃ、ç 两两距离 ≥ 0.35 | 同上 |
@@ -286,7 +286,7 @@ larynx_height, duration, jet_focus, effective_oral_area, airflow_direction)`，
 | 文件 | 改动 |
 |------|------|
 | `docs/SPEC.md` | 维度定义、示例、静息值、§8 自由度、§9 锚点表全面改写 |
-| `IPA_VECTORS.md` | 132 行重写为 13 元组 + 修饰符规则表 |
+| `IPA_VECTORS.md` | 133 行重写为 13 元组 + 修饰符规则表 |
 | `src/ipa2vec_core.h` | DIM_* 枚举、`mod_cg/sg/tension` 合并为 `mod_glottal`、MODS 表目标轴更新 |
 | `src/vectors.h` | 结构不变（`double v[NDIM]`，NDIM=13） |
 | `tools/gen_vectors_h.py` | NDIM 13、校验 13 元组 |

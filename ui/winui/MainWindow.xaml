@@ -172,9 +172,10 @@
                 </Button>
                 <Button x:Name="LoopBtn" MinHeight="34" Grid.Column="4" Content="Loop" Padding="10,4"
                         Click="Loop_Click"/>
-                <ComboBox x:Name="FormatCombo" Grid.Column="5" SelectedIndex="0" Width="96" MinHeight="34">
+                <ComboBox x:Name="FormatCombo" Grid.Column="5" SelectedIndex="0" Width="100" MinHeight="34">
                     <ComboBoxItem x:Name="FmtVectors" Content="vectors"/>
-                    <ComboBoxItem Content="IR"/>
+                    <ComboBoxItem x:Name="FmtQuery" Content="query"/>
+                    <ComboBoxItem x:Name="FmtLayers" Content="layers"/>
                     <ComboBoxItem Content="JSON"/>
                 </ComboBox>
                 <Button x:Name="ConvertBtn" MinHeight="34" Grid.Column="6" Content="Convert"

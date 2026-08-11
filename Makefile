@@ -5,7 +5,8 @@ CFLAGS  ?= -O2 -Wall -Wextra -std=c11 -Wno-unused-function -Wno-unused-variable
 ifeq ($(OS),Windows_NT)
 PYTHON  ?= $(shell py -3 -c "import sys" >/dev/null 2>&1 && echo py -3 || echo python)
 else
-PYTHON  ?= python
+# Debian/Ubuntu 24.04+ ship no 'python' binary, only python3
+PYTHON  ?= $(shell command -v python3 >/dev/null 2>&1 && echo python3 || echo python)
 endif
 LDFLAGS :=
 SRC     := src
@@ -58,7 +59,7 @@ ui/app.res: ui/app.rc ui/vec_ipa.ico ipa2vec$(EXE_SUFFIX) vec2ipa$(EXE_SUFFIX) v
 $(SRC)/readme_embed.h: tools/gen_readme_embed.py README.md
 	$(PYTHON) tools/gen_readme_embed.py
 
-$(VECTORS_H): tools/gen_vectors_h.py IPA_VECTORS.md metric.json src/names.tsv $(SCHEME)
+$(VECTORS_H): tools/gen_vectors_h.py src/names.tsv $(SCHEME)
 	$(PYTHON) tools/gen_vectors_h.py $(if $(SCHEME),--scheme $(SCHEME),)
 
 gen: $(VECTORS_H) $(SRC)/readme_embed.h

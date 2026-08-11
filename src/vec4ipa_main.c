@@ -8,7 +8,7 @@
  *   -R, --readme          full README.md (embedded)
  *   -t, --table            full base table (main + extIPA bases)
  *   -m, --modules          regional modules and their symbols
- *   -q, --query <SYM>      query one symbol
+ *   -q, --query <SYM>      query a symbol (or a base + modifier string)
  *   -s, --stats            statistics
  *   -w, --weights          metric weights / lambda
  *   -r, --reverse <VEC>    vectors -> IPA (nearest + modifier fit)
@@ -29,9 +29,10 @@
 
 static void print_table(void)
 {
-    printf("# ipa\tlatin\tlips_closed lips_rounded tongue_tip_pos tongue_tip_height tongue_body_pos "
-           "tongue_root vel_open lateral_ratio voiced constricted_glottis spread_glottis laryngeal_tension "
-           "duration jet_focus effective_oral_area airflow_direction\tairstream\n");
+    printf("# ipa\tlatin\t");
+    for (int j = 0; j < NDIM; j++)
+        printf("%s%s", j ? " " : "", DIM_NAMES[j]);
+    printf("\tairstream\n");
     for (int i = 0; i < NSEG; i++) {
         printf("%s\t%s\t", SEG_TABLE[i].ipa, NAME_TABLE[i]);
         for (int j = 0; j < NDIM; j++)
@@ -63,6 +64,175 @@ static void print_modules(void)
     printf("\n# modifier code points: %d\n", NMODS);
 }
 
+/* latin modifier tag -> English word, for the near-natural-language
+ * reading of a parsed segment (unknown tags pass through as-is) */
+static const char *mod_word(const char *tag)
+{
+    static const struct { const char *tag; const char *word; } W[] = {
+        { "vl", "voiceless" }, { "vd", "voiced" },
+        { "asp", "aspirated" }, { "weak_asp", "weakly aspirated" },
+        { "breathy", "breathy" }, { "breathy_asp", "breathy aspirated" },
+        { "creaky", "creaky" }, { "fortis", "fortis" }, { "lenis", "lenis" },
+        { "nas", "nasalised" }, { "nas_rel", "nasal release" },
+        { "nasal_rel", "nasalised" }, { "nas_click", "nasalised click" },
+        { "unrel", "no audible release" },
+        { "syl", "syllabic" }, { "nsyl", "non-syllabic" },
+        { "raised", "raised" }, { "lowered", "lowered" },
+        { "adv", "advanced" }, { "retr", "retracted" },
+        { "atr", "advanced tongue root" }, { "rtr", "retracted tongue root" },
+        { "rnd_more", "more rounded" }, { "rnd_less", "less rounded" },
+        { "centralized", "centralised" }, { "midcent", "mid-centralised" },
+        { "dental", "dentalised" }, { "alveolar", "alveolarised" },
+        { "apical", "apical" }, { "laminal", "laminal" }, { "lam", "laminal" },
+        { "linguolabial", "linguolabial" }, { "labiodental", "labiodental" },
+        { "pal", "palatalised" }, { "pal_hook", "palatalised" },
+        { "pal_prime", "palatalised" }, { "vel", "velarised" },
+        { "phar", "pharyngealised" }, { "lab", "labialised" },
+        { "lab_subw", "labialised" }, { "retroflex", "retroflex" },
+        { "dark", "velarised" }, { "light", "palatalised" },
+        { "whistled", "whistled" },
+        { "lat_release", "lateral release" },
+        { "fric_release", "fricative release" },
+        { "schwa_rel", "schwa-coloured" }, { "rhot", "rhotacised" },
+        { "ej", "ejective" }, { "glottal_onset", "glottal onset" },
+        { "long", "long" }, { "half", "half-long" }, { "short", "extra-short" },
+        { "gemination", "geminated" }, { "lengthened", "lengthened" },
+        { "sliding", "sliding" }, { "tie", "tied" },
+        { "offglide_pal", "palatal offglide" },
+        { "offglide_lab", "labial offglide" },
+        { "offglide_labpal", "labial-palatal offglide" },
+        { "sup_rhot_r", "r-coloured release" },
+        { "sup_rhot_\xC9\xA2", "r-coloured release" },
+        { "sup_rhot_\xC9\x95", "r-coloured release" },
+        { "sup_rhot_\xC9\x81", "r-coloured release" },
+        { "sup_\xC9\x9B", "superscript \xC9\x9B" },
+        { "sup_e", "superscript e" }, { "sup_u", "superscript u" },
+        { "sup_d", "superscript d" }, { "sup_N", "superscript n" },
+        { "sup_A", "superscript a" }, { "sup_B", "superscript b" },
+        { "sup_O", "superscript o" }, { "sup_P", "superscript p" },
+        { "sup_U", "superscript u" }, { "sup_W", "superscript w" },
+        { "sub_i", "subscript i" }, { "sub_r", "subscript r" },
+        { "tone_5", "top tone" }, { "tone_4", "high tone" },
+        { "tone_3", "mid tone" }, { "tone_2", "low tone" },
+        { "tone_1", "lowest tone" },
+    };
+    for (size_t i = 0; i < sizeof(W) / sizeof(W[0]); i++)
+        if (strcmp(W[i].tag, tag) == 0)
+            return W[i].word;
+    return tag;
+}
+
+/* describe one parsed segment in near-natural language */
+static void print_seg_query(int s, const ParseOut *po, const char *const *bases,
+                            const char *const *names, int nb,
+                            const char *spelled)
+{
+    const SegVec *sv = &po->segs[s];
+    printf("[%d] /%s/ = ", s, spelled);
+    for (int j = 0; j < nb; j++) {
+        if (j) printf(" + ");
+        if (bases[j])
+            printf("/%s/ (%s)", bases[j], names[j]);
+        else
+            printf("(%s)", names[j]);
+    }
+    char words[192] = "";
+    const char *n = sv->note;
+    while (*n) {
+        const char *e = strchr(n, ',');
+        size_t L = e ? (size_t)(e - n) : strlen(n);
+        char tag[40];
+        if (L >= sizeof(tag)) L = sizeof(tag) - 1;
+        memcpy(tag, n, L);
+        tag[L] = 0;
+        if (words[0]) strncat(words, ", ", sizeof(words) - strlen(words) - 1);
+        strncat(words, mod_word(tag), sizeof(words) - strlen(words) - 1);
+        n = e ? e + 1 : n + L;
+    }
+    if (words[0])
+        printf(" + [%s]", words);
+    printf("  (%s)\n", AIRSTREAM_LABELS[sv->airstream]);
+    printf("    vector: (");
+    for (int j = 0; j < NDIM; j++)
+        printf("%s%.4f", j ? ", " : "", sv->v[j]);
+    printf(")");
+    print_tone(sv);
+    printf("\n");
+}
+
+/* describe a parsed multi-symbol string in near-natural language:
+ * group the layer1 tokens into segments (a TK_LIG continues the
+ * segment, everything else starts a new one) */
+static void describe_segments(const ParseOut *po)
+{
+    const char *bases[8];
+    const char *names[8];
+    char spelled[128];
+    char pending[32];   /* preposed tokens (airstream marks) of the next segment */
+    int nb = 0, s = 0;
+    size_t sl = 0, pl = 0;
+    spelled[0] = 0;
+    pending[0] = 0;
+
+    for (int i = 0; i < po->n1 && s < po->nsegs; i++) {
+        const IrTok *t = &po->layer1[i];
+        if (t->kind == TK_BASE) {
+            int cont = (i > 0 && po->layer1[i - 1].kind == TK_LIG);
+            if (!cont && nb > 0) {
+                print_seg_query(s++, po, bases, names, nb, spelled);
+                nb = 0;
+                sl = 0;
+                spelled[0] = 0;
+            }
+            if (pl) {
+                memcpy(spelled + sl, pending, pl);
+                sl += pl;
+                spelled[sl] = 0;
+                pl = 0;
+            }
+            if (nb < 8) {
+                bases[nb] = t->seg ? t->seg->ipa : NULL;
+                names[nb] = t->seg ? base_name(t->seg) : t->latin;
+                nb++;
+            }
+            size_t L = strlen(t->ipa);
+            if (sl + L < sizeof(spelled) - 1) {
+                memcpy(spelled + sl, t->ipa, L);
+                sl += L;
+                spelled[sl] = 0;
+            }
+        } else if (t->kind == TK_MOD) {
+            const char *p0 = t->ipa;
+            if (strncmp(p0, "\xE2\x97\x8C", 3) == 0)
+                p0 += 3;   /* strip the dotted-circle placeholder */
+            size_t L = strlen(p0);
+            if (nb == 0) {
+                if (pl + L < sizeof(pending) - 1) {
+                    memcpy(pending + pl, p0, L);
+                    pl += L;
+                    pending[pl] = 0;
+                }
+            } else if (sl + L < sizeof(spelled) - 1) {
+                memcpy(spelled + sl, p0, L);
+                sl += L;
+                spelled[sl] = 0;
+            }
+        } else if (t->kind == TK_LIG) {
+            const char *p0 = t->ipa;
+            if (strncmp(p0, "\xE2\x97\x8C", 3) == 0)
+                p0 += 3;   /* strip the dotted-circle placeholder */
+            size_t L = strlen(p0);
+            if (sl + L < sizeof(spelled) - 1) {
+                memcpy(spelled + sl, p0, L);
+                sl += L;
+                spelled[sl] = 0;
+            }
+        }
+    }
+    if (nb > 0 && s < po->nsegs)
+        print_seg_query(s, po, bases, names, nb, spelled);
+}
+
 static void query_symbol(const char *sym)
 {
     for (int i = 0; i < NSEG; i++) {
@@ -87,7 +257,8 @@ static void query_symbol(const char *sym)
     }
     const unsigned char *u = (const unsigned char *)sym;
     unsigned long cp = 0;
-    if (utf8_decode(u, &cp)) {
+    int uk = utf8_decode(u, &cp);
+    if (uk && !u[uk]) {   /* exactly one code point */
         const ModRec *m = find_mod(cp);
         if (m) {
             printf("modifier: %s  %s  tier=%d%s%s\n", m->ipa, m->latin,
@@ -98,10 +269,23 @@ static void query_symbol(const char *sym)
         }
     }
     const Alias *a = lookup_alias(sym, 0);
-    if (a) {
+    if (a && strcmp(a->sym, sym) == 0) {
         printf("alias: '%s' -> %s (%s)%s\n", a->sym, a->repl, a->note,
                a->warn ? "  [deprecated]" : "");
         return;
+    }
+    /* composite string (base + modifiers): run the full parse pipeline
+     * and describe every segment in near-natural language */
+    ParseOut po;
+    char err[256];
+    if (lex(sym, po.layer1, &po.n1, err, sizeof(err)) == 0) {
+        canonicalise(po.layer1, po.n1, po.layer2, &po.n2);
+        if (apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs, "vec4ipa") == 0 &&
+            po.nsegs > 0)
+        {
+            describe_segments(&po);
+            return;
+        }
     }
     printf("not found: %s\n", sym);
 }
@@ -128,7 +312,7 @@ static void print_stats(void)
 static void print_weights(void)
 {
     metric_ensure();
-    printf("# dimension weights (metric.json v4, refit to Phatak 2008 + MN55)\n");
+    printf("# dimension weights (compiled-in defaults from spec_next.scheme)\n");
     printf("# --metric FILE overrides these at runtime\n");
     for (int i = 0; i < NDIM; i++)
         printf("%2d  %-22s %8.4f\n", i, DIM_NAMES[i],
@@ -153,7 +337,7 @@ static void usage(void)
     printf("  -P, --spacing=NAME    modifier spacing: binary (default)|ternary|2:1:2|1:x:1|X (alias --mode)\n");
     printf("  -t, --table            full base table\n");
     printf("  -m, --modules          regional modules\n");
-    printf("  -q, --query SYM        query a symbol\n");
+    printf("  -q, --query SYM        query a symbol, or parse a base + modifier string\n");
     printf("  -s, --stats            statistics\n");
     printf("  -w, --weights          metric weights / lambda\n");
     printf("  -r, --reverse VEC      vectors -> IPA (nearest + modifier fit)\n");

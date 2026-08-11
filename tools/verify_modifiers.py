@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 """Verify modifier (diacritic) variants in the 16-dim space.
 
 Applies SPEC-NEXT §5 modifier rules on top of base vectors and checks:
@@ -7,6 +8,12 @@ Applies SPEC-NEXT §5 modifier rules on top of base vectors and checks:
   3. coarticulation modifiers hit the new axes (body for ʲ/ˠ, tension
      for fortis/lenis, larynx_height for ejective)
   4. cross-check: variants do not collide with the base table
+
+NOTE: this validates the DESIGN MODEL (its own Python re-implementation
+of the modifier rules over tools/data/vec_table_16.json), not the C
+binaries.  The compiled modifier semantics live in MODS in
+src/ipa2vec_core.h; binary-level variant behaviour is covered by
+tools/test_suite.py / tools/test_metric_space.py.
 
 Run: python tools/verify_modifiers.py
 """
@@ -239,6 +246,7 @@ def main():
         print()
 
     print(f'\n== result: {"ALL PASS" if fails == 0 else f"{fails} FAILURES"} ==')
+    sys.exit(0 if fails == 0 else 1)
 
 
 if __name__ == '__main__':

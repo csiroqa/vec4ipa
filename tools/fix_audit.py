@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 """Fix audit findings on vec_table_16.json (subagent-verified list).
 
+SUPERSEDED: never applied.  The committed scheme
+(tools/data/spec_next.scheme -> src/vectors.h) keeps the hand-tuned
+values — vowels sit at place 0.0 with the front/central/back split on
+`body`, which this script's positive place values (A) contradict; the
+tip_shape unification (B) is already present.  Run only if the vowel
+place-by-chart-class design is adopted as canonical; then re-export the
+scheme (tools/export_scheme.py) and re-run the test suites.
+
 Findings fixed (all cross-checked against IPA definitions by 4 auditors):
   A. Vowel place anchors: acoustic F2 drifted ɨ/ʉ/ɛ/œ/ɤ/ʌ/ɔ away from the
      IPA chart classes.  Fix: place by IPA CHART CLASS (front/central/back

@@ -45,8 +45,7 @@ def check_forms(name, forms, **kw):
 # symbols the tool does not support yet (all of the article's marks
 # are in these characters; anything containing them is a gap item)
 # ------------------------------------------------------------------
-UNSUPPORTED_SYMS = "◌̑˖˗◌͑◌͗ȏ"    # U+0311 U+02D6 U+02D7 U+0351 U+0357 U+020F
-
+UNSUPPORTED_SYMS = "ȏ"    # U+0311 U+02D6 U+02D7 U+0351 U+0357 U+020F
 def is_gap(form):
     """True when the article's spelling cannot be parsed by the tool
     as it stands (unsupported mark, or a combining mark written
@@ -358,9 +357,10 @@ finals_str = "".join(ipa for ipa, _ in FINALS_BROAD)
 check("all finals (broad) parse", [finals_str], expect_segs=finals_total)
 
 # 5b. every 声母 + 介音 (窄式) once
-#     standalone ʲj/ʷw/ʷɥ alias the leading mark to a w/ʝ base (2 segs);
-#     in the chained string the marks instead attach postposed to the
-#     previous segment, so the chain totals 26 segments
+#     standalone ʲj/ʷw/ʷɥ attach the leading superscript to the glide
+#     (1 seg: the superscript letter is an onset modifier, IPA colouring
+#     tradition); in the chained string the marks instead attach
+#     postposed to the previous segment, so the chain totals 26 segments
 INIT_NARROW = [
     "b̥", "pʰ", "m", "f", "t̥", "tʰ", "n", "l̠",
     "ɡ̊", "kʰ", "x̞",
@@ -375,7 +375,7 @@ INIT_SEGS = {
     "t̥͡ʑ̥":1,"tɕʰ":1,"ɕ":1,
     "t̥͡ʐ̺̊":1,"tʂ̺ʰ":1,"ʂ̺":1,"ɻ̺":1,
     "t̥͡z̟̊":1,"ts̟ʰ":1,"s̟":1,
-    "ʲj":2,"ʷw":2,"ʷɥ":2,"ʋ̩ˠ":1,"u̜ᶹ":1,
+    "ʲj":1,"ʷw":1,"ʷɥ":1,"ʋ̩ˠ":1,"u̜ᶹ":1,
 }
 init_total = 26   # chained: 21 initials + j w ɥ ʋ̩ˠ u̜ᶹ (marks merge back)
 init_str = "".join(INIT_NARROW)
@@ -393,14 +393,14 @@ RHO_NARROW = [
     "ʊ̃˞",
 ]
 RHO_SEGS = {
-    "ʷo̜̽˞":2, "wo̜̽˞":2, "ɤ̽˞":1, "jɚ":2, "ɥɚ̹":2, "ʊ˞":1, "ʊ̜˞ᶹ":1,
+    "ʷo̜̽˞":1, "wo̜̽˞":2, "ɤ̽˞":1, "jɚ":2, "ɥɚ̹":2, "ʊ˞":1, "ʊ̜˞ᶹ":1,
     "ɐɻ˕":2, "jɐ̟ɻ˕":3, "wɐɻ˕":3, "ɥʏ̯̈ɐ̹ɻ˕":4,
     "ə̠ɻ˕":2, "ji̞ə̯ɻ˕":4, "wə̠ɻ˕":3,
-    "ɑ̹̽˞ʊ̯˞":2, "jɑ̹̽˞ʊ̯˞":3, "ʷo̜̽˞ʊ̯˞":3,
+    "ɑ̹̽˞ʊ̯˞":2, "jɑ̹̽˞ʊ̯˞":3, "ʷo̜̽˞ʊ̯˞":2,
     "ɑ̽̃˞":1, "jɑ̽̃˞":2, "wɑ̽̃˞":2, "ɤ̽̃˞":1, "iɘ̯̃˞":2,
     "ʊ̃˞":1,
 }
-rho_total = 48   # chained: leading ʷ of ʷo̜̽˞ʊ̯˞ attaches to the previous
+rho_total = 47   # chained: leading ʷ of ʷo̜̽˞ʊ̯˞ attaches to the previous
                  # segment (standalone alias counts differ; see per-item)
 rho_str = "".join(RHO_NARROW)
 for f in RHO_NARROW:
@@ -429,25 +429,11 @@ check("MEGA-C: 全部儿化韵母+全部声母+全部声调", [mega_c], expect_s
 #    supported sections above.
 # ------------------------------------------------------------------
 GAP_ITEMS = [
-    ("semi-vowel ◌̑",       "ȃ"),
-    ("spacing advanced ˖",  "a˖"),
-    ("spacing retracted ˗", "a˗"),
-    ("half-ring ◌͑",        "a͑"),
-    ("half-ring ◌͗",        "a͗"),
     ("precomposed ȏ",       "ȏ"),
     ("preposed laminal ◌̻", "̻a"),
     ("ï₂ 新派 preposed laminal", "̻ɻ̺̍͡ɻ̻̍"),
     ("glide preposed laminal",   "̻ʲj"),
-    ("e 新派 ◌̑",            "ɯ̽ʌ̟̑"),
-    ("io half-ring ◌͗",     "j͗ʏ̯̈o̜̽"),
     ("iu precomposed ȏ",    "j͗ȏ̜ʊ"),
-    ("un₂ ˗",               "uɘ̹̑˗n̚"),
-    ("ünr ◌̑",              "ɥʏɘ̹̑ɻ˕"),
-    ("uengr ◌̑",            "wɤ̹̽̑˞ɚ̃"),
-    ("aor 新派 ◌͑",         "ɔ̟͑˞ʊ̯˞"),
-    ("iong half-ring ◌͑",   "ɥ͑ʊ̟ŋʷ̚"),
-    ("uor 新派 ◌̑",         "ʊ̜˞ɝ̹̑"),
-    ("ongr ˖",              "ʊ̃˞õ̯˞˖"),
 ]
 for name, form in GAP_ITEMS:
     check(f"gap {name}", [form], expect_rc=1)

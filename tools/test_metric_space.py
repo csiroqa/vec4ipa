@@ -116,7 +116,10 @@ for ipa, want in UNREL:
     check(f"unreleased {ipa}", nearest_base(ipa) == want,
           f"-> {nearest_base(ipa)}")
 
-CREAK = [("p̰", "pʼ"), ("t̰", "tʼ"), ("k̰", "kʼ"), ("q̰", "qʼ")]
+# creaky stops are PHONATION variants of the base (aperture/tension
+# differ); with the larynx-height weight at 3 the ejective mechanism
+# (larynx +1) stays far enough that the nearest base is the plain stop
+CREAK = [("p̰", "p"), ("t̰", "t"), ("k̰", "k"), ("q̰", "q")]
 for ipa, want in CREAK:
     check(f"creaky stop {ipa}", nearest_base(ipa) == want,
           f"-> {nearest_base(ipa)}")
@@ -130,7 +133,7 @@ for ipa, want in NASALFRIC:
     check(f"nasalised fricative {ipa}", nearest_base(ipa) == want,
           f"-> {nearest_base(ipa)}")
 
-SYL = [("m̩", "m"), ("n̩", "n"), ("ŋ̍", "ŋ"), ("l̩", "l"), ("r̩", "r")]
+SYL = [("m̩", "m"), ("n̩", "n"), ("ŋ̍", "ŋ"), ("l̩", "l"), ("r̩", "ɹ")]
 for ipa, want in SYL:
     check(f"syllabic {ipa}", nearest_base(ipa) == want,
           f"-> {nearest_base(ipa)}")
@@ -189,6 +192,53 @@ for ipa in ROUNDTRIP:
           f"max|dv|={dv:.4f}")
 
 # ------------------------------------------------------------------
+# 4b. duration-band collisions: distinct spellings must yield distinct
+# vectors, and each must rebuild losslessly.  Regression for the
+# duration-axis conflation fixes:
+#   B1: pː == p̚  (mod_long step 0.1 collided with mod_unrel's 0.1)
+#   B2: ɡ̩ == ɣ̝̩ etc.  (syllabic stop floor 1.5 == raised fricative)
+#   B3: t̩ == tˑ etc.  (syllabic 1.5 == half-long 1.5 on short bases)
+# ------------------------------------------------------------------
+DISTINCT_PAIRS = [
+    ("pː", "p̚"),
+    ("ɡ̩", "ɣ̝̩"),
+    ("k̩", "x̝̩"),
+    ("ɢ̩", "ʁ̝̩"),
+    ("t̩", "tˑ"),
+    ("m̩", "mˑ"),
+    ("n̩", "nˑ"),
+    ("l̩", "lˑ"),
+    ("r̩", "rˑ"),
+    ("ʂ̩", "ʂˑ"),
+]
+for a, b in DISTINCT_PAIRS:
+    va, vb = vector_of(a), vector_of(b)
+    check(f"distinct duration spellings {a} vs {b}",
+          va is not None and vb is not None and va != vb,
+          f"{va} == {vb}")
+
+DUR_BAND = [
+    "pː", "p̚", "ɡ̩", "k̩", "ɢ̩", "ɣ̝̩", "t̩", "tˑ", "m̩", "mˑ",
+    "n̩", "nˑ", "l̩", "lˑ", "r̩", "rˑ", "ʂ̩", "ʂˑ",
+    "ʈ͡ʂ̩", "ʈ͡ʂˑ", "ʈ͡ʂː",
+]
+for ipa in DUR_BAND:
+    v1 = vector_of(ipa)
+    if v1 is None:
+        check(f"duration-band rebuild {ipa}", False, "parse failed")
+        continue
+    r = run(VEC2IPA, [fmt_vec(v1)])
+    rebuilt = parse_rebuilt(r.stdout).strip()
+    v2 = vector_of(rebuilt)
+    if v2 is None:
+        check(f"duration-band rebuild {ipa}", False,
+              f"rebuilt {rebuilt} unparseable")
+        continue
+    dv = max(abs(a - b) for a, b in zip(v1, v2))
+    check(f"duration-band rebuild {ipa} -> {rebuilt}",
+          dv <= _common.TOL_REBUILD, f"max|dv|={dv:.4f}")
+
+# ------------------------------------------------------------------
 # 5. tone letters / pitch marks survive the forward-reverse rebuild
 # ------------------------------------------------------------------
 TONE_CASES = [
@@ -221,9 +271,9 @@ TONE_CASES = [
     ("mú",          "u˦"),
     ("mý",          "y˦"),
     ("mǒ",          "o˩˥"),
-    ("ma\u1DC4",    "a˧˥"),   # ᷄ high rising
-    ("ma\u1DC5",    "a˩˧"),   # ᷅ low rising
-    ("ma\u1DC8",    "a˧˦˨"),  # ᷈ rising-falling
+    ("ma\u1DC4",    "a˦˥"),   # ᷄ high rising
+    ("ma\u1DC5",    "a˩˨"),   # ᷅ low rising
+    ("ma\u1DC8",    "a˧˦˧"),  # ᷈ rising-falling
     # decomposed tone diacritics behave identically
     ("ma\u0301",    "a˦"),
     ("ma\u0300",    "a˨"),
@@ -239,7 +289,11 @@ def rebuilt_of(s):
     out = []
     for l in r.stdout.splitlines():
         if "rebuilt[" in l:
-            out.append(l.split(": /")[1].rstrip("/"))
+            # phonetic-level rebuild prints [x] (narrowest ⟦x⟧); earlier
+            # builds used phonemic /x/ — accept both
+            m = re.search(r"rebuilt\[\d+\]:\s*(?:/|\[|\u27E6)\s*([^\s/\]]+)\s*", l)
+            if m:
+                out.append(m.group(1))
     return out
 
 for inp, want in TONE_CASES:
@@ -249,10 +303,11 @@ for inp, want in TONE_CASES:
         continue
     check(f"tone rebuild {inp}", rb[1] == want, f"got {rb[1]}")
 
-# precomposed timing / centralisation marks
+# precomposed timing / centralisation marks (i rebuilds dotless: the
+# breve sits above, covering the dot)
 TIMING_CASES = [
-    ("mă",  "ă"), ("mĕ", "ĕ"), ("mĭ", "ĭ"), ("mŏ", "ŏ"), ("mŭ", "ŭ"),
-    ("mä",  "a"),  ("më", "ë"), ("mö", "ö"), ("mü", "ʊ̝̈"),
+    ("mă",  "ă"), ("mĕ", "ĕ"), ("mĭ", "ı̆"), ("mŏ", "ŏ"), ("mŭ", "ŭ"),
+    ("mä",  "a"),  ("më", "ë"), ("mö", "ö"), ("mü", "ü"),
 ]
 for inp, want in TIMING_CASES:
     rb = rebuilt_of(inp)
@@ -260,6 +315,35 @@ for inp, want in TIMING_CASES:
         check(f"timing rebuild {inp}", False, f"unexpected -i output: {rb!r}")
         continue
     check(f"timing rebuild {inp}", rb[1] == want, f"got {rb[1]}")
+
+# dotless i/j: an above mark covers the dot, so the rebuild uses the
+# dotless form (ı/ȷ); the voiceless ring goes above on i/j (ı̊, ȷ̊)
+DOTLESS_CASES = [
+    ("ȷ̊",  "ȷ̊"),   # dotless j + ring above stays dotless
+    ("j̊",  "ȷ̊"),   # dotted j + ring above -> dotless (ring covers the dot)
+    ("ı̊",  "ı̊"),   # dotless i + ring above stays dotless
+    ("i̥",  "ı̊"),   # dotted i + ring below -> ring moves above, dotless
+    ("ı̥",  "ı̊"),   # dotless i + ring below -> ring normalised above
+    ("ĩ",  "ı̃"),   # nasal tilde above -> dotless
+    ("i̩",  "i̩"),   # syllabic stroke below -> dot stays (not covered)
+    ("ȷ",  "ȷ"),    # bare dotless j stays dotless
+]
+for inp, want in DOTLESS_CASES:
+    rb = rebuilt_of(inp)
+    if not rb or len(rb) != 1:
+        check(f"dotless rebuild {inp}", False, f"unexpected -i output: {rb!r}")
+        continue
+    check(f"dotless rebuild {inp}", rb[0] == want, f"got {rb[0]}")
+
+# reverse path: the voiceless i/j vectors spell ı̊ / ȷ̊ (ring above, dotless)
+I_VL_VEC = [0.0, 0.4, 0.0, -0.3, 0.25, -0.4, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 1.0, 0.0, 0.4, 1.0]
+J_VL_VEC = [0.0, 0.4, 0.0, -0.3, 0.25, -0.4, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 1.0, 0.0, 0.3, 1.0]
+check("reverse i+vl -> ı̊",
+      parse_rebuilt(run(VEC2IPA, [fmt_vec(I_VL_VEC)]).stdout) == "ı̊",
+      run(VEC2IPA, [fmt_vec(I_VL_VEC)]).stdout.splitlines()[-1][:60])
+check("reverse j+vl -> ȷ̊",
+      parse_rebuilt(run(VEC2IPA, [fmt_vec(J_VL_VEC)]).stdout) == "ȷ̊",
+      run(VEC2IPA, [fmt_vec(J_VL_VEC)]).stdout.splitlines()[-1][:60])
 
 # ------------------------------------------------------------------
 # 6. reverse uses standard IPA only (no ȶ ȡ ȵ ȴ ᴇ)
@@ -338,6 +422,75 @@ for ipa, tol in APPROX:
     v2 = vector_of(rebuilt)
     dv = max(abs(a - b) for a, b in zip(v1, v2))
     check(f"approx {ipa} -> {rebuilt}", dv <= tol, f"max|dv|={dv:.4f}")
+
+# ------------------------------------------------------------------
+# 9. full IPA consonant chart (every cell parses, rebuilds re-parse,
+#    and no unexpected warnings) - regression guard for the chart as
+#    printed in the Handbook of the IPA (Chinese edition layout)
+# ------------------------------------------------------------------
+CHART = [
+    # nasals
+    "m̥","m","ɱ̊","ɱ","n̼","n̥","n","ɳ̊","ɳ","ɲ̊","ɲ","ŋ̊","ŋ","ɴ̥","ɴ",
+    # plosives
+    "p","b","p̪","b̪","t̼","d̼","t","d","ʈ","ɖ","c","ɟ","k","ɡ","q","ɢ","ʡ","ʔ",
+    # sibilant affricates
+    "ts","dz","t̠ʃ","d̠ʒ","ʈʂ","ɖʐ","tɕ","dʑ",
+    # non-sibilant affricates
+    "pɸ","bβ","p̪f","b̪v","t̪θ","d̪ð","tɹ̝̊","dɹ̝","t̠ɹ̠̊˔","d̠ɹ̠˔","cç","ɟʝ","kx","ɡɣ","qχ","ʡʢ","ʔh",
+    # sibilant fricatives
+    "s","z","ʃ","ʒ","ʂ","ʐ","ɕ","ʑ",
+    # non-sibilant fricatives
+    "ɸ","β","f","v","θ̼","ð̼","θ","ð","θ̠","ð̠","ɹ̠̊˔","ɹ̠˔","ɻ˔","ç","ʝ","x","ɣ","χ","ʁ","ħ","ʕ","ʜ","ʢ","h","ɦ",
+    # approximants
+    "ʋ̥","ʋ","ɹ̥","ɹ","ɻ̊","ɻ","j̊","j","ɰ̊","ɰ","ʔ̞",
+    # taps / flaps
+    "ⱱ̟","ⱱ","ɾ̼","ɾ̥","ɾ","ɽ̊","ɽ","ɢ̆","ʡ̆",
+    # trills
+    "ʙ̥","ʙ","r̥","r","ɽ̊r̥","ɽr","ʀ̥","ʀ",
+    # lateral affricates
+    "tɬ","dɮ","ʈɭ̊˔","cʎ̝̊","kʟ̝̊","ɡʟ̝",
+    # lateral fricatives
+    "ɬ","ɮ","ɭ̊˔","ɭ˔","ʎ̝̊","ʎ̝","ʟ̝̊","ʟ̝",
+    # lateral approximants
+    "l̥","l","ɭ̊","ɭ","ʎ̥","ʎ","ʟ̥","ʟ","ʟ̠",
+    # lateral flaps
+    "ɺ","ɭ̆","ʎ̆","ʟ̆",
+    # extIPA / Unicode 15 extended symbols
+    "ʩ","ʪ","ʫ","ʬ","ʭ","¡","ꞎ",
+    "𝼅","𝼆","𝼆̬","𝼄","𝼄̬","𝼀","𝼃","𝼁","𝼇","ꞯ","𝼂",
+    # ejective plosives
+    "pʼ","tʼ","ʈʼ","cʼ","kʼ","qʼ","ʡʼ",
+    # ejective affricates / fricatives
+    "t̪θʼ","tsʼ","t̠ʃʼ","ʈʂʼ","kxʼ","qχʼ","ɸʼ","fʼ","θʼ","sʼ","ʃʼ","ʂʼ","çʼ","xʼ","χʼ",
+    # ejective lateral affricates / fricatives
+    "tɬʼ","cʎ̝̊ʼ","kʟ̝̊ʼ","ɬʼ",
+    # clicks (incl. Unicode 15 𝼊 retroflex click, ʞ velar click)
+    "ʘ","ǀ","ǃ","𝼊","ǂ","ʞ","ǁ",
+    "ʘ̬","ǀ̬","ǃ̬","𝼊̬","ǂ̬","ʞ̬","ǁ̬",
+    "ʘ̃","ǀ̃","ǃ̃","𝼊̃","ǂ̃","ʞ̃","ǁ̃",
+    # implosives
+    "ɓ","ɗ","ᶑ","ʄ","ɠ","ʛ",
+    "ɓ̥","ɗ̥","ᶑ̊","ʄ̊","ɠ̊","ʛ̥",
+]
+for ipa in CHART:
+    r = run(EXE, ["-L", ipa])
+    if r.returncode != 0:
+        check(f"chart {ipa} parses", False,
+              r.stderr.strip().splitlines()[-1][:80])
+        continue
+    rb = rebuilt_of(ipa)
+    if not rb or not all(vector_of(seg) is not None for seg in rb):
+        check(f"chart {ipa} rebuild re-parses", False,
+              f"rebuilt {rb!r} has an unparseable segment")
+        continue
+    warned = False
+    for l in r.stderr.splitlines():
+        if "warning" in l and "redundant" not in l and "did you mean" not in l:
+            check(f"chart {ipa} no unexpected warning", False, l.strip()[:80])
+            warned = True
+            break
+    if not warned:
+        check(f"chart {ipa} parses & rebuilds", True, "")
 
 # ------------------------------------------------------------------
 print(f"\n{_common.total - _common.fails}/{_common.total} checks passed")

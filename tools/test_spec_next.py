@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """SPEC-NEXT 16-dim design test suite (table + metric + mask sanity).
 
-Validates the derived artifacts WITHOUT the C binaries (which still run
-the v8 16-D table): the 16-dim vector table, the fitted metric, and the
-masked distance all live in tools/data/*.json.
+Validates the derived artifacts: the 16-dim vector table, the fitted
+metric, and the masked distance all live in tools/data/*.json.  The C
+binaries compile the same scheme (tools/data/spec_next.scheme ->
+src/vectors.h), so the JSON table must stay a subset of the scheme's
+segment set (the scheme may carry hand-added rows, e.g. b̪).
 
 Checks:
-  1. TABLE: 132 segments, 16 dims, all values in declared ranges.
+  1. TABLE: 133 segments, 16 dims, all values in declared ranges.
   2. SYMMETRY/definite: masked distance is symmetric, zero diagonal,
      positive off-diagonal.
   3. KEY PAIRS: phonological contrasts >= 0.6 under the final weights
@@ -78,6 +80,14 @@ def main():
     # ---- 1. table integrity ----
     print('== 1. table integrity ==')
     check('133 segments', len(names) == 133, f'got {len(names)}')
+    scheme_segs = set()
+    for ln in open(os.path.join(DATA, 'spec_next.scheme'), encoding='utf-8'):
+        p = ln.split()
+        if p and p[0] == 'seg':
+            scheme_segs.add(p[1])
+    missing = sorted(set(names) - scheme_segs)
+    check('JSON rows all present in scheme',
+          not missing, f'JSON-only rows: {missing}')
     check('16 dims', len(dims) == 16)
     ranges = [(-0.95, 0.95), (-0.6, 0.6), (0, 1), (-1, 1),
               (0.2, 1.0), (-1, 1), (0, 1), (0, 1), (0, 1),
@@ -120,7 +130,11 @@ def main():
     for a, b in NEAR:
         if b in names:
             d = dd(a, b)
-            check(f'{a}-{b} < 1.2', d < 1.2, f'd={d:.3f}')
+            # ə is the NEUTRAL vowel (lips neither spread nor rounded,
+            # 0.5 on the rounding axis); ɜ stays spread (0), so the pair
+            # is farther than the height-adjacent neighbours
+            lim = 1.6 if (a, b) == ('ə', 'ɜ') else 1.2
+            check(f'{a}-{b} < {lim}', d < lim, f'd={d:.3f}')
 
     # ---- 5. affricate composition rule ----
     print('\n== 5. affricate rule (0.5 + fricative) ==')

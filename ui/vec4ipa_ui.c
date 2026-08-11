@@ -175,14 +175,25 @@ static void kb_build_all(HWND parent)
     static const double pos_steps[8] = {0.0, 0.14, 0.28, 0.42,
                                         0.56, 0.70, 0.84, 1.0};
     int vx0 = 8, vy0 = 6, vbw = 36, vbh = 30, vgap = 4;
+    /* resolve dims by name: the compiled scheme is SPEC-NEXT order
+     * (v[2]=lips_closed, v[3]=lips_rounded), not v8 order */
+    int vbody = dim_of_ok("body", DIM_TONGUE_BODY_POS);
+    int varea = dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA);
     for (i = 0; i < NSEG; i++) {
         if (!is_vowel(&SEG_TABLE[i])) continue;
-        double tt = SEG_TABLE[i].v[2];
-        double th = SEG_TABLE[i].v[3];
+        /* frontness on body (front +0.4 .. back -0.4),
+         * height on effective_oral_area (close 0.4 .. open 1.0) */
+        double tt = (SEG_TABLE[i].v[vbody] + 0.4) / 0.8;
+        double th = (SEG_TABLE[i].v[varea] - 0.4) / 0.6;
+        if (tt < 0.0) tt = 0.0;
+        if (tt > 1.0) tt = 1.0;
+        if (th < 0.0) th = 0.0;
+        if (th > 1.0) th = 1.0;
         int col = 0;
         for (int c = 0; c < 8; c++)
             if (tt >= pos_steps[c]) col = c;
-        int row = (int)((1.0 - th) * 4.0 + 0.5);
+        /* close (small oral area) is row 0 at the top of the trapezium */
+        int row = (int)(th * 4.0 + 0.5);
         if (row < 0) row = 0;
         if (row > 4) row = 4;
         wchar_t sym[8];
@@ -249,7 +260,7 @@ static void out_append(HWND out, const char *utf8)
     if (need > (int)cap) {
         /* larger than the stack buffer (e.g. the embedded README):
          * size first, then allocate */
-        cap = (size_t)need + 2;
+        cap = (size_t)need + 4;
         buf = (wchar_t *)malloc(cap * sizeof(wchar_t));
         if (!buf) return;
     }
@@ -297,7 +308,10 @@ static void do_forward(HWND out, const char *str)
         return;
     }
     canonicalise(po.layer1, po.n1, po.layer2, &po.n2);
-    apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs, "vec4ipa_ui");
+    if (apply_layer2(po.layer2, po.n2, po.segs, &po.nsegs, "vec4ipa_ui")) {
+        out_append(out, "too many segments");
+        return;
+    }
 
     for (int s = 0; s < po.nsegs; s++) {
         char line[512];
@@ -327,6 +341,10 @@ static void do_reverse(HWND out, const char *vecstr)
         char *endp = NULL;
         double x = strtod(tok, &endp);
         if (endp == tok) { out_append(out, "bad vector: numbers expected"); return; }
+        if (!(x == x) || x == 1e300 || x == -1e300) {
+            out_append(out, "bad vector: NaN/Inf not allowed");
+            return;
+        }
         v[i++] = x;
         tok = strtok(NULL, ", \t");
     }
@@ -336,12 +354,16 @@ static void do_reverse(HWND out, const char *vecstr)
     }
     if (tok)
         out_append(out, "warning: extra values beyond 16 were ignored");
-    const SegEntry *b; double d;
-    nearest_base(v, &b, &d);
+    const SegEntry *b = NULL; double d = 0.0;
     const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
-    int nm = fit_modifiers(v, b, mods);
+    int nm = 0;
+    fit_best(v, &b, mods, &nm, &d);
+    if (!b) {
+        out_append(out, "no nearest base segment found");
+        return;
+    }
     char ipa[128];
-    build_ipa(b, mods, nm, ipa, sizeof(ipa));
+    build_ipa(b, mods, nm, 0, ipa, sizeof(ipa));
     char line[256];
     snprintf(line, sizeof(line), "/%s/  (%s", b->ipa, base_name(b));
     for (int j = 0; j < nm; j++) {
@@ -414,12 +436,7 @@ static void do_query(HWND out, const char *sym)
 
 static void set_width(int level)
 {
-    static const int maxmods[5] = { 2, 3, 4, 6, 10 };
-    static const double mingain[5] = { 0.25, 0.10, 0.04, 0.015, 0.001 };
-    if (level < 0) level = 0;
-    if (level > 4) level = 4;
-    g_fit_max_mods = maxmods[level];
-    g_fit_min_gain = mingain[level];
+    width_apply(level);
 }
 
 
@@ -885,13 +902,17 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         case ID_FILE_EXIT:
             DestroyWindow(hwnd);
             break;
-        case ID_HELP_ABOUT:
-            MessageBoxW(hwnd,
+        case ID_HELP_ABOUT: {
+            wchar_t msg[512];
+            swprintf(msg, 512,
                 L"vec4ipa Workbench " APP_VERSION L"\r\n"
                 L"Single-file Win32 GUI for the vec4ipa tool suite.\r\n"
+                L"Core (ipa2vec_core.h): %hs\r\n"
                 L"https://github.com/csiroqa/vec4ipa",
-                L"About", MB_ICONINFORMATION);
+                IPA2VEC_VERSION);
+            MessageBoxW(hwnd, msg, L"About", MB_ICONINFORMATION);
             break;
+        }
         case ID_HELP_DOCS: {
             HWND out = GetDlgItem(hwnd, IDC_OUT);
             SetWindowTextW(out, L"");

@@ -2,6 +2,18 @@
 
 Machine‑readable weights and metric live in **`metric.json`**; this document explains the derivation, the schema, and how to learn/tune the metric.
 
+> **SPEC‑NEXT (current build):** the compiled binaries run the 16‑dim
+> SPEC‑NEXT scheme (`tools/data/spec_next.scheme` → `src/vectors.h`),
+> whose hand‑tuned weights live in that scheme's `weight` line, not in
+> `metric.json`.  Two authorities coexist:
+> `tools/data/metric16.json` (fitted design weights, tip_shape 5 /
+> duration 25, validated by `tools/test_spec_next.py`) and
+> `spec_next.scheme` (runtime weights, tip_shape 4 / duration 5,
+> validated by `tools/test_suite.py` / `tools/test_metric_space.py`);
+> both use larynx_height 3.  Keep them consistent on the airstream
+> column — ejectives/implosives/clicks are non‑pulmonic (B2/B3 fixes).
+> The v8 metric described below is legacy (see `docs/SPEC.md`).
+
 > **v9 (published = fitted):** `metric.json` was re-written from the current
 > fit (`fit_metric.py --write`), updating the published weights to the fitted
 > values (aggregation fix by name lookup, vowel-consonant anchors, nasalised

@@ -193,8 +193,52 @@ check("infer apostrophe", ["k'"], expect_note="unreleased")
 check("infer prime", ["k\u2032"], expect_note="palatalization")
 check("infer weak-asp quote", ["b\u2018"], expect_note="weak aspiration")
 check("infer alias note", ["\u0161"], expect_note="'")
-check("warn deprecated", ["\u029e"], expect_warn="warning")
+check("note superseded click", ["\u0287"], expect_note="superseded")
 check("warn dotless-i obsolete", ["\u0131"], expect_warn="warning")
+
+# ------------------------------------------------------------------
+# 9b. Invalid-combination warnings (input tolerance: parse continues;
+#     all issues of a segment are merged into ONE warning line)
+# ------------------------------------------------------------------
+check("warn syllabic on vowel", ["i\u0329"], expect_warn="syllabic on a vowel")
+check("warn non-syllabic on consonant", ["n\u032f"], expect_warn="non-syllabic on a consonant")
+check("warn vl ring on voiceless", ["p\u0325"], expect_warn="voiceless ring on an already-voiceless letter")
+check("warn vd mark on voiced", ["b\u032c"], expect_warn="voiced mark on an already-voiced letter")
+check("warn vl+vd pair", ["i\u0325\u032c"], expect_warn="voiceless and voiced")
+check("warn long+short pair", ["i\u02d0\u0306"], expect_warn="long and extra-short")
+check("warn breathy+creaky pair", ["i\u0324\u0330"], expect_warn="breathy and creaky")
+check("warn long+half pair", ["i\u02d0\u02d1"], expect_warn="long and half-long")
+check("warn asp+unrel pair", ["i\u02b0\u031a"], expect_warn="aspirated and unreleased")
+check("warn asp+breathy-asp pair", ["p\u02b0\u02b1"], expect_warn="aspirated and breathy-voiced")
+check("warn vel+phar pair", ["l\u02e0\u02e4"], expect_warn="velarized and pharyngealized")
+check("warn apical+laminal pair", ["t\u033a\u033b"], expect_warn="apical and laminal")
+check("warn dental+retroflex pair", ["t\u032a\u0322"], expect_warn="dental and retroflex")
+check("warn base dental+retroflex", ["\u0288\u032a"], expect_warn="retroflex and dental")
+check("warn repeated long", ["i\u02d0\u02d0"], expect_warn="repeated long mark")
+check("warn repeated syllabic", ["n\u0329\u0329"], expect_warn="repeated syllabic mark")
+check("warn repeated rhotic", ["\u0259\u02de\u02b3"], expect_warn="repeated rhotic mark")
+check("warn already retroflex", ["\u0288\u0322"], expect_warn="retroflex mark on an already-retroflex letter")
+check("warn already dental", ["t\u032a\u032a"], expect_warn="dental mark on an already-dental letter")
+check("warn already velar", ["k\u02e0"], expect_warn="velarized mark on an already-velar letter")
+check("warn already palatal", ["\u0272\u02b2"], expect_warn="palatalised mark on an already-palatal letter")
+check("warn already rhotic", ["\u025a\u02de"], expect_warn="rhotacisation on an already-rhotic letter")
+check("warn merged issues one line", ["i\u0329\u032f\u0325\u032c"],
+      expect_warn="4 invalid combinations on i")
+check("syllabic consonant ok", ["l\u0329"], expect_rc=0)
+check("voiceless sonorant ok", ["n\u0325"], expect_rc=0)
+check("devoiced voiced ok", ["b\u0325"], expect_rc=0)
+check("nasal vowel no warning", ["\u0129"], expect_rc=0)
+check("linguolabial derivation ok", ["\u03b8\u033c"], expect_rc=0)
+check("dental derivation ok", ["t\u032a"], expect_rc=0)
+check("retracted derivation ok", ["t\u0320"], expect_rc=0)
+check("aspirated ok", ["t\u02b0"], expect_rc=0)
+check("velarized ok", ["l\u02e0"], expect_rc=0)
+check("apical dental ok", ["t\u032a\u033a"], expect_rc=0)
+check("velarised palatal ok", ["\u0272\u02e0"], expect_rc=0)
+check("pharyngealised velar ok", ["k\u02e4"], expect_rc=0)
+check("palatalised alveolar ok", ["t\u02b2"], expect_rc=0)
+check("rhotacised schwa ok", ["\u0259\u02de"], expect_rc=0)
+check("breathy-aspirated ok", ["p\u02b1"], expect_rc=0)
 
 # ------------------------------------------------------------------
 # 10. Base-table round-trip fidelity (forward -> -r rebuild -> forward)
@@ -312,6 +356,58 @@ check_cond("missing --metric file exits 1", r.returncode == 1,
 r = run(VEC2IPA, ["--metric"])
 check_cond("--metric without value exits 1", r.returncode == 1,
            f"rc={r.returncode}")
+
+# ------------------------------------------------------------------
+# vec4ipa -q on a composite string: natural-language description
+# ------------------------------------------------------------------
+q = run(VEC4IPA, ["-q", "\u0279\u0320\u030a\u02d4"])   # ɹ̠̊˔
+check_cond("-q composite parses (ɹ̠̊˔)", q.returncode == 0
+           and "not found" not in (q.stdout + q.stderr),
+           f"rc={q.returncode} {q.stdout.strip()!r}")
+check_cond("-q base name", "/\u0279/ (vd.alv.apx)" in q.stdout,
+           q.stdout.strip()[:120])
+check_cond("-q modifier words", "voiceless, retracted, raised" in q.stdout,
+           q.stdout.strip()[:120])
+q = run(VEC4IPA, ["-q", "t\u02b0a"])
+check_cond("-q multi-segment", q.returncode == 0
+           and "[1] /a/" in q.stdout and "aspirated" in q.stdout,
+           q.stdout.strip()[:120])
+q = run(VEC4IPA, ["-q", "t\u026c"])                    # tɬ (synthesized tie)
+check_cond("-q synthesized affricate", q.returncode == 0
+           and "/\u026c/ (vl.alv.lat.frc)" in q.stdout
+           and "tied" in q.stdout,
+           q.stdout.strip()[:120])
+q = run(VEC4IPA, ["-q", "\u1d51\u01c3"])               # ᵑǃ (preposed)
+check_cond("-q preposed modifier", q.returncode == 0
+           and "/\u1d51\u01c3/" in q.stdout
+           and "nasalised click" in q.stdout,
+           q.stdout.strip()[:120])
+q = run(VEC4IPA, ["-q", "\u00e6\u0303"])               # æ̃
+check_cond("-q nasalised vowel", q.returncode == 0
+           and "nasalised" in q.stdout,
+           q.stdout.strip()[:120])
+
+# ------------------------------------------------------------------
+# sequence alignment (-A): vowel-block trajectory distances
+# ------------------------------------------------------------------
+def align_d(a, b):
+    r = run(VEC4IPA, ["-A", a, b])
+    m = re.search(r"aligned d=([0-9.]+)", r.stdout)
+    return float(m.group(1)) if m else -1.0, r
+
+d, r = align_d("ai", "\u025b")          # ai vs ɛ
+check_cond("-A /ai/~/ɛ/ close (intermediate)",
+           abs(d - 1.26) <= 0.05 and "a + i ~ \u025b" in r.stdout,
+           f"d={d}")
+d, r = align_d("ai", "\u025be")          # ai vs ɛe: sub-glide of ai
+check_cond("-A /ai/~/ɛe/ ≤ /ai/~/ɛ/ (containment)",
+           d < 1.26 and "a + i ~ \u025b + e" in r.stdout, f"d={d}")
+d, _ = align_d("ai", "ia")              # reversal must not collapse
+check_cond("-A /ai/~/ia/ > 2.5", d > 2.5, f"d={d}")
+d, _ = align_d("aieu", "eou")           # vowel cluster 4 vs 3
+check_cond("-A /aieu/~/eou/", 2.0 < d < 4.0, f"d={d}")
+d, _ = align_d("aa", "a")               # geminate: one mora
+check_cond("-A /aa/~/a/ one mora", abs(d - 1.0) <= 0.05, f"d={d}")
 
 # ------------------------------------------------------------------
 print(f"\n{_common.total - _common.fails}/{_common.total} checks passed")

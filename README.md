@@ -39,7 +39,7 @@ The binaries embed the full table; they do not read any file at runtime.
 ## GUI wrapper (Windows)
 
 `ui/vec4ipa_ui.c` is a Win32 GUI front-end (`vec4ipa_ui.exe`,
-built by `make vec4ipa_ui`). It provides:
+built by `make ui/vec4ipa_ui.exe`; on Windows `make all` builds it too). It provides:
 
 - **File > Export command lines…** — a window showing the three CLI
   invocations (`ipa2vec`, `vec2ipa`, `vec4ipa`) for the current
@@ -86,7 +86,7 @@ vec2ipa -S <CLASS>          reverse symbol class (standard|extipa|sinologist|all
 
 vec4ipa -t                  full base table (main + extIPA bases)
 vec4ipa -m                  regional modules and their symbols
-vec4ipa -q <SYM>            query one symbol (base / modifier / alias)
+vec4ipa -q <SYM>            query a symbol, or parse a base + modifier string into a natural-language description
 vec4ipa -s                  statistics
 vec4ipa -w                  metric weights / lambda
 vec4ipa <STRING>            forward: IPA -> vectors
@@ -155,7 +155,7 @@ base: /ʃ/  vl.pst.frc  (pulmonic)
 Vectors are in SPEC-NEXT 16-D order — `place, body, lips_closed,
 lips_rounded, tip_shape, tongue_root, vel_open, lateral_ratio, voiced,
 glottal_aperture, glottal_tension, larynx_height, duration, jet_focus,
-effective_oral_area, airflow_direction` (see `docs/SPEC.md`).
+effective_oral_area, airflow_direction` (see `docs/SPEC-NEXT.md`).
 
 Transcription brackets: `/…/` marks the phonemic level (input /
 alignment display); the reverse fit is phonetic `[…]`, and
@@ -259,7 +259,7 @@ are not affected.
 
 ## Supported notations
 
-- All 133 base segments of `IPA_VECTORS.md` (vowels, consonants,
+- All 133 base segments of `tools/data/spec_next.scheme` (vowels, consonants,
   affricates, co‑articulated, ejectives, implosives, clicks).
 - ExtIPA base segments not in the table: `ʬ ʭ ʩ ʪ ʫ ꞎ ᶑ ᴇ ɚ ɞ ɝ`
   (see `EXTRA_BASE` in `src/ipa2vec_core.h`).  The reverse direction
@@ -296,32 +296,55 @@ are not affected.
   (`ᶷ ᶣ ʸ`), stress marks `ˈ ˌ` (ignored), linking undertie `‿`
   (ignored).
 - Dotless letters: `ȷ`→`j`; `ı` is `ɪ` when bare (obsolete, warning) but
-  plain `i` when followed by diacritics.
+  plain `i` when followed by diacritics. Rebuilt spellings keep the
+  dotless form whenever a mark covers the dot — the voiceless ring moves
+  above on `i/j` (`i̥`→`ı̊`, `j̥`→`ȷ̊`), and any above mark is written on the
+  dotless letter (`ĩ`→`ı̃`).
+- Invalid combinations parse with a warning (input tolerance); all issues
+  of one segment are merged into a single line, e.g.
+  `4 invalid combinations on i: voiced mark on an already-voiced letter,
+  voiceless and voiced, syllabic on a vowel, syllabic and non-syllabic`.
+  Detected classes: syllabic on a vowel (`i̩`), non-syllabic on a
+  consonant (`n̯`), the voicing ring on an already voiceless/voiced letter
+  (`p̥`, `b̬`), a repeated mark (`iːː`, `n̩̩`, `ə˞ʳ`), a
+  place/secondary-articulation diacritic that repeats the letter's own
+  feature (`ʈ̢`, `ɲ̡`, `kˠ`, `ɲʲ`, `ɚ˞`) or contradicts it (`t̢̪`, `ʈ̪`,
+  `ɲ̪`), and contradictory mark pairs on one segment: voicing (`i̥̬`),
+  timing (`iː̆`, `iːˑ`, `iˑ̆`), phonation (`i̤̰`), rounding (`i̹̜`), place
+  shift (`i̟̠`), height (`i̝̞`), tongue root (`i̘̙`), tension (`i͈͉`),
+  syllabicity (`i̩̯`), aspiration (`iʰ̚`, `iʰʽ`, `pʰʱ`), place (`t̢̪`,
+  `t̢͇`, `t̢̡`, `t̡̼`), tip shape (`t̺̻`) and secondary articulation
+  (`lˠˤ`).  Legitimate derivations stay silent (`t̪`, `t̠`, `θ̼`, `ɺ̢`,
+  `ɲˠ`, `kˤ`).
 
 Unknown symbols produce a `U+XXXX` error with the byte offset.
 
 ## Tone system (5-level)
 
-Tone letters after a segment are grouped into a 5‑field annotation printed
-after the vector as `(g1)?(g2)?(g3)?(g4)?(g5)` with `?` as the unknown
-placeholder and trailing empty groups omitted:
+Tone letters after a segment are grouped into a 3-slot annotation
+printed after the vector as `tone=(g1)?(g2)?(g3)` with `?` as the
+unknown placeholder and trailing empty groups omitted:
 
 | input | meaning | output |
 | ----- | ------- | ------ |
-| `ma˩˨` | 2 letters, single tone | `()?(1,2)` |
-| `ma˥˧˩` | 3 letters, 3‑degree single tone | `()?(5,3,1)` |
-| `ma˩˨꜓꜒` | 4 letters, single tone + tone sandhi | `()?(1,2)?(4,5)` |
-| `ma˥˦˧˨˩˩` | 6 letters, 3‑degree + 3‑degree sandhi | `()?(5,4,3)?(2,1,1)` |
-| `maꜛ` | upstep | `()?()?()?(-1,?)` |
-| `maꜜ` | downstep | `()?()?()?(1,?)` |
-| `ma↗` | global rise | `()?()?()?(?,1)` |
-| `ma↘` | global fall | `()?()?()?(?,-1)` |
-| `꜅` | Chinese tone class 6 | group 5 = `(-3)` |
+| `ma˩˨` | 2 letters, single tone | `tone=(1,2)` |
+| `ma˥˧˩` | 3 letters, 3‑degree single tone | `tone=(5,3,1)` |
+| `ma˩˨꜓꜒` | 4 letters, single tone + tone sandhi | `tone=(1,2)?(4,5)` |
+| `maꜛ` | upstep | `tone=?()?(-1,0,0)` |
+| `maꜜ` | downstep | `tone=?()?(1,0,0)` |
+| `ma↗` | global rise | `tone=?()?(0,1,0)` |
+| `ma↘` | global fall | `tone=?()?(0,-1,0)` |
+| `꜅` | Chinese tone class 6 | `tone=?()?(0,0,-3)` |
 
-Groups: 1 = reserved, 2 = single tone, 3 = tone sandhi, 4 = upstep /
-downstep / global contour, 5 = Chinese tone class. Chinese tone classes
-`꜀꜁꜂꜃꜄꜅꜆꜇` map to `1, -1, 2, -2, 3, -3, 4, -4`. Tone marks bind to
-the preceding segment.
+Slot order (authoritative): 1 = single tone / contour (5-level letters
+`˥˦˧˨˩` or superscript digits), 2 = tone sandhi (`꜒꜓꜔꜕꜖`), 3 = 3-D
+vector `(upstep, global, class)` — upstep `ꜛ` (negative) / downstep
+`ꜜ` (positive), global rise `↗` / fall `↘`, Chinese tone class
+`꜀꜁꜂꜃꜄꜅꜆꜇` mapping to `1, -1, 2, -2, 3, -3, 4, -4` (阴平 阳平
+阴上 阳上 阴去 阳去 阴入 阳入). When several tone marks co-occur they
+parse in this order; the reverse fit prints them as
+5-level letters → sandhi → upstep/downstep → global → class. Tone
+marks bind to the preceding segment.
 
 ## Regional / tradition modules
 
@@ -379,8 +402,21 @@ Every inference the parser makes is reported to **stderr**:
 Run the full suite:
 
 ```sh
-python3 tools/test_suite.py       # 122 checks: parsing, tone, regional,
+python3 tools/test_suite.py       # 211 checks: parsing, tone, regional,
                                   # inference, warnings, round-trip
+```
+
+Additional suites (all against the built binaries unless noted):
+
+```sh
+python3 tools/test_metric_space.py      # 635 checks: nearest-base anchors,
+                                        # metric-space round-trip (needs ipa2vec+vec2ipa)
+python3 tools/test_standard_chinese.py  # 448 checks: Mandarin initials/finals/tone
+python3 tools/test_spec_next.py         # 121 checks: 16-dim table + metric JSON
+                                        # (no binaries needed)
+python3 tools/verify_modifiers.py       # modifier model sanity (design model,
+                                        # no binaries needed)
+python3 tools/fuzz_metric_space.py      # random-vector fuzz over the metric
 ```
 
 **The clinical/extIPA stress string** — every feature in one input
@@ -417,9 +453,10 @@ precomposed accented vowels, labiodental plosives (ȹ ȸ), alveolo-palatal
 | `src/readme_embed.h` | generated: this README embedded for `vec4ipa -h` |
 | `tools/gen_vectors_h.py` | regenerates `src/vectors.h` |
 | `tools/gen_readme_embed.py` | regenerates `src/readme_embed.h` |
-| `tools/test_suite.py` | 122-check regression suite (incl. the stress string) |
-| `docs/SPEC.md` | the 16-D vector specification |
-| `IPA_VECTORS.md` | the 133-segment vector table (data for the generator) |
+| `tools/test_suite.py` | 211-check regression suite (incl. the stress string) |
+| `docs/SPEC-NEXT.md` | the current 16-D vector specification |
+| `docs/SPEC.md` | the legacy v8 16-D vector specification (historical) |
+| `tools/data/spec_next.scheme` | the 133-segment vector table (data for the generator) |
 | `METRIC.md` | metric derivation (weights, λ) |
 | `metric.json` | machine-readable weights + λ (v9) |
 | `Makefile` | build all three tools (auto `-municode` on Windows) |

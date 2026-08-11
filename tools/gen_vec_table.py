@@ -203,7 +203,13 @@ def build():
         # sibilants ʃ ʒ (v8 used /ʃ/ rounding for s-ʃ; the confusion data
         # s-ʃ = 2.5% shows it is perceptually real).  Other consonants 0.
         ROUND_CONS = {'ɥ', 'w', 'ʍ', 'ʃ', 'ʒ'}
-        x[3] = v[1] if is_vowel or seg in ROUND_CONS else 0.0
+        if is_vowel or seg in ROUND_CONS:
+            # schwa is the NEUTRAL vowel: lips neither spread nor rounded,
+            # midway on the rounding axis (0.5) - v8 codes it 0, but
+            # spec-next keeps the neutral stance distinct from spread (e)
+            x[3] = 0.5 if seg == 'ə' else v[1]
+        else:
+            x[3] = 0.0
         # --- tip_shape: inherit v8 tip_height with IPA fixes:
         #   retroflex stops/nasal/affricates 0.8 (not 0.9 -- that's trill)
         #   ɹ 0.7 (postalveolar approx, not 0.6 sibilant)
@@ -310,7 +316,8 @@ def main():
             print(f'  {v}: place={table[v][0]:.3f} area={table[v][14]:.3f} '
                   f'lips={table[v][3]:+.2f}')
 
-    with open(OUT, 'w', encoding='utf-8') as f:
+    # newline='\n': byte-identical regeneration on Windows and Unix
+    with open(OUT, 'w', encoding='utf-8', newline='\n') as f:
         json.dump({'dims': DIMS, 'table': table}, f, indent=1,
                   ensure_ascii=False)
     print(f'\nwrote {OUT}')

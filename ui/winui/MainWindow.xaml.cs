@@ -2821,12 +2821,18 @@ namespace Vec4ipaUI
             switch (fmt)
             {
                 case 1:
-                    result = Core.Ir(ipa);
-                    AppendOutput($"=== IPA -> IR ===\ninput: /{ipa}/\n" + result);
+                    /* -q / --query: symbol lookup (single symbol) */
+                    result = Core.Query(ipa);
+                    AppendOutput($"=== Query: {ipa} ===\n" + result);
                     break;
                 case 2:
+                    /* -L / --layers (alias --ir): two-layer tier decomposition */
+                    result = Core.Ir(ipa);
+                    AppendOutput($"=== IPA -> layers ===\ninput: {ipa}\n" + result);
+                    break;
+                case 3:
                     result = Core.Json(ipa);
-                    AppendOutput($"=== IPA -> JSON ===\ninput: /{ipa}/\n" + result);
+                    AppendOutput($"=== IPA -> JSON ===\ninput: {ipa}\n" + result);
                     break;
                 default:
                     string? ferr = null;
@@ -2848,8 +2854,8 @@ namespace Vec4ipaUI
                         break;
                     }
                     AppendOutput(_featureNames
-                        ? $"=== IPA -> vectors (feature names) ===\ninput: /{ipa}/\n" + result
-                        : $"=== IPA -> vectors ===\ninput: /{ipa}/\n" + result);
+                        ? $"=== IPA -> vectors (feature names) ===\ninput: {ipa}\n" + result
+                        : $"=== IPA -> vectors ===\ninput: {ipa}\n" + result);
                     break;
             }
             AddHistory("Convert: " + ipa, result);

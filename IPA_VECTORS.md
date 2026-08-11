@@ -223,7 +223,7 @@ Apply these deltas on top of the base vectors:
 | pharyngealised   | `tˤ`      | `tongue_root` → +0.7, `tongue_body_pos` → −0.2                                  |
 | velarised        | `lˠ`      | `tongue_body_pos` → −0.3, `tongue_root` → +0.3                                  |
 | palatalised      | `tʲ`      | `tongue_body_pos` → +0.6                                                        |
-| labialised       | `tʷ`      | `lips_rounded` → max(current, 0.5)                                     |
+| labialised       | `tʷ`      | `lips_rounded` → 0.8, `tongue_body_pos` → −0.12, `tongue_root` → +0.3 (ʷ is labio‑velarisation: the [w] gesture includes the velar component; the withdrawn ◌̫ U+032B, protrusion only, is an input alias) |
 | syllabic         | `n̩`      | `duration` → +0.5                                                      |
 | non‑syllabic     | `e̯`      | `duration` → −0.5                                                      |
 | unreleased       | `p̚`      | `duration` → 0.1                                                       |

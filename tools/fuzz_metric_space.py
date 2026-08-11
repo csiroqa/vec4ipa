@@ -25,8 +25,8 @@ import _common
 from _common import MD_LINE_RE, fmt_vec, parse_rebuilt, parse_vector, run
 
 ROOT = Path(__file__).resolve().parents[1]
-EXE = sys.argv[3] if len(sys.argv) > 3 else ROOT / "ipa2vec.exe"
-VEC2IPA = sys.argv[4] if len(sys.argv) > 4 else ROOT / "vec2ipa.exe"
+EXE = sys.argv[3] if len(sys.argv) > 3 else ROOT / f"ipa2vec{_common.BIN_SUFFIX}"
+VEC2IPA = sys.argv[4] if len(sys.argv) > 4 else ROOT / f"vec2ipa{_common.BIN_SUFFIX}"
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 500
 SEED = int(sys.argv[2]) if len(sys.argv) > 2 else time.time_ns()
 

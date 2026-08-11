@@ -7,6 +7,7 @@
 
 a	front.opn.unr.vwl	pulmonic
 b	vd.bil.pls	pulmonic
+b̪	vd.den.pls	pulmonic
 c	vl.pal.pls	pulmonic
 d	vd.alv.pls	pulmonic
 d̪	vd.den.pls	pulmonic
@@ -77,6 +78,7 @@ z	vd.alv.frc	pulmonic
 ə	cent.mid.unr.vwl	pulmonic
 ɛ	front.omid.unr.vwl	pulmonic
 ɜ	cent.omid.unr.vwl	pulmonic
+ɞ	cent.omid.rnd.vwl	pulmonic
 ɟ	vd.pal.pls	pulmonic
 ɠ	vd.vel.imp	glottalic ingressive
 ɡ	vd.vel.pls	pulmonic

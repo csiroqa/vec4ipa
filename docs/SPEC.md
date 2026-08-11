@@ -1,4 +1,9 @@
-# IPA Continuous Vector Representation Specification
+# IPA Continuous Vector Representation Specification (v8 — legacy)
+
+> **Status: superseded.** This document describes the original v8
+> 16‑dimensional scheme (`IPA_VECTORS.md` + `metric.json`). The current
+> build uses the SPEC‑NEXT scheme (`tools/data/spec_next.scheme` →
+> `src/vectors.h`); see `docs/SPEC-NEXT.md`.
 
 This document defines a **16‑dimensional** continuous vector space for IPA segments. All dimensions are physically motivated and take real values. Distance between vectors is the **Mahalanobis distance** (a weighted Riemannian metric), optionally combined with an airstream metadata penalty. Inactive articulators are assigned well‑defined resting values; all 16 dimensions participate in distance calculation, guaranteeing correct articulatory place distances. Vowels and consonants share one articulatory scale: **vowel height and consonantal constriction degree are the same dimension** (`effective_oral_area`), so the space is fully unified.
 

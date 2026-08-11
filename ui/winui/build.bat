@@ -40,12 +40,30 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [1/2] building ipa2vec_core.dll ...
+echo [1/3] building the three CLI tools (embedded as resources / copied
+echo        next to the app by the csproj) ...
+where make >nul 2>nul
+if not errorlevel 1 (
+    pushd ..\..
+    rem the Makefile targets carry the .exe suffix on Windows
+    make ipa2vec.exe vec2ipa.exe vec4ipa.exe
+    set "RC=%ERRORLEVEL%"
+    popd
+    if not "%RC%"=="0" exit /b 1
+) else (
+    for %%t in (ipa2vec vec2ipa vec4ipa) do (
+        gcc -O2 -Wall -Wextra -std=c11 -Wno-unused-function -Wno-unused-variable ^
+            -municode -o ..\..\%%t.exe ..\..\src\%%t_main.c
+        if errorlevel 1 exit /b 1
+    )
+)
+
+echo [2/3] building ipa2vec_core.dll ...
 gcc -O2 -std=c11 -Wno-unused-function -Wno-unused-variable ^
     -I..\..\src -shared -o ..\ipa2vec_core.dll core_wrap.c
 if errorlevel 1 exit /b 1
 
-echo [2/2] publishing WinUI 3 app ...
+echo [3/3] publishing WinUI 3 app ...
 "%MSBUILD%" vec4ipa_ui.csproj /restore /p:Configuration=Release /p:Platform=x64 /p:PublishSingleFile=false /t:Publish /v:m
 if errorlevel 1 exit /b 1
 

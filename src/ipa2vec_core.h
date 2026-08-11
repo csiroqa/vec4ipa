@@ -148,7 +148,7 @@ static IPA2VEC_MAYBE_UNUSED int utf8_decode_n (const unsigned char *s,
                                                const unsigned char *end,
                                                unsigned long *cp)
 {
-    if (s >= end) { *cp = (unsigned char)s[0]; return 0; }
+    if (s >= end) { *cp = 0; return 0; }
     if (s[0] < 0x80) { *cp = s[0]; return 1; }
     if ((s[0] & 0xE0) == 0xC0 && end - s >= 2 && (s[1] & 0xC0) == 0x80) {
         *cp = ((s[0] & 0x1F) << 6) | (s[1] & 0x3F);
@@ -212,6 +212,9 @@ typedef struct {
      * NAN means "not set"; tone[0][0]==NAN means group empty. */
     double tone[3][3];
     int tkind[3];          /* 0 none, 1 contour, 2 = 3-D vector */
+    int dotless;           /* the base was written dotless (ı/ȷ) or an above
+                            * mark covers its dot — the rebuilt spelling
+                            * keeps/uses the dotless form */
 } SegVec;
 
 /* append a comma-separated latin tag to SegVec.note without overflowing */
@@ -232,7 +235,10 @@ static IPA2VEC_MAYBE_UNUSED void note_append(char *note, size_t sz, const char *
 /* external JSON at runtime.                                           */
 /* ------------------------------------------------------------------ */
 
-static double g_metric_w[NDIM];
+/* sized MAXDIM, not NDIM: metric_sync_defaults()/load_scheme_file()
+ * write every slot < MAXDIM (an NDIM-sized array would be written
+ * past its end for NDIM < MAXDIM and corrupt neighbours) */
+static double g_metric_w[MAXDIM];
 static double g_metric_M[MAXDIM][MAXDIM];
 static double g_metric_lambda;
 static int    g_metric_full = 0;   /* 1: use the full 16x16 matrix form */
@@ -280,6 +286,8 @@ static IPA2VEC_MAYBE_UNUSED double mod_spacing_step (double base)
 static const SegEntry *g_seg_table = SEG_TABLE;
 static int    g_nseg = NSEG;
 static const char **g_name_table = NAME_TABLE;
+static int    g_scheme_heap = 0;   /* 1: table/names/dimnames are heap
+                                    * (a second --scheme must free them) */
 
 #define CUR_SEG   g_seg_table
 #define CUR_NSEG  g_nseg
@@ -369,11 +377,13 @@ static IPA2VEC_MAYBE_UNUSED double seg_dist (const double a[MAXDIM], const doubl
     metric_ensure();
     double s = 0.0;
     if (g_metric_full) {
+        double diff[MAXDIM];
+        for (int j = 0; j < g_ndim; j++) diff[j] = a[j] - b[j];
         for (int i = 0; i < g_ndim; i++) {
-            double di = a[i] - b[i];
+            double di = diff[i];
             if (di == 0.0) continue;
             for (int j = 0; j < g_ndim; j++) {
-                double dj = a[j] - b[j];
+                double dj = diff[j];
                 if (dj == 0.0) continue;
                 s += g_metric_M[i][j] * di * dj;
             }
@@ -391,7 +401,7 @@ static IPA2VEC_MAYBE_UNUSED double seg_dist_full (const SegVec *a, const SegVec 
 {
     double d = seg_dist(a->v, b->v);
     if (a->airstream != b->airstream)
-        d += METRIC_LAMBDA;
+        d += g_metric_lambda;
     return d;
 }
 
@@ -444,12 +454,10 @@ static const SegEntry EXTRA_BASE[] = {
      * lowered acts on effective_oral_area: e 0.6 -> 0.7, tip stays at rest */
     { "\xe1\xb4\x87", { 0.0, 0.35, 0.0, 0.0, 0.25, -0.2, 0.0, 0.0,
                         1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0 }, 0 },
-    /* ɚ U+025A: rhotacised schwa (tip 0.45 rhotic bunch, tension 0.3) */
-    { "\xc9\x9a", { 0.0, 0.0, 0.0, 0.0, 0.45, 0.0, 0.0, 0.0,
+    /* ɚ U+025A: rhotacised schwa (tip 0.45 rhotic bunch, tension 0.3);
+     * lips neutral like schwa (0.5) */
+    { "\xc9\x9a", { 0.0, 0.0, 0.0, 0.5, 0.45, 0.0, 0.0, 0.0,
                     1.0, 0.0, 0.3, 0.0, 1.0, 0.0, 0.65, 1.0 }, 0 },
-    /* ɞ U+025E: open-mid central rounded vowel */
-    { "\xc9\x9e", { 0.0, 0.0, 0.0, 1.0, 0.25, 0.1, 0.0, 0.0,
-                    1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.8, 1.0 }, 0 },
     /* ɝ U+025D: rhotacised open-mid central vowel (extIPA) */
     { "\xc9\x9d", { 0.0, 0.0, 0.0, 0.0, 0.35, 0.1, 0.0, 0.0,
                     1.0, 0.0, 0.5, 0.0, 1.0, 0.0, 0.8, 1.0 }, 0 },
@@ -489,6 +497,18 @@ static const SegEntry EXTRA_BASE[] = {
      * closure height aligned with /l/ (0.7) so the fallback is /l/ */
     { "\xc8\xb4", { -0.40, 0.0, 0.0, 0.0, 0.7, 0.0, 0.0, 1.0,
                     1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.5, 1.0 }, 0 },
+    /* ʞ U+029E: velar click (posterior-release).  Unlike the other
+     * clicks the salient burst comes from the BACK closure (velar), so
+     * there is no front (tip) closure; the tongue sits like an alveolar
+     * click, the airstream is lingual, and the sound is typically
+     * voiceless and nasal (air flows in through the nose).  Wolof etc. */
+    { "\xca\x9e", { 0.3, -0.2, 0.0, 0.0, 0.25, 0.0, 1.0, 0.0,
+                    0.0, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0 }, 3 },
+    /* 𝼊 U+1DF0A: retroflex click (IPA 2018 / Unicode 15) — the
+     * retroflexed counterpart of ǃ, tip closure 0.8 like the other
+     * retroflex articulations */
+    { "\xf0\x9d\xbc\x8a", { 0.0, -0.2, 0.0, 0.0, 0.8, 0.0, 0.0, 0.0,
+                            0.0, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0 }, 3 },
 };
 #define N_EXTRA ((int)(sizeof(EXTRA_BASE) / sizeof(EXTRA_BASE[0])))
 
@@ -496,7 +516,6 @@ static const SegEntry EXTRA_BASE[] = {
 static const char *EXTRA_NAMES[N_EXTRA] = {
     "fr.mid.unr.vwl",     /* ᴇ = e̞ */
     "cent.mid.rhot.vwl",  /* ɚ rhotacised schwa */
-    "cent.omid.rnd.vwl",  /* ɞ */
     "cent.omid.rhot.vwl", /* ɝ */
     "bil.percussive",     /* ʬ */
     "bidental.percussive",/* ʭ */
@@ -507,6 +526,8 @@ static const char *EXTRA_NAMES[N_EXTRA] = {
     "alvpal.pls.vd",      /* ȡ */
     "alvpal.nas",         /* ȵ */
     "alvpal.lat",         /* ȴ */
+    "vel.clk",            /* ʞ velar (posterior-release) click */
+    "rfl.clk",            /* 𝼊 retroflex click */
 };
 
 /* school gate for EXTRA_BASE entries: index into ALIAS_MODULES
@@ -515,9 +536,9 @@ static const char *EXTRA_NAMES[N_EXTRA] = {
  * --sinologist like the alias symbols. */
 #define ALIAS_MOD_SINOLOGIST 4   /* must match ALIAS_MODULES order below */
 static const int EXTRA_SCHOOL[N_EXTRA] = {
-    -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1,
     ALIAS_MOD_SINOLOGIST, ALIAS_MOD_SINOLOGIST, ALIAS_MOD_SINOLOGIST,
-    ALIAS_MOD_SINOLOGIST,
+    ALIAS_MOD_SINOLOGIST, -1, -1,
 };
 
 static IPA2VEC_MAYBE_UNUSED void mod_nasal (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("vel_open", DIM_VEL_OPEN)] = 0.6; }
@@ -531,10 +552,33 @@ static IPA2VEC_MAYBE_UNUSED void mod_nasal (double v[NDIM], const void *m) { (vo
  * long V 2.0); short-constriction segments (stops, taps, fricatives,
  * affricates) lengthen by a small in-band amount. */
 static IPA2VEC_MAYBE_UNUSED void mod_long (double v[NDIM], const void *m) { (void)m;
-    v[dim_of_ok("duration", DIM_DURATION)] = (v[dim_of_ok("duration", DIM_DURATION)] >= 1.0 && v[dim_of_ok("duration", DIM_DURATION)] < 1.2) ? 2.0
-                      : v[dim_of_ok("duration", DIM_DURATION)] + mod_spacing_step(0.1); }
+    double *d = &v[dim_of_ok("duration", DIM_DURATION)];
+    /* the affricate band (1.2-1.5) is already "long"; a further
+     * length mark jumps to full long (2.0) instead of landing at 1.5,
+     * which would conflate [ʈ͡ʂː] with syllabic consonants ([ʂ̩]).
+     * Short bases (stops 0, taps 0.3, fricatives 0.5+) lengthen by a
+     * small in-band step.  The step base (0.12) is chosen so it stays
+     * distinct from the unreleased mark's 0.1 under every --spacing
+     * mode (step = 0.12*2/(2+x) only equals 0.1 for x < 0). */
+    *d = (*d >= 1.0 && *d <= 1.5) ? 2.0 : *d + mod_spacing_step(0.12); }
 static IPA2VEC_MAYBE_UNUSED void mod_syl (double v[NDIM], const void *m) { (void)m;
-    v[dim_of_ok("duration", DIM_DURATION)] += (v[dim_of_ok("duration", DIM_DURATION)] >= 1.0 && v[dim_of_ok("duration", DIM_DURATION)] < 1.2) ? mod_spacing_step(0.5) : mod_spacing_step(0.1); }
+    /* ◌̩ makes the consonant a syllable NUCLEUS: it adds a mora
+     * (+0.5) and the result is at least vowel length (1.5), whatever
+     * the base's own duration band.  Short bases (stops 0, fricatives
+     * 0.9, sonorants 1.0) land at 1.5 — a full nucleus, distinct from
+     * the affricate band (1.2-1.5).  Affricates get their own mora on
+     * top (ʈ͡ʂ 1.4 + 0.5 = 1.9): a syllabic affricate [ʈ͡ʂ̩] is a real
+     * sound and must not collapse onto [ʂ̩] (1.5) nor [ʈ͡ʂ] (1.4).
+     * Long bases (mː 2.0) keep growing (2.5).  The rule lives in the
+     * modifier itself so forward and reverse stay consistent. */
+    double *d = &v[dim_of_ok("duration", DIM_DURATION)];
+    double v2 = *d + mod_spacing_step(0.5);
+    /* True stops (duration 0) land at 1.6, not 1.5: a syllabic stop
+     * must not collapse onto a raised fricative of the same place
+     * (ɡ̩ == ɣ̝̩ today, since mod_raised clamps area into the stop's 0)
+     * or onto half-long bases.  Taps/fricatives/sonorants keep 1.5. */
+    *d = v2 < 1.5 ? (v2 <= 0.5 ? 1.6 : 1.5) : v2;
+}
 static IPA2VEC_MAYBE_UNUSED void mod_extra_short (double v[NDIM], const void *m){ (void)m;
     v[dim_of_ok("duration", DIM_DURATION)] *= 0.5; }
 /* contrast-aware setter: set v[dim] to full_val unless the result would
@@ -566,11 +610,21 @@ static IPA2VEC_MAYBE_UNUSED void set_avoid_collision(double v[NDIM], int dim,
         v[dim] = full_val;
 }
 
-/* half-long with contrast awareness (χ + ◌ˑ would become q͡χ) */
+/* half-long with contrast awareness (χ + ◌ˑ would become q͡χ): on
+ * short bases it sets 1.4 (distinct from syllabic 1.5/1.6: tˑ vs t̩,
+ * mˑ vs m̩ — with 1.5 the two marks produced identical vectors); on
+ * the affricate band (1.2-1.5) it takes the midpoint toward long
+ * (ʈ͡ʂ 1.4 -> 1.7) so [ʈ͡ʂˑ], [ʈ͡ʂ̩] (1.9) and [ʈ͡ʂː] (2.0) each
+ * get a distinct length.  set_avoid_collision keeps ʂˑ off the ʈ͡ʂ
+ * row (both land at 1.4 otherwise). */
 static IPA2VEC_MAYBE_UNUSED void mod_half (double v[NDIM], const void *m)
 {
     (void)m;
-    set_avoid_collision(v, DIM_DURATION, 1.5);
+    double *d = &v[dim_of_ok("duration", DIM_DURATION)];
+    if (*d < 1.2)
+        set_avoid_collision(v, DIM_DURATION, 1.4);
+    else
+        *d = (*d + 2.0) / 2.0;
 }
 
 /* unreleased with contrast awareness (p + ◌̚ would become ʬ) */
@@ -585,7 +639,36 @@ static IPA2VEC_MAYBE_UNUSED void mod_breathy (double v[NDIM], const void *m) { (
 static IPA2VEC_MAYBE_UNUSED void mod_phar (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_root", DIM_TONGUE_ROOT)] = 0.7; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.08; }
 static IPA2VEC_MAYBE_UNUSED void mod_velar (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.12; v[dim_of_ok("tongue_root", DIM_TONGUE_ROOT)] = 0.3; }
 static IPA2VEC_MAYBE_UNUSED void mod_pal (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] += mod_spacing_step(0.24); }
-static IPA2VEC_MAYBE_UNUSED void mod_lab (double v[NDIM], const void *m) { (void)m; if (v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] < 0.8) v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] = 0.8; }
+static IPA2VEC_MAYBE_UNUSED void mod_lab (double v[NDIM], const void *m) {
+    (void)m;
+    /* ʷ is labio-velarisation, not plain rounding: the [w] gesture
+     * combines lip rounding with the velarisation of the tongue body
+     * (the velar component matches ˠ / mod_velar).  The withdrawn
+     * ◌̫ U+032B (protrusion only) is accepted as an input alias. */
+    if (v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] < 0.8)
+        v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] = 0.8;
+    v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.12;
+    v[dim_of_ok("tongue_root", DIM_TONGUE_ROOT)] = 0.3;
+}
+/* ◌̫ U+032B (subscript w): PROTRUSION-ONLY labialisation — lip rounding
+ * without the velar component of standard ʷ (which is labio-velar,
+ * [w] = labial + velar).  t̫ stays t + rounding; tʷ adds the body/root
+ * velarisation. */
+static IPA2VEC_MAYBE_UNUSED void mod_lab_subw (double v[NDIM], const void *m) {
+    (void)m;
+    if (v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] < 0.8)
+        v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] = 0.8;
+}
+/* ᵝ U+1D5D: labial COMPRESSION (ɯᵝ, Swedish-style) - the
+ * lips are squeezed together, not rounded/protruded, so the rounding
+ * effect is much weaker than ʷ / ◌̫ (0.4 vs 0.8).  A
+ * compressed ɯ stays a back unrounded vowel with a hint of
+ * rounding, not an u. */
+static IPA2VEC_MAYBE_UNUSED void mod_lab_comp (double v[NDIM], const void *m) {
+    (void)m;
+    if (v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] < 0.4)
+        v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] = 0.4;
+}
 static IPA2VEC_MAYBE_UNUSED void mod_nosyl (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("duration", DIM_DURATION)] -= mod_spacing_step(0.5); }
 /* Voicing / devoicing is *contrast-aware*:
  *
@@ -689,22 +772,57 @@ static IPA2VEC_MAYBE_UNUSED void mod_dental (double v[NDIM], const void *m) {
 }
 static IPA2VEC_MAYBE_UNUSED void mod_raised (double v[NDIM], const void *m) { (void)m; double *p = &v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)]; *p -= mod_spacing_step(0.10); if (*p < 0.0) *p = 0.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_lowered (double v[NDIM], const void *m) { (void)m; double *p = &v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)]; *p += mod_spacing_step(0.10); if (*p > 1.0) *p = 1.0; }
-static IPA2VEC_MAYBE_UNUSED void mod_advanced (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_tip_pos", DIM_TONGUE_TIP_POS)] += mod_spacing_step(0.15); }
-static IPA2VEC_MAYBE_UNUSED void mod_retracted (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_tip_pos", DIM_TONGUE_TIP_POS)] -= mod_spacing_step(0.15); }
+static IPA2VEC_MAYBE_UNUSED void mod_advanced (double v[NDIM], const void *m) {
+    (void)m;
+    int place = dim_of_ok("tongue_tip_pos", DIM_TONGUE_TIP_POS);
+    int body  = dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS);
+    int tip   = dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT);
+    if (v[place] == 0.0 && v[tip] < 0.5) {
+        /* vowel / glide (no tip gesture): fronting moves the tongue body */
+        v[body] += mod_spacing_step(0.15);
+    } else {
+        /* consonant: the place axis runs lips (-0.9) .. pharynx (+0.9),
+         * fronting moves toward the lips */
+        double p = v[place] - mod_spacing_step(0.15);
+        v[place] = p < -0.9 ? -0.9 : p;
+    }
+}
+static IPA2VEC_MAYBE_UNUSED void mod_retracted (double v[NDIM], const void *m) {
+    (void)m;
+    int place = dim_of_ok("tongue_tip_pos", DIM_TONGUE_TIP_POS);
+    int body  = dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS);
+    int tip   = dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT);
+    if (v[place] == 0.0 && v[tip] < 0.5) {
+        /* vowel / glide: retraction moves the tongue body back */
+        v[body] -= mod_spacing_step(0.15);
+    } else {
+        double p = v[place] + mod_spacing_step(0.15);
+        v[place] = p > 0.9 ? 0.9 : p;
+    }
+}
 static IPA2VEC_MAYBE_UNUSED void mod_more_round (double v[NDIM], const void *m) { (void)m; double *p = &v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)]; if (*p > 0.3 && *p < 0.7) *p = 0.95; else if (*p < 0.7) *p += mod_spacing_step(0.25); }
 static IPA2VEC_MAYBE_UNUSED void mod_less_round (double v[NDIM], const void *m) { (void)m; double *p = &v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)]; if (*p > 0.3 && *p < 0.7) *p = 0.0; else if (*p > 0.0) *p -= mod_spacing_step(0.25); if (*p < 0.0) *p = 0.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_laminal (double v[NDIM], const void *m) { (void)m; if (v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] < 0.6) v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] = 0.6; }
 static IPA2VEC_MAYBE_UNUSED void mod_apical (double v[NDIM], const void *m) { (void)m; if (v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] < 0.65) v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] = 0.65; }
 static IPA2VEC_MAYBE_UNUSED void mod_midcent (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] = 0.5; }
 static IPA2VEC_MAYBE_UNUSED void mod_rhot (double v[NDIM], const void *m) { (void)m; v[dim_of_ok("laryngeal_tension", DIM_LARYNGEAL_TENSION)] += mod_spacing_step(0.5); v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] += mod_spacing_step(0.1); }
-static IPA2VEC_MAYBE_UNUSED void mod_ejective (double v[NDIM], const void *m) { (void)m; mod_set_aperture(v, 0.0, 1.0); v[dim_of_ok("laryngeal_tension", DIM_LARYNGEAL_TENSION)] = 0.6; v[dim_of_ok("voiced", DIM_VOICED)] = 0.0; }
+static IPA2VEC_MAYBE_UNUSED void mod_ejective (double v[NDIM], const void *m) { (void)m; mod_set_aperture(v, 0.0, 1.0); v[dim_of_ok("laryngeal_tension", DIM_LARYNGEAL_TENSION)] = 0.6; v[dim_of_ok("voiced", DIM_VOICED)] = 0.0; v[dim_of_ok("larynx_height", DIM_LARYNGEAL_TENSION)] = 1.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_glottal_onset (double v[NDIM], const void *m){ (void)m; mod_set_aperture(v, 0.0, 1.0); }
 static IPA2VEC_MAYBE_UNUSED void mod_breathy_asp (double v[NDIM], const void *m){ (void)m; mod_set_aperture(v, 0.7, 0.2); v[dim_of_ok("voiced", DIM_VOICED)] = 1.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_lat_release (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("lateral_ratio", DIM_LATERAL_RATIO)] = 1.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_nasal_rel (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("vel_open", DIM_VEL_OPEN)] = 0.8; v[dim_of_ok("duration", DIM_DURATION)] += mod_spacing_step(0.3); }
 static IPA2VEC_MAYBE_UNUSED void mod_schwa_rel (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 0.7; v[dim_of_ok("duration", DIM_DURATION)] *= 0.5; }
 static IPA2VEC_MAYBE_UNUSED void mod_fric_release (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 0.08; v[dim_of_ok("duration", DIM_DURATION)] += mod_spacing_step(0.2); }
-static IPA2VEC_MAYBE_UNUSED void mod_offglide_lab (double v[NDIM], const void *m){ (void)m; mod_lab(v, m); v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.12; }
+static IPA2VEC_MAYBE_UNUSED void mod_offglide_lab (double v[NDIM], const void *m){ (void)m; mod_lab(v, m); v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] = -0.2; }
+/* ʸ U+02B8: the [y] offglide carries the FULL y colouring - front
+ * body (palatal) AND rounding (y = rounded front vowel), so fʸ
+ * rebuilds with both, not as fʲ */
+static IPA2VEC_MAYBE_UNUSED void mod_offglide_pal (double v[NDIM], const void *m){ (void)m; mod_pal(v, m); if (v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] < 0.8) v[dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED)] = 0.8; }
+/* ◌̡ U+0321 (palatal hook): the older strong palatalisation
+ * of the alveolar series (ȶ ȡ ȵ ȴ = alveolo-palatal);
+ * the tongue body rises further than with ʲ - a hook spells
+ * ȶ-class body (0.4, like /j/), while ʲ is the weak +0.24 */
+static IPA2VEC_MAYBE_UNUSED void mod_pal_hook (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] += mod_spacing_step(0.24); }
 static IPA2VEC_MAYBE_UNUSED void mod_centralized (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] *= 0.5; }
 /* superscript-letter modifiers (IPA letters used as diacritics);
  * body values on the spec_next scale (v8 x0.4, anchor i=1.0 -> 0.4) */
@@ -713,7 +831,7 @@ static IPA2VEC_MAYBE_UNUSED void mod_sup_back (double v[NDIM], const void *m){ (
 static IPA2VEC_MAYBE_UNUSED void mod_sup_mid (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS)] *= 0.5; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 0.7; }
 static IPA2VEC_MAYBE_UNUSED void mod_sup_open (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 1.0; }
 static IPA2VEC_MAYBE_UNUSED void mod_sup_stop (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] = 0.0; v[dim_of_ok("duration", DIM_DURATION)] = 0.1; }
-static IPA2VEC_MAYBE_UNUSED void mod_linguolabial (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_tip_pos", DIM_TONGUE_TIP_POS)] = 1.0; v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] = 0.6; v[dim_of_ok("lips_closed", DIM_LIPS_CLOSED)] = 0.5; }
+static IPA2VEC_MAYBE_UNUSED void mod_linguolabial (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_tip_pos", DIM_TONGUE_TIP_POS)] = -0.9; v[dim_of_ok("tongue_tip_height", DIM_TONGUE_TIP_HEIGHT)] = 0.6; v[dim_of_ok("lips_closed", DIM_LIPS_CLOSED)] = 0.5; }
 static IPA2VEC_MAYBE_UNUSED void mod_atr (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_root", DIM_TONGUE_ROOT)] -= 0.3; }
 static IPA2VEC_MAYBE_UNUSED void mod_rtr (double v[NDIM], const void *m){ (void)m; v[dim_of_ok("tongue_root", DIM_TONGUE_ROOT)] += 0.3; }
 static IPA2VEC_MAYBE_UNUSED void mod_weak_asp (double v[NDIM], const void *m){ (void)m; mod_set_aperture(v, 0.6, 0.1); }
@@ -742,8 +860,8 @@ static const ModRec MODS[] = {
     { 0x0318, "◌̘",  "atr",       TIER_PLACE,     -1, mod_atr,          0, {0,0} , NULL, 1  },
     { 0x0319, "◌̙",  "rtr",       TIER_PLACE,     -1, mod_rtr,          0, {0,0} , NULL, 1  },
     { 0x0322, "◌̢",  "retroflex", TIER_PLACE,     -1, mod_retracted,    0, {0,0} , NULL, 1  },
-    { 0x0321, "◌̡",  "pal_hook",  TIER_PLACE,     -1, mod_pal,          0, {0,0} , NULL, 1  },
-    { 0x032B, "◌̫",  "lab_subw",  TIER_PLACE,     -1, mod_lab,          0, {0,0} , NULL, 1  },
+    { 0x0321, "◌̡",  "pal_hook",  TIER_PLACE,     -1, mod_pal,     0, {0,0} , NULL, 0  },
+    { 0x032B, "◌̫",  "lab_subw",  TIER_PLACE,     -1, mod_lab_subw,     0, {0,0} , NULL, 1  },
     { 0x0316, "◌̖",  "tone_lowfall", TIER_COUNT,  -1, NULL, 1, {1, 2} , NULL, 1  },
     { 0x0317, "◌̗",  "tone_lowrise", TIER_COUNT,  -1, NULL, 1, {2, 1} , NULL, 1  },
     /* IPA 2018: fortis / lenis */
@@ -774,7 +892,7 @@ static const ModRec MODS[] = {
     { 0x0302, "◌̂",  "tone_fall",     TIER_COUNT, -1, NULL, 1, {5, 1} , NULL, 1  },
     { 0x030C, "◌̌",  "tone_rise",     TIER_COUNT, -1, NULL, 1, {1, 5} , NULL, 1  },
     { 0x030F, "◌̏",  "tone_extralow",TIER_COUNT, -1, NULL, 1, {1, 0} , NULL, 1  },
-    { 0x030D, "◌̍",  "tone_highv",   TIER_COUNT, -1, NULL, 1, {4, 0} , NULL, 1  },
+    { 0x030D, "◌̍",  "syl",       TIER_TIMING,    -1, mod_syl,          0, {0,0} , NULL, 1  },
     { 0x030E, "◌̎",  "tone_lowv",    TIER_COUNT, -1, NULL, 1, {2, 0} , NULL, 1  },
     /* --- ligature ties (no apply; handled by parser) --- */
     { 0x035C, "◌͜",  "tie",       TIER_COUNT,     -1, NULL, 0, {0,0} , NULL, 1  },
@@ -799,6 +917,16 @@ static const ModRec MODS[] = {
     { 0x02D4, "˔",   "raised",    TIER_MANNER,    -1, mod_raised,      0, {0,0} , NULL, 1  },
     { 0x02D5, "˕",   "lowered",   TIER_MANNER,    -1, mod_lowered,     0, {0,0} , NULL, 1  },
     { 0x02DE, "˞",   "rhot",      TIER_MANNER,    -1, mod_rhot,        0, {0,0} , NULL, 1  },
+    /* spacing / combining alternates of existing diacritics (IPA chart):
+     * ͗/˒ = ̹ more rounded, ͑/˓ = ̜ less rounded, ˖ = ̟ advanced,
+     * ˗ = ̠ retracted,  ̑ = ̯ non-syllabic */
+    { 0x0357, "◌͗",  "rnd_more",  TIER_PLACE,     -1, mod_more_round,  0, {0,0} , NULL, 1  },
+    { 0x02D2, "˒",   "rnd_more",  TIER_PLACE,     -1, mod_more_round,  0, {0,0} , NULL, 1  },
+    { 0x0351, "◌͑",  "rnd_less",  TIER_PLACE,     -1, mod_less_round,  0, {0,0} , NULL, 1  },
+    { 0x02D3, "˓",   "rnd_less",  TIER_PLACE,     -1, mod_less_round,  0, {0,0} , NULL, 1  },
+    { 0x02D6, "˖",   "adv",       TIER_PLACE,     -1, mod_advanced,    0, {0,0} , NULL, 1  },
+    { 0x02D7, "˗",   "retr",      TIER_PLACE,     -1, mod_retracted,   0, {0,0} , NULL, 1  },
+    { 0x0311, "◌̑",  "nsyl",      TIER_TIMING,    -1, mod_nosyl,       0, {0,0} , NULL, 1  },
     { 0x02E0, "ˠ",   "vel",       TIER_PLACE,     -1, mod_velar,       0, {0,0} , NULL, 1  },
     { 0x02E1, "ˡ",   "lat_release", TIER_MANNER,  -1, mod_lat_release, 0, {0,0} , NULL, 1  },
     { 0x02E2, "ˢ",   "fric_release", TIER_MANNER,  -1, mod_fric_release,0, {0,0} , NULL, 1  },
@@ -810,6 +938,12 @@ static const ModRec MODS[] = {
     { 0x02B5, "ʵ",   "sup_rhot_ʕ",   TIER_MANNER, -1, mod_rhot,         0, {0,0} , NULL, 0  },
     { 0x02B6, "ʶ",   "sup_rhot_ʢ",   TIER_MANNER, -1, mod_rhot,         0, {0,0} , NULL, 0  },
     { 0x1D49, "ᵉ",   "sup_e",        TIER_PLACE,  -1, mod_sup_front,   0, {0,0} , NULL, 0  },
+    { 0x1D50, "ᵐ",   "sup_m",        TIER_NASAL,  -1, mod_nasal,        0, {0,0} , NULL, 0  },
+    { 0x1D56, "ᵖ",   "sup_p",        TIER_MANNER, -1, mod_sup_stop,     0, {0,0} , NULL, 0  },
+    { 0x1D57, "ᵗ",   "sup_t",        TIER_MANNER, -1, mod_sup_stop,     0, {0,0} , NULL, 0  },
+    { 0x1D47, "ᵇ",   "sup_b",        TIER_MANNER, -1, mod_sup_stop,     0, {0,0} , NULL, 0  },
+    { 0x1D58, "ᵘ",   "sup_u",        TIER_PLACE,  -1, mod_sup_back,     0, {0,0} , NULL, 0  },
+    { 0x1D5D, "ᵝ",   "sup_beta",     TIER_PLACE,  -1, mod_lab_comp,     0, {0,0} , NULL, 1  },
     { 0x1D4C, "ᵌ",   "sup_ɛ",        TIER_MANNER, -1, mod_sup_mid,     0, {0,0} , NULL, 0  },
     { 0x1D64, "ᵤ",   "sup_u",        TIER_PLACE,  -1, mod_sup_back,    0, {0,0} , NULL, 0  },
     { 0x1D62, "ᵢ",   "sub_i",        TIER_PLACE,  -1, mod_sup_front,   0, {0,0} , NULL, 0  },
@@ -822,8 +956,6 @@ static const ModRec MODS[] = {
     { 0x1D3E, "ᴾ",   "sup_P",        TIER_MANNER, -1, mod_sup_stop,    0, {0,0} , NULL, 0  },
     { 0x1D41, "ᵁ",   "sup_U",        TIER_PLACE,  -1, mod_sup_back,    0, {0,0} , NULL, 0  },
     { 0x1D42, "ᵂ",   "sup_W",        TIER_PLACE,  -1, mod_lab,         0, {0,0} , NULL, 0  },
-    { 0x02D2, "˒",   "light",        TIER_TIMING, -1, mod_sliding,     0, {0,0} , NULL, 0  },
-    { 0x02D3, "˓",   "dark",         TIER_TIMING, -1, mod_sliding,     0, {0,0} , NULL, 0  },
     { 0x02D9, "˙",   "lengthened",   TIER_TIMING, -1, mod_long,        0, {0,0} , NULL, 0  },
     /* --- preposed modifiers --- */
     { 0x1D51, "ᵑ",   "nas_click", TIER_AIRSTREAM, -1, mod_nasal_click, 0, {0,0} , NULL, 1  },
@@ -831,7 +963,7 @@ static const ModRec MODS[] = {
     { 0x1D4A, "ᵊ",   "schwa_rel", TIER_MANNER,    -1, mod_schwa_rel,   0, {0,0} , NULL, 1  },
     { 0x207F, "ⁿ",   "nasal_rel", TIER_NASAL,     -1, mod_nasal_rel,   0, {0,0} , NULL, 1  },
     { 0x02B1, "ʱ",   "breathy_asp", TIER_LARYNGEAL, -1, mod_breathy_asp, 0, {0,0} , "ʱ = voiced/breathy release (reinterpreted from aspiration)", 1  },
-    { 0x02B8, "ʸ",   "offglide_pal", TIER_PLACE,  -1, mod_pal,         0, {0,0} , NULL, 1  },
+    { 0x02B8, "ʸ",   "offglide_pal", TIER_PLACE,  -1, mod_offglide_pal,0, {0,0} , NULL, 1  },
     { 0x1DB7, "ᶷ",   "offglide_lab", TIER_PLACE,  -1, mod_offglide_lab,0, {0,0} , NULL, 1  },
     { 0x1DA3, "ᶣ",   "offglide_labpal", TIER_PLACE, -1, mod_pal,       0, {0,0} , NULL, 1  },
     /* --- 5-level tone letters (high->low) -> extra vector 1 --- */
@@ -873,11 +1005,11 @@ static const ModRec MODS[] = {
     { 0x2197, "↗", "global_up",   TIER_COUNT, -1, NULL, 4, {NAN, 1}, NULL, 1  },
     { 0x2198, "↘", "global_down", TIER_COUNT, -1, NULL, 4, {NAN, -1}, NULL, 1  },
     /* --- pitch contour marks (diacritics) — no articulatory effect --- */
-    { 0x1DC4, "◌᷄", "pitch_highrise",  TIER_COUNT, -1, NULL, 1, {3, 5} , NULL, 1  },
-    { 0x1DC5, "◌᷅", "pitch_lowrise",  TIER_COUNT, -1, NULL, 1, {1, 3} , NULL, 1  },
+    { 0x1DC4, "◌᷄", "pitch_highrise",  TIER_COUNT, -1, NULL, 1, {4, 5} , NULL, 1  },
+    { 0x1DC5, "◌᷅", "pitch_lowrise",  TIER_COUNT, -1, NULL, 1, {1, 2} , NULL, 1  },
     { 0x1DC6, "◌᷆", "pitch_highfall", TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
     { 0x1DC7, "◌᷇", "pitch_midrise",  TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x1DC8, "◌᷈", "pitch_risefall", TIER_COUNT, -1, NULL, 1, {3, 4, 2} , NULL, 1  },
+    { 0x1DC8, "◌᷈", "pitch_risefall", TIER_COUNT, -1, NULL, 1, {3, 4, 3} , NULL, 1  },
     { 0x1DC9, "◌᷉", "pitch_fallrise", TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
     /* --- undertie (linking) — ignored --- */
     { 0x203F, "‿",   "link",     TIER_COUNT,     -1, NULL, 0, {0,0} , NULL, 1  },
@@ -1022,6 +1154,7 @@ typedef struct {
     int tkind[3];         /* 0 none, 1 contour (tone[0] or tone[1]), 2 = 3-D vector */
     double tone[3][3];    /* vector values; NAN = not set */
     int preposed;         /* TK_MOD only: modifier appeared BEFORE the base */
+    int dotless;          /* TK_BASE only: base written as dotless ȷ/ı */
 } IrTok;
 
 #define MAX_TOKS 256
@@ -1049,6 +1182,14 @@ typedef struct { const char *sym; const char *repl; const char *note; int need_m
 /* need_mods: 0 = always, 1 = only when followed by combining marks/modifiers,
  * -1 = only when NOT followed by combining marks.
  * warn: 1 = deprecated/ambiguous usage; print a warning when used. */
+
+/* the alias symbol is a dotless letter (ȷ U+0237, ı U+0131): the rebuilt
+ * spelling should keep the dotless form */
+static IPA2VEC_MAYBE_UNUSED int alias_is_dotless (const Alias *al)
+{
+    return strcmp(al->sym, "\xC8\xB7") == 0 ||      /* ȷ */
+           strcmp(al->sym, "\xC4\xB1") == 0;        /* ı */
+}
 
 /* --- module: generic (any tradition) --- */
 static const Alias ALIAS_GENERIC[] = {
@@ -1267,6 +1408,17 @@ static const Alias ALIAS_EQUIV[] = {
     { "\xE2\x81\xBF", "n", "superscript n (nasal release)", 0, 0   },
     { "\xE1\xB5\x8C", "\xC9\x9C", "superscript reversed open e", 0, 0   },
     { "\xE1\xB6\xB7", "\xCA\x8A", "superscript upsilon (near-close back)", 0, 0   },
+    { "\xF0\x9D\xBC\x85", "\xC9\xAD\xCB\x94", "retroflex lateral approximant raised (Unicode 15)", 0, 0   },
+    { "\xF0\x9D\xBC\x86\xCC\xAC", "\xCA\x8E\xCC\x9D", "palatal lateral raised voiced (Unicode 15)", 0, 0   },
+    { "\xF0\x9D\xBC\x86", "\xCA\x8E\xCC\x9D\xCC\x8A", "palatal lateral raised voiceless (Unicode 15)", 0, 0   },
+    { "\xF0\x9D\xBC\x84\xCC\xAC", "\xCA\x9F\xCC\x9D", "velar lateral raised voiced (Unicode 15)", 0, 0   },
+    { "\xF0\x9D\xBC\x84", "\xCA\x9F\xCC\x9D\xCC\x8A", "velar lateral raised voiceless (Unicode 15)", 0, 0   },
+    { "\xF0\x9D\xBC\x80", "\xCA\xA9\xCA\x80", "velopharyngeal trill (Unicode 15)", 0, 0   },
+    { "\xF0\x9D\xBC\x83", "\xCA\x9E", "velar click, former ʞ (Unicode 15)", 0, 0   },
+    { "\xF0\x9D\xBC\x81", "\xCA\x9E\xCC\xAC", "voiced velar click (Unicode 15)", 0, 0   },
+    { "\xF0\x9D\xBC\x87", "\xCA\x9E\xCC\x83", "nasal velar click (Unicode 15)", 0, 0   },
+    { "\xEA\x9E\xAF", "q\xCC\xA0", "epiglottal-uvular voiceless (Unicode 15)", 0, 0   },
+    { "\xF0\x9D\xBC\x82", "\xC9\xA2\xCC\xA0", "epiglottal-uvular voiced (Unicode 15)", 0, 0   },
 };
 
 /* --- module: withdrawn / obsolete IPA symbols --- */
@@ -1288,7 +1440,6 @@ static const Alias ALIAS_WITHDRAWN[] = {
     { "\xCA\x87", "\xC7\x80", "dental click (superseded 1989)", 0, 0   },           /* ʇ -> ǀ */
     { "\xCA\x97", "\xC7\x83", "alveolar click (superseded 1989)", 0, 0   },         /* ʗ -> ǃ */
     { "\xCA\x96", "\xC7\x81", "alveolar lateral click (superseded 1989)", 0, 0   }, /* ʖ -> ǁ */
-    { "\xCA\x9E", "\xC7\x83", "velar click (withdrawn)", 0, 1   },                  /* ʞ -> ǃ */
     { "\xC6\xA5", "\xC9\x93\xCC\xA5", "vl bilabial implosive (withdrawn 1993)", 0, 0   },  /* ƥ -> ɓ̥ */
     { "\xC6\xAD", "\xC9\x97\xCC\xA5", "vl dental/alveolar implosive (withdrawn 1993)", 0, 0 }, /* ƭ -> ɗ̥ */
     { "\xC6\x88", "\xCA\x84\xCC\x8A", "vl palatal implosive (withdrawn 1993)", 0, 0   },    /* ƈ -> ʄ̊ */
@@ -1322,10 +1473,10 @@ static const Alias ALIAS_AMERICANIST[] = {
 
 /* --- module: Sinologist (Chinese linguistics) --- */
 static const Alias ALIAS_SINOLOGIST[] = {
-    { "\xC9\xBF", "\xC9\xB9\xCC\xAA", "apical dental unrounded vowel", 0, 0   },     /* ɿ -> ɹ̪ */
-    { "\xCA\x85", "\xC9\xBB", "apical retroflex unrounded vowel", 0, 0   },           /* ʅ -> ɻ */
-    { "\xCA\xAE", "\xC9\xB9\xCC\xAA\xCA\xB7", "apical dental rounded vowel", 0, 0   }, /* ʮ -> ɹ̪ʷ */
-    { "\xCA\xAF", "\xC9\xBB\xCA\xB7", "apical retroflex rounded vowel", 0, 0   },     /* ʯ -> ɻʷ */
+    { "\xC9\xBF", "\xC9\xB9\xCC\xA9", "apical unrounded vowel (syllabic)", 0, 0   },     /* ɿ -> ɹ̩ */
+    { "\xCA\x85", "\xC9\xBB\xCC\x8D", "apical retroflex unrounded vowel (syllabic)", 0, 0   }, /* ʅ -> ɻ̍ */
+    { "\xCA\xAE", "\xC9\xB9\xCC\xA9\xCA\xB7", "apical rounded vowel (syllabic)", 0, 0   }, /* ʮ -> ɹ̩ʷ */
+    { "\xCA\xAF", "\xC9\xBB\xCC\x8D\xCA\xB7", "apical retroflex rounded vowel (syllabic)", 0, 0   }, /* ʯ -> ɻ̍ʷ */
     { "\xE1\xB4\x80", "a\xCC\x88", "open central vowel", 0, 0   },                   /* ᴀ -> ä */
 };
 
@@ -1535,6 +1686,8 @@ static const Nolig NOLIG[] = {
     { "d", "z", "\x64\xCD\xA1z" },    /* dz -> d͡z */
     { "t", "\u0283", "\x74\xCD\xA1\xCA\x83" }, /* tʃ -> t͡ʃ */
     { "d", "\u0292", "\x64\xCD\xA1\xCA\x92" }, /* dʒ -> d͡ʒ */
+    { "t", "\u0320\u0283", "\x74\xCD\xA1\xCA\x83" }, /* t̠ʃ -> t͡ʃ */
+    { "d", "\u0320\u0292", "\x64\xCD\xA1\xCA\x92" }, /* d̠ʒ -> d͡ʒ */
     { "t", "\u0255", "\x74\xCD\xA1\xC9\x95" }, /* tɕ -> t͡ɕ */
     { "d", "\u0291", "\x64\xCD\xA1\xCA\x91" }, /* dʑ -> d͡ʑ */
     { "\u0236", "\u0255", "\x74\xCD\xA1\xC9\x95" }, /* ȶɕ -> t͡ɕ (curl notation) */
@@ -1551,6 +1704,18 @@ static const Nolig NOLIG[] = {
     { "q", "\u03C7", "\x71\xCD\xA1\xCF\x87" }, /* qχ -> q͡χ */
     { "t", "\u03B8", NULL },          /* tθ (synthesize) */
     { "t", "f", NULL },               /* tf (synthesize) */
+    /* non-sibilant affricates from the IPA chart */
+    { "p", "\u0278", NULL },          /* pɸ (synthesize) */
+    { "b", "\u03B2", NULL },          /* bβ (synthesize) */
+    { "b\u032A", "v", NULL },         /* b̪v (synthesize) */
+    { "d\u032A", "\u00F0", NULL },    /* d̪ð (synthesize) */
+    { "t", "\u0279\u031D\u030A", NULL },  /* tɹ̝̊ (synthesize) */
+    { "d", "\u0279\u031D", NULL },    /* dɹ̝ (synthesize) */
+    { "t\u0320", "\u0279\u0320\u030A\u02D4", NULL }, /* t̠ɹ̠̊˔ (synthesize) */
+    { "d\u0320", "\u0279\u0320\u02D4", NULL },       /* d̠ɹ̠˔ (synthesize) */
+    { "\u0261", "\u0263", NULL },     /* ɡɣ (synthesize) */
+    { "\u02A1", "\u02A2", NULL },     /* ʡʢ (synthesize) */
+    { "\u0294", "h", NULL },          /* ʔh (synthesize) */
 };
 #define NNOLIG ((int)(sizeof(NOLIG) / sizeof(NOLIG[0])))
 
@@ -1644,6 +1809,196 @@ static IPA2VEC_MAYBE_UNUSED const char *base_name(const SegEntry *b)
     return EXTRA_NAMES[b - EXTRA_BASE];
 }
 
+/* is the base a vowel?  The feature name ends in "vwl" (front.cls.unr.vwl
+ * etc.) — a vector-based test (e.g. effective_oral_area >= 0.5) is
+ * scheme-dependent and misclassifies approximants and voiceless vowels. */
+static IPA2VEC_MAYBE_UNUSED int base_is_vowel(const SegEntry *b)
+{
+    if (!b) return 0;
+    const char *n = base_name(b);
+    size_t L = strlen(n);
+    return L >= 3 && strcmp(n + L - 3, "vwl") == 0;
+}
+
+/* contradictory-modifier classes: both members of an opposite pair on
+ * the same segment are invalid.  Classes sharing a GROUP (mark_group)
+ * are mutually contradictory: voicing (̥+̬), timing (ː ˑ ̆), phonation
+ * (̤+̰), rounding (̹+̜), place shift (̟+̠), height (̝+̞), tongue root
+ * (̘+̙), tension (͈+͉), syllabicity (̩+̯), release/aspiration (ʰ ʽ ̚),
+ * place (̪ ͇ ̢ ̡ ̼), tip shape (̺+̻), secondary articulation (ˠ+ˤ).
+ * (0x0322 ̢ shares mod_retracted with 0x0320 ̠, and 0x0321 ̡ shares
+ * mod_pal with ʲ — these must be told apart by code point.) */
+typedef enum {
+    MC_NONE = 0, MC_VL, MC_VD, MC_LONG, MC_HALF, MC_SHORT,
+    MC_BREATHY, MC_CREAKY,
+    MC_MORERND, MC_LESSRND, MC_ADV, MC_RETR, MC_RAISED, MC_LOWERED,
+    MC_ATR, MC_RTR, MC_FORTIS, MC_LENIS, MC_SYL, MC_NOSYL,
+    MC_ASP, MC_WEAK_ASP, MC_UNREL, MC_BREATHY_ASP,
+    MC_DENTAL, MC_ALVEOLAR, MC_RETR_HOOK, MC_PAL_HOOK, MC_LINGUO,
+    MC_APICAL, MC_LAMINAL, MC_VEL, MC_PHAR, MC_PALJ, MC_RHOT,
+    MC_LAST
+} MarkClass;
+
+typedef enum {
+    MG_NONE = 0, MG_VOICE, MG_TIMING, MG_PHON, MG_ROUND, MG_PLACESHIFT,
+    MG_HEIGHT, MG_ROOT, MG_TENSION, MG_SYLL, MG_RELEASE, MG_PLACE,
+    MG_TIPSHAPE, MG_SECONDARY
+} MarkGroup;
+
+static IPA2VEC_MAYBE_UNUSED MarkClass mark_class (const ModRec *m)
+{
+    if (!m || !m->apply) return MC_NONE;
+    /* ambiguous apply fns must be split by code point first */
+    switch (m->cp) {
+    case 0x032A: return MC_DENTAL;               /* ◌̪ */
+    case 0x0347: return MC_ALVEOLAR;             /* ◌͇ */
+    case 0x0322: return MC_RETR_HOOK;            /* ◌̢ retroflex */
+    case 0x0321: return MC_PAL_HOOK;             /* ◌̡ */
+    case 0x033C: return MC_LINGUO;               /* ◌̼ */
+    case 0x033A: return MC_APICAL;               /* ◌̺ */
+    case 0x033B: case 0x0346: return MC_LAMINAL; /* ◌̻ ◌͆ */
+    case 0x02D1: return MC_HALF;                 /* ˑ */
+    case 0x02E0: return MC_VEL;                  /* ˠ */
+    case 0x02E4: case 0x0334: return MC_PHAR;    /* ˤ ◌̴ */
+    case 0x02B0: return MC_ASP;                  /* ʰ */
+    case 0x02BD: case 0x2018: case 0x201B: return MC_WEAK_ASP; /* ʽ ‘ ‛ */
+    case 0x031A: case 0x0027: return MC_UNREL;   /* ̚ ' */
+    case 0x02B1: return MC_BREATHY_ASP;          /* ʱ */
+    case 0x02B2: return MC_PALJ;                 /* ʲ (palatalised) */
+    case 0x02DE: case 0x02B3: case 0x02B4: case 0x02B5:
+    case 0x02B6: case 0x1D63: return MC_RHOT;    /* ˞ ʳ ʴ ʵ ʶ ᵣ */
+    }
+    if (m->apply == mod_voiceless)   return MC_VL;
+    if (m->apply == mod_voiced)      return MC_VD;
+    if (m->apply == mod_long)        return MC_LONG;   /* ː and Q */
+    if (m->apply == mod_extra_short) return MC_SHORT;
+    if (m->apply == mod_breathy)     return MC_BREATHY;
+    if (m->apply == mod_creaky)      return MC_CREAKY;
+    if (m->apply == mod_more_round)  return MC_MORERND;
+    if (m->apply == mod_less_round)  return MC_LESSRND;
+    if (m->apply == mod_advanced)    return MC_ADV;
+    if (m->apply == mod_retracted)   return MC_RETR;   /* 0x0320 ̠ only */
+    if (m->apply == mod_raised)      return MC_RAISED;
+    if (m->apply == mod_lowered)     return MC_LOWERED;
+    if (m->apply == mod_atr)         return MC_ATR;
+    if (m->apply == mod_rtr)         return MC_RTR;
+    if (m->apply == mod_fortis)      return MC_FORTIS;
+    if (m->apply == mod_lenis)       return MC_LENIS;
+    if (m->apply == mod_syl)         return MC_SYL;
+    if (m->apply == mod_nosyl)       return MC_NOSYL;
+    return MC_NONE;
+}
+
+/* the contradiction group of a mark class: any two DIFFERENT classes in
+ * the same group on one segment are contradictory (MC_NONE = no group) */
+static IPA2VEC_MAYBE_UNUSED MarkGroup mark_group (MarkClass c)
+{
+    switch (c) {
+    case MC_VL:       case MC_VD:       return MG_VOICE;
+    case MC_LONG:     case MC_HALF:     case MC_SHORT: return MG_TIMING;
+    case MC_BREATHY:  case MC_CREAKY:   return MG_PHON;
+    case MC_MORERND:  case MC_LESSRND:  return MG_ROUND;
+    case MC_ADV:      case MC_RETR:     return MG_PLACESHIFT;
+    case MC_RAISED:   case MC_LOWERED:  return MG_HEIGHT;
+    case MC_ATR:      case MC_RTR:      return MG_ROOT;
+    case MC_FORTIS:   case MC_LENIS:    return MG_TENSION;
+    case MC_SYL:      case MC_NOSYL:    return MG_SYLL;
+    case MC_ASP:      case MC_WEAK_ASP: case MC_UNREL:
+    case MC_BREATHY_ASP: return MG_RELEASE;
+    case MC_DENTAL:   case MC_ALVEOLAR: case MC_RETR_HOOK:
+    case MC_PAL_HOOK: case MC_LINGUO:   return MG_PLACE;
+    case MC_APICAL:   case MC_LAMINAL:  return MG_TIPSHAPE;
+    case MC_VEL:      case MC_PHAR:     return MG_SECONDARY;
+    default:                           return MG_NONE;
+    }
+}
+
+static IPA2VEC_MAYBE_UNUSED const char *mark_class_label (MarkClass c)
+{
+    switch (c) {
+    case MC_VL:       return "voiceless";
+    case MC_VD:       return "voiced";
+    case MC_LONG:     return "long";
+    case MC_HALF:     return "half-long";
+    case MC_SHORT:    return "extra-short";
+    case MC_BREATHY:  return "breathy";
+    case MC_CREAKY:   return "creaky";
+    case MC_MORERND:  return "more rounded";
+    case MC_LESSRND:  return "less rounded";
+    case MC_ADV:      return "advanced";
+    case MC_RETR:     return "retracted";
+    case MC_RAISED:   return "raised";
+    case MC_LOWERED:  return "lowered";
+    case MC_ATR:      return "ATR";
+    case MC_RTR:      return "RTR";
+    case MC_FORTIS:   return "fortis";
+    case MC_LENIS:    return "lenis";
+    case MC_SYL:      return "syllabic";
+    case MC_NOSYL:    return "non-syllabic";
+    case MC_ASP:      return "aspirated";
+    case MC_WEAK_ASP: return "weakly aspirated";
+    case MC_UNREL:    return "unreleased";
+    case MC_BREATHY_ASP: return "breathy-voiced";
+    case MC_DENTAL:   return "dental";
+    case MC_ALVEOLAR: return "alveolar";
+    case MC_RETR_HOOK: return "retroflex";
+    case MC_PAL_HOOK: return "palatal";
+    case MC_LINGUO:   return "linguolabial";
+    case MC_APICAL:   return "apical";
+    case MC_LAMINAL:  return "laminal";
+    case MC_VEL:      return "velarized";
+    case MC_PHAR:     return "pharyngealized";
+    case MC_PALJ:     return "palatalised";
+    case MC_RHOT:     return "rhotic";
+    default:          return "?";
+    }
+}
+
+/* label of a base's INHERENT place (dental/retroflex/palatal/velar) for
+ * the "X is already <place>" message — distinct from the mark labels
+ * (velarised, palatalised …) */
+static IPA2VEC_MAYBE_UNUSED const char *base_place_label (MarkClass c)
+{
+    switch (c) {
+    case MC_DENTAL:    return "dental";
+    case MC_RETR_HOOK: return "retroflex";
+    case MC_PAL_HOOK:  return "palatal";
+    case MC_VEL:       return "velar";
+    default:           return mark_class_label(c);
+    }
+}
+
+/* the base's own articulatory place (dental / retroflex / palatal /
+ * velar) from the feature name's second token (vl.den.pls, vd.rfl.nas
+ * ...).  Only the specified places are returned: the neutral alveolar
+ * bases (t d n s z l r …) accept any place diacritic, so they yield
+ * MC_NONE. */
+static IPA2VEC_MAYBE_UNUSED MarkClass base_place_class (const SegEntry *b)
+{
+    if (!b || base_is_vowel(b)) return MC_NONE;
+    const char *n = base_name(b);
+    const char *p1 = strchr(n, '.');
+    if (!p1) return MC_NONE;
+    const char *p2 = p1 + 1;
+    const char *p3 = strchr(p2, '.');
+    size_t L = p3 ? (size_t)(p3 - p2) : strlen(p2);
+    if (L == 3 && strncmp(p2, "den", 3) == 0) return MC_DENTAL;
+    if (L == 3 && strncmp(p2, "rfl", 3) == 0) return MC_RETR_HOOK;
+    if (L == 3 && strncmp(p2, "pal", 3) == 0) return MC_PAL_HOOK;
+    if (L == 3 && strncmp(p2, "vel", 3) == 0) return MC_VEL;
+    return MC_NONE;
+}
+
+/* is the base already rhotic (ɚ ɝ — the feature name carries "rhot")?
+ * A rhotacisation mark (˞ or the superscript rhotic letters) on it is
+ * redundant. */
+static IPA2VEC_MAYBE_UNUSED int base_is_rhotic (const SegEntry *b)
+{
+    if (!b) return 0;
+    const char *n = base_name(b);
+    return strstr(n, "rhot") != NULL;
+}
+
 /* byte length of the first alias-symbol prefix of s across all modules
  * (0 if none).  Shared by the lexer's has_mods probes. */
 static IPA2VEC_MAYBE_UNUSED size_t alias_prefix_len(const char *s)
@@ -1727,7 +2082,19 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                 }
                 break;
             }
-            if (!is_ligature_cp(cp) && m->tier == TIER_AIRSTREAM) {
+            /* stress marks ˈ ˌ may precede the syllable (ˈa, ˌma);
+             * they carry no articulatory feature - skip them */
+            if (!m->apply && m->tier == TIER_COUNT &&
+                strncmp(m->latin, "stress_", 7) == 0) {
+                p += k;
+                pre_consumed += k;
+                continue;
+            }
+            if (!is_ligature_cp(cp) && m->apply &&
+                (m->tier == TIER_AIRSTREAM ||
+                 (cp >= 0x1D00 && cp <= 0x1D7F) ||
+                 (cp >= 0x02B0 && cp <= 0x02FF) ||
+                 cp == 0x207F)) {
                 if (npre >= 4) break;   /* pre_idx[] is 4 slots */
                 pre_idx[npre] = (int)(m - MODS);
                 npre++;
@@ -1828,8 +2195,13 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                         t.preposed = 1;
                         out[n++] = t;
                     }
-                    for (int j = 0; j < tn; j++)
+                    for (int j = 0; j < tn; j++) {
+                        /* dotless base (ȷ/ı): keep the dotless spelling in
+                         * the rebuilt output */
+                        if (tmp[j].kind == TK_BASE && alias_is_dotless(al))
+                            tmp[j].dotless = 1;
                         out[n++] = tmp[j];
+                    }
                     p = q;   /* consume alias + appended combining marks */
                     continue;
                 }
@@ -1879,6 +2251,7 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                     IrTok t;
                     t.kind = TK_BASE;
                     t.preposed = 0;
+                    t.dotless = 0;
                     t.ipa = "";
                     t.latin = "tone-only";
                     t.tier = TIER_COUNT;
@@ -1957,6 +2330,7 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
         IrTok t;
         t.kind = TK_BASE;
         t.preposed = 0;
+        t.dotless = 0;
         t.ipa = base->ipa;
         t.latin = seg_in_table(base)
                   ? CUR_NAMES[base - CUR_SEG]
@@ -1991,6 +2365,7 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                 IrTok rt;
                 rt.kind = TK_BASE;
                 rt.preposed = 0;
+                rt.dotless = 0;
                 rt.ipa = rel->ipa;
                 rt.latin = seg_in_table(rel)
                            ? CUR_NAMES[rel - CUR_SEG]
@@ -2173,6 +2548,7 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
                 IrTok r;
                 r.kind = TK_BASE;
                 r.preposed = 0;
+                r.dotless = 0;
                 r.ipa = release->ipa;
                 r.latin = seg_in_table(release)
                           ? CUR_NAMES[release - CUR_SEG]
@@ -2215,24 +2591,34 @@ static IPA2VEC_MAYBE_UNUSED int lex_inner (const char *input, IrTok out[MAX_TOKS
             if (tone_digit && tone_letter)
                 fprintf(stderr,
                         "ipa2vec: warning: mixing superscript digits (¹²³⁴⁵) and tone letters (˩˨˧˦˥) for the same segment\n");
-            /* 4+ letters: remainder becomes tone sandhi (vec 2) */
+            if (ntone > 6)
+                fprintf(stderr,
+                        "ipa2vec: warning: too many tone letters, %d dropped\n",
+                        ntone - 6);
+        }
+        /* vec 2 (tone[1]): the overflow of a 4+-letter sequence AND
+         * explicit sandhi letters, merged in order (a lone sandhi letter
+         * must not silently overwrite the 4+-letter overflow) */
+        {
+            double t1[3];
+            int n1 = 0;
             if (ntone > 3) {
-                out[seg_base_idx].tkind[1] = 1;
                 int r = ntone - 3;
                 int rc = r < 3 ? r : 3;
-                for (int k = 0; k < rc; k++)
-                    out[seg_base_idx].tone[1][k] = tonebuf[3 + k];
-                if (r == 1)
-                    out[seg_base_idx].tone[1][1] = tonebuf[3];
+                for (int k = 0; k < rc; k++) t1[n1++] = tonebuf[3 + k];
             }
-        }
-        if (nsandhi >= 1) {
-            out[seg_base_idx].tkind[1] = 1;
-            int c = nsandhi < 3 ? nsandhi : 3;
-            for (int k = 0; k < c; k++)
-                out[seg_base_idx].tone[1][k] = sandhibuf[k];
-            if (nsandhi == 1)
-                out[seg_base_idx].tone[1][1] = sandhibuf[0];
+            for (int k = 0; k < nsandhi && n1 < 3; k++) t1[n1++] = sandhibuf[k];
+            if (nsandhi + (ntone > 3 ? ntone - 3 : 0) > 3)
+                fprintf(stderr,
+                        "ipa2vec: warning: too many tone-sandhi letters, %d dropped\n",
+                        nsandhi + (ntone > 3 ? ntone - 3 : 0) - 3);
+            if (n1 >= 1) {
+                out[seg_base_idx].tkind[1] = 1;
+                for (int k = 0; k < n1; k++)
+                    out[seg_base_idx].tone[1][k] = t1[k];
+                if (n1 == 1)
+                    out[seg_base_idx].tone[1][1] = t1[0];
+            }
         }
     }
     *nout = n;
@@ -2302,6 +2688,41 @@ static IPA2VEC_MAYBE_UNUSED void canonicalise (IrTok *l1, int n1, IrTok *l2, int
 /* ligature pair); modifiers are applied sequentially.                 */
 /* ------------------------------------------------------------------ */
 
+/* a combining mark that sits ABOVE the base letter.  Covers the dot of
+ * i/j, which is written dotless (ı/ȷ) instead.  The below-marks block
+ * U+0316..U+0345 has a few stragglers that actually go above (x above
+ * 033D, vertical tildes 033E/033F, the 0340-0344 accents). */
+static IPA2VEC_MAYBE_UNUSED int is_above_combining(unsigned long cp)
+{
+    if (cp == 0x1DB9) return 1;                 /* ◌ᶹ labiodental */
+    if (cp < 0x0300 || cp > 0x036F) return 0;
+    if (cp >= 0x0316 && cp <= 0x0345) {
+        if (cp == 0x033D || cp == 0x033E || cp == 0x033F ||
+            cp == 0x0340 || cp == 0x0341 || cp == 0x0342 ||
+            cp == 0x0343 || cp == 0x0344)
+            return 1;
+        return 0;
+    }
+    return 1;
+}
+
+/* append one issue to a segment's merged invalid-combination list
+ * (comma-separated; no-op when the buffer is full) */
+static IPA2VEC_MAYBE_UNUSED void issue_append (char *buf, size_t sz, int *n, const char *s)
+{
+    if (!s || !*s) return;
+    size_t L = strlen(buf);
+    size_t sl = strlen(s);
+    if (*n) {
+        if (L + 2 >= sz) return;
+        buf[L++] = ',';
+        buf[L++] = ' ';
+    }
+    if (L + sl + 1 > sz) return;
+    memcpy(buf + L, s, sl + 1);
+    (*n)++;
+}
+
 /* apply Layer2 in order -> per-segment vectors.  Returns 0 on success,
  * -1 when the segment count exceeds MAX_SEGS (message printed). */
 static IPA2VEC_MAYBE_UNUSED int apply_layer2 (IrTok *l2, int n2, SegVec *segs, int *nsegs,
@@ -2324,6 +2745,16 @@ static IPA2VEC_MAYBE_UNUSED int apply_layer2 (IrTok *l2, int n2, SegVec *segs, i
                 out.airstream = 0;
             }
             out.note[0] = 0;
+            /* dotless: the base was written ı/ȷ, or a combining mark
+             * sits above the letter and covers the dot of i/j */
+            out.dotless = 0;
+            if (base && (strcmp(base->ipa, "i") == 0 || strcmp(base->ipa, "j") == 0)) {
+                out.dotless = l2[i].dotless;
+                if (!out.dotless)
+                    for (int k = i + 1; k < n2 && l2[k].kind == TK_MOD; k++)
+                        if (l2[k].mod && is_above_combining(l2[k].mod->cp))
+                            out.dotless = 1;
+            }
             for (int g = 0; g < 3; g++) {
                 out.tone[g][0] = NAN;
                 out.tone[g][1] = NAN;
@@ -2336,6 +2767,14 @@ static IPA2VEC_MAYBE_UNUSED int apply_layer2 (IrTok *l2, int n2, SegVec *segs, i
                 }
             }
             i++;
+            /* mark classes already applied to this segment (contradictory-pair
+             * detection; up to 34 classes — needs 64 bits) */
+            uint64_t mark_seen = 0;
+            /* invalid-combination issues found on this segment, merged
+             * into one warning line at the segment's end */
+            char issues[384];
+            int nissues = 0;
+            issues[0] = 0;
             /* apply following modifiers until next segment start */
             while (i < n2 && (l2[i].kind == TK_MOD || l2[i].kind == TK_LIG)) {
                 if (l2[i].kind == TK_MOD) {
@@ -2346,7 +2785,7 @@ static IPA2VEC_MAYBE_UNUSED int apply_layer2 (IrTok *l2, int n2, SegVec *segs, i
                          *    shift: ñ -> ɲ)
                          *  - vowels take ◌̃, oral consonants take ⁿ */
                         int base_nasal = base && base->v[dim_of_ok("vel_open", DIM_VEL_OPEN)] >= 0.5;
-                        int base_vowel = base && base->v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] >= 0.5;
+                        int base_vowel = base_is_vowel(base);
                         if (l2[i].mod->apply == mod_nasal && !out.note[0]) {
                             if (base_nasal) {
                                 const char *guess = NULL;
@@ -2362,15 +2801,123 @@ static IPA2VEC_MAYBE_UNUSED int apply_layer2 (IrTok *l2, int n2, SegVec *segs, i
                                             "ipa2vec: warning: nasalising the nasal %s is redundant\n",
                                             base->ipa);
                             } else if (!base_vowel) {
-                                fprintf(stderr,
-                                        "ipa2vec: warning: oral consonant %s nasalises with ◌ⁿ, not ◌̃\n",
-                                        base->ipa);
+                                /* nasal clicks ʘ̃ ǀ̃ ǃ̃ … are the STANDARD
+                                 * IPA spelling (nasal clicks); only
+                                 * pulmonic oral consonants warn */
+                                int is_click = base &&
+                                    base->v[dim_of_ok("airflow_direction", DIM_AIRFLOW_DIRECTION)] < 0 &&
+                                    base->v[dim_of_ok("voiced", DIM_VOICED)] < 0.5;
+                                if (!is_click)
+                                    fprintf(stderr,
+                                            "ipa2vec: warning: oral consonant %s nasalises with ◌ⁿ, not ◌̃\n",
+                                            base->ipa);
                             }
                         } else if (l2[i].mod->apply == mod_nasal_rel && !out.note[0]) {
                             if (base_vowel)
                                 fprintf(stderr,
                                         "ipa2vec: warning: vowel %s nasalises with ◌̃, not ◌ⁿ\n",
                                         base->ipa);
+                        }
+                        /* invalid-combination warnings (input tolerance,
+                         * parsing continues): a mark that the base cannot
+                         * carry (syllabic on a vowel, non-syllabic on a
+                         * consonant) or both members of a contradictory
+                         * mark pair on the same segment.  All issues of
+                         * the segment are collected and reported as ONE
+                         * merged warning at the segment's end. */
+                        MarkClass mc = mark_class(l2[i].mod);
+                        if (mc != MC_NONE) {
+                            if (mc == MC_SYL && base_vowel)
+                                issue_append(issues, sizeof(issues), &nissues,
+                                             "syllabic on a vowel");
+                            else if (mc == MC_NOSYL && base && !base_vowel)
+                                issue_append(issues, sizeof(issues), &nissues,
+                                             "non-syllabic on a consonant");
+                            /* voicing-ring redundancy: the mark repeats the
+                             * base's own phonation (p̥, f̥ / b̬, m̬) */
+                            int base_voiced = base &&
+                                base->v[dim_of_ok("voiced", DIM_VOICED)] >= 0.5;
+                            if (mc == MC_VL && base && !base_voiced &&
+                                !(mark_seen & (1ull << (MC_VL - 1))))
+                                issue_append(issues, sizeof(issues), &nissues,
+                                             "voiceless ring on an already-voiceless letter");
+                            else if (mc == MC_VD && base && base_voiced &&
+                                     !(mark_seen & (1ull << (MC_VD - 1))))
+                                issue_append(issues, sizeof(issues), &nissues,
+                                             "voiced mark on an already-voiced letter");
+                            /* contradictory marks: any two different classes
+                             * in the same group on one segment */
+                            MarkGroup mg = mark_group(mc);
+                            if (mg != MG_NONE) {
+                                int hit = 0;
+                                for (int c2 = 1; c2 < MC_LAST && !hit; c2++)
+                                    if (c2 != mc && (mark_seen & (1ull << (c2 - 1))) &&
+                                        mark_group((MarkClass)c2) == mg) {
+                                        char pair[96];
+                                        snprintf(pair, sizeof(pair), "%s and %s",
+                                                 mark_class_label((MarkClass)c2),
+                                                 mark_class_label(mc));
+                                        issue_append(issues, sizeof(issues),
+                                                     &nissues, pair);
+                                        hit = 1;
+                                    }
+                            }
+                            /* a place / secondary-articulation diacritic
+                             * that conflicts with — or repeats — the base's
+                             * OWN place (t̢̪, ʈ̪, ɲ̪; ʈ̢, ɲ̡, kˠ, ɲʲ).
+                             * Legitimate derivations stay silent: the neutral
+                             * alveolar bases take any place diacritic
+                             * (t̪, t̠, n̼), the alveolar / linguolabial
+                             * refinements are allowed on any base (t̪͇,
+                             * θ̼, t̼), and cross-feature combos (ɲˠ, kˤ)
+                             * are meaningful. */
+                            MarkClass bplc = base_place_class(base);
+                            if (bplc != MC_NONE) {
+                                int same_feature =
+                                    mc == bplc ||
+                                    (mc == MC_PALJ && bplc == MC_PAL_HOOK);
+                                if (same_feature &&
+                                    (mg == MG_PLACE || mg == MG_SECONDARY ||
+                                     mc == MC_PALJ || mc == MC_VEL) &&
+                                    !(mark_seen & (1ull << (bplc - 1)))) {
+                                    char rep[96];
+                                    snprintf(rep, sizeof(rep),
+                                             "%s mark on an already-%s letter",
+                                             mark_class_label(mc),
+                                             base_place_label(bplc));
+                                    issue_append(issues, sizeof(issues),
+                                                 &nissues, rep);
+                                } else if (mg == MG_PLACE &&
+                                           mc != MC_ALVEOLAR &&
+                                           mc != MC_LINGUO) {
+                                    char pair[96];
+                                    snprintf(pair, sizeof(pair), "%s and %s",
+                                             mark_class_label(bplc),
+                                             mark_class_label(mc));
+                                    issue_append(issues, sizeof(issues),
+                                                 &nissues, pair);
+                                }
+                            }
+                            /* rhotacisation on an already-rhotic base
+                             * (ɚ˞, ɝʳ) */
+                            if (mc == MC_RHOT && base_is_rhotic(base))
+                                issue_append(issues, sizeof(issues), &nissues,
+                                             "rhotacisation on an already-rhotic letter");
+                            /* repeated identical mark (iːː, n̩̩) — unless the
+                             * base-level redundancy warning already covers it
+                             * (p̥̥ warns "already voiceless" on the first) */
+                            if ((mark_seen & (1ull << (mc - 1))) &&
+                                !(mc == MC_VL && base && !base_voiced) &&
+                                !(mc == MC_VD && base && base_voiced) &&
+                                !(mc == MC_SYL && base_vowel) &&
+                                !(mc == MC_NOSYL && base && !base_vowel)) {
+                                char rep[96];
+                                snprintf(rep, sizeof(rep), "repeated %s mark",
+                                         mark_class_label(mc));
+                                issue_append(issues, sizeof(issues),
+                                             &nissues, rep);
+                            }
+                            mark_seen |= (1ull << (mc - 1));
                         }
                         apply_voicing_mod(out.v, l2[i].mod, base);
                         if (l2[i].mod->air >= 0)
@@ -2421,6 +2968,17 @@ static IPA2VEC_MAYBE_UNUSED int apply_layer2 (IrTok *l2, int n2, SegVec *segs, i
                         i++;
                     }
                 }
+            }
+            /* report the segment's invalid combinations as ONE warning */
+            if (nissues && base) {
+                if (nissues == 1)
+                    fprintf(stderr,
+                            "ipa2vec: warning: invalid combination on %s: %s\n",
+                            base->ipa, issues);
+                else
+                    fprintf(stderr,
+                            "ipa2vec: warning: %d invalid combinations on %s: %s\n",
+                            nissues, base->ipa, issues);
             }
             if (*nsegs >= MAX_SEGS) {
                 fprintf(stderr, "%s: too many segments (max %d)\n", toolname, MAX_SEGS);
@@ -2473,7 +3031,9 @@ static IPA2VEC_MAYBE_UNUSED void nearest_base (const double v[NDIM], const SegEn
     double bestd = 1e300;
     for (int i = 0; i < CUR_NSEG; i++) {
         double d = seg_dist(v, CUR_SEG[i].v);
-        if (d < bestd) { bestd = d; best = i; }
+        /* fall back to the first row when every distance is INF/1e300
+         * (huge-but-finite inputs): best must never stay -1 (NULL) */
+        if (best < 0 || d < bestd) { bestd = d; best = i; }
     }
     /* EXTRA_BASE entries (extIPA) are valid reverse targets too, but only
      * the standard ones — see extra_is_reverse_base. */
@@ -2481,9 +3041,9 @@ static IPA2VEC_MAYBE_UNUSED void nearest_base (const double v[NDIM], const SegEn
         if (!extra_is_reverse_base(i))
             continue;
         double d = seg_dist(v, EXTRA_BASE[i].v);
-        if (d < bestd) { bestd = d; best = CUR_NSEG + i; }
+        if (best < 0 || d < bestd) { bestd = d; best = CUR_NSEG + i; }
     }
-    *out = (best < CUR_NSEG) ? &CUR_SEG[best] : &EXTRA_BASE[best - CUR_NSEG];
+    *out = (best < 0) ? NULL : ((best < CUR_NSEG) ? &CUR_SEG[best] : &EXTRA_BASE[best - CUR_NSEG]);
     *outd = bestd;
 }
 
@@ -2528,6 +3088,38 @@ static IPA2VEC_MAYBE_UNUSED int set_insert (const ModRec **set, int n,
     }
     set[i] = m;
     return n + 1;
+}
+
+/* merge tail marks + chosen mods into reparse application order
+ * (mod_apply_key, stable) — build_ipa's emission order, so the emitted
+ * spelling re-parses to the same vector (a tail-first array would
+ * evaluate ʼ before ◌̥ while the spelling "k̥ʼ" applies ◌̥ first) */
+static IPA2VEC_MAYBE_UNUSED int merge_apply_order(const ModRec **out, int cap,
+                                                  const ModRec *const *tail,
+                                                  int ntail,
+                                                  const ModRec *const *mods,
+                                                  int nmods)
+{
+    int o = 0;
+    for (int k = 0; k < ntail && o < cap; k++) {
+        int i = o;
+        while (i > 0 && mod_apply_key(out[i - 1]) > mod_apply_key(tail[k])) {
+            out[i] = out[i - 1];
+            i--;
+        }
+        out[i] = tail[k];
+        o++;
+    }
+    for (int k = 0; k < nmods && o < cap; k++) {
+        int i = o;
+        while (i > 0 && mod_apply_key(out[i - 1]) > mod_apply_key(mods[k])) {
+            out[i] = out[i - 1];
+            i--;
+        }
+        out[i] = mods[k];
+        o++;
+    }
+    return o;
 }
 
 static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const SegEntry *base,
@@ -2592,9 +3184,8 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
         /* distance of the current chosen set (tail + chosen), reparse order */
         {
             const ModRec *cur[IPA2VEC_FIT_MAX_MODS + 4];
-            int nc = 0;
-            for (int k = 0; k < ntail; k++) cur[nc++] = tailmods[k];
-            for (int k = 0; k < n; k++) cur[nc++] = mods[k];
+            int nc = merge_apply_order(cur, IPA2VEC_FIT_MAX_MODS + 4,
+                                       tailmods, ntail, mods, n);
             apply_mod_set(trial, eval_base, cur, nc);
             curd = seg_dist(target, trial);
         }
@@ -2628,9 +3219,8 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
             }
             /* evaluate: tail + mods[0..n-1] + candidate, reparse order */
             const ModRec *ins[IPA2VEC_FIT_MAX_MODS + 5];
-            int ni = 0;
-            for (int k = 0; k < ntail; k++) ins[ni++] = tailmods[k];
-            for (int k = 0; k < n; k++) ins[ni++] = mods[k];
+            int ni = merge_apply_order(ins, IPA2VEC_FIT_MAX_MODS + 5,
+                                       tailmods, ntail, mods, n);
             ni = set_insert(ins, ni, &MODS[i]);
             apply_mod_set(trial, eval_base, ins, ni);
             double d = seg_dist(target, trial);
@@ -2654,36 +3244,519 @@ static IPA2VEC_MAYBE_UNUSED int fit_modifiers (const double target[NDIM], const 
 static IPA2VEC_MAYBE_UNUSED int affricate_decode (const double target[NDIM],
                                                   const SegEntry **outc,
                                                   const SegEntry **outr,
+                                                  const ModRec **outrm,
+                                                  int *outnm,
                                                   double *outd)
 {
     const SegEntry *bestc = NULL, *bestr = NULL;
+    const ModRec *bestrm[4];
+    int bestnm = 0;
     double bestd = 1e300;
+    int ddur = dim_of_ok("duration", DIM_DURATION);
+    int djet = dim_of_ok("jet_focus", DIM_JET_FOCUS);
+    int darea = dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA);
+    int dlat = dim_of_ok("lateral_ratio", DIM_LATERAL_RATIO);
+    int pdi = dim_of_ok("place", DIM_TONGUE_TIP_POS);
+    int vdi = dim_of_ok("voiced", DIM_VOICED);
+    /* release modifiers that make phonetic sense on an affricate release:
+     * raised ̝, lowered ̞, voiceless ̊, retracted ̠, advanced ̟,
+     * centralized ̈ (tɹ̝̊ = t + ɹ+̝+̊) */
+    static const unsigned long RELCP[7] = {
+        0x031D, 0x031E, 0x030A, 0x0320, 0x031F, 0x0308, 0x0325
+    };
+    const ModRec *relmods[7];
+    int nrelmods = 0;
+    for (int m = 0; m < 7; m++) {
+        const ModRec *mm = find_mod(RELCP[m]);
+        if (mm && mm->apply) relmods[nrelmods++] = mm;
+    }
     for (int i = 0; i < CUR_NSEG + N_EXTRA; i++) {
         const SegEntry *c = (i < CUR_NSEG) ? &CUR_SEG[i] : &EXTRA_BASE[i - CUR_NSEG];
-        if (c->v[dim_of_ok("duration", DIM_DURATION)] > 0.01) continue;
+        if (c->v[ddur] > 0.01) continue;
         for (int j = 0; j < CUR_NSEG + N_EXTRA; j++) {
             const SegEntry *r = (j < CUR_NSEG) ? &CUR_SEG[j] : &EXTRA_BASE[j - CUR_NSEG];
-            if (r->v[dim_of_ok("duration", DIM_DURATION)] < 0.5 ||
-                r->v[dim_of_ok("duration", DIM_DURATION)] > 1.2) continue;
-            if (r->v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] < 0.05) continue;
+            if (r->v[ddur] < 0.3 || r->v[ddur] > 1.2) continue;
+            if (r->v[darea] < 0.05) continue;
+            double rv[NDIM];
+            memcpy(rv, r->v, sizeof(rv));
+            const ModRec *rm[4];
+            int nrm = 0;
+            /* greedy: stack up to two release modifiers (ɹ -> ɹ̝ -> ɹ̝̊) */
+            for (int round = 0; round < 2; round++) {
+                int bestm = -1;
+                double bestmd = 1e300;
+                for (int m = 0; m < nrelmods; m++) {
+                    int used = 0;
+                    for (int k = 0; k < nrm; k++)
+                        if (rm[k]->apply == relmods[m]->apply) { used = 1; break; }
+                    if (used) continue;
+                    double tmp[NDIM];
+                    memcpy(tmp, rv, sizeof(tmp));
+                    apply_voicing_mod(tmp, relmods[m], r);
+                    double cv[NDIM];
+                    memcpy(cv, c->v, sizeof(cv));
+                    cv[ddur] = tmp[ddur] + 0.5;
+                    cv[djet] = tmp[djet];
+                    cv[darea] = tmp[darea];
+                    cv[dlat] = (c->v[dlat] > 0.0 || tmp[dlat] > 0.0) ? 1.0 : 0.0;
+                    /* the forward ligature rule applies release modifiers
+                     * to the WHOLE merged vector (place shift from ̠/̟,
+                     * voicing from ̊/̥ included) — mirror it or the
+                     * emitted "t͡θ̠" re-parses to a different vector */
+                    apply_voicing_mod(cv, relmods[m], r);
+                    double dm = seg_dist(target, cv);
+                    dm += 0.05 * fabs(c->v[pdi] - tmp[pdi]);
+                    if (dm < bestmd) { bestmd = dm; bestm = m; }
+                }
+                double cv[NDIM];
+                memcpy(cv, c->v, sizeof(cv));
+                cv[ddur] = rv[ddur] + 0.5;
+                cv[djet] = rv[djet];
+                cv[darea] = rv[darea];
+                cv[dlat] = (c->v[dlat] > 0.0 || rv[dlat] > 0.0) ? 1.0 : 0.0;
+                double dcur = seg_dist(target, cv);
+                dcur += 0.05 * fabs(c->v[pdi] - rv[pdi]);
+                if (bestm >= 0 && bestmd < dcur - 1e-9 && nrm < 4) {
+                    apply_voicing_mod(rv, relmods[bestm], r);
+                    rm[nrm++] = relmods[bestm];
+                } else break;
+            }
             double v[NDIM];
             memcpy(v, c->v, sizeof(v));
-            v[dim_of_ok("duration", DIM_DURATION)] =
-                r->v[dim_of_ok("duration", DIM_DURATION)] + 0.5;
-            v[dim_of_ok("jet_focus", DIM_JET_FOCUS)] =
-                r->v[dim_of_ok("jet_focus", DIM_JET_FOCUS)];
-            v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] =
-                r->v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)];
-            v[dim_of_ok("lateral_ratio", DIM_LATERAL_RATIO)] =
-                (c->v[dim_of_ok("lateral_ratio", DIM_LATERAL_RATIO)] > 0.0 ||
-                 r->v[dim_of_ok("lateral_ratio", DIM_LATERAL_RATIO)] > 0.0) ? 1.0 : 0.0;
+            v[ddur] = rv[ddur] + 0.5;
+            v[djet] = rv[djet];
+            v[darea] = rv[darea];
+            v[dlat] = (c->v[dlat] > 0.0 || rv[dlat] > 0.0) ? 1.0 : 0.0;
+            /* whole-vector release modifiers, applied in reparse order so
+             * the emitted spelling re-parses identically */
+            {
+                const ModRec *sr[4];
+                int nsr = 0;
+                for (int k = 0; k < nrm; k++) nsr = set_insert(sr, nsr, rm[k]);
+                for (int k = 0; k < nsr; k++) apply_voicing_mod(v, sr[k], r);
+            }
             double d = seg_dist(target, v);
-            if (d < bestd - 1e-9) { bestd = d; bestc = c; bestr = r; }
+            d += 0.05 * fabs(c->v[pdi] - rv[pdi]);
+            if (d < bestd - 1e-9) {
+                bestd = d; bestc = c; bestr = r; bestnm = nrm;
+                for (int k = 0; k < nrm; k++) bestrm[k] = rm[k];
+            }
         }
     }
     if (!bestc) return -1;
-    *outc = bestc; *outr = bestr; *outd = bestd;
+    *outc = bestc; *outr = bestr; *outnm = bestnm;
+    for (int k = 0; k < bestnm; k++) outrm[k] = bestrm[k];
+    *outd = bestd;
     return 0;
+}
+
+/* per-modifier cost: the weighted distance the modifier alone moves the
+ * base.  Different modifiers cost differently — ◌̩ on ɻ is a 0.5
+ * duration step (2.5), ʷ moves lips/body/root at once (2.35) — and the
+ * same modifier costs differently on different bases.  The base
+ * competition scores fit_distance + LAMBDA × Σvec-costs + FLAT ×
+ * n_mods, so a base that fits exactly with few cheap modifiers
+ * (ʯ = ɻ+[ʷ,◌̩], aʷ = a+[ʷ]) beats one that squeezes equally close
+ * with more, mismatched ones (ɵ+[̜,̺,̩,̫], ɒ+[̜,ʷ]). */
+#define IPA2VEC_MOD_COST_LAMBDA 0.25
+#define IPA2VEC_MOD_COST_FLAT  0.3    /* per-modifier sparsity penalty */
+static IPA2VEC_MAYBE_UNUSED double mod_cost (const SegEntry *base, const ModRec *m)
+{
+    double trial[NDIM];
+    memcpy(trial, base->v, sizeof(double) * NDIM);
+    apply_voicing_mod(trial, m, base);
+    return seg_dist(base->v, trial);
+}
+
+/* fit one candidate base: greedy modifiers, fit distance, and the
+ * summed vector cost of the modifiers (for the competition score —
+ * the flat per-modifier penalty is added at the comparison site) */
+static IPA2VEC_MAYBE_UNUSED int fit_candidate (const double target[NDIM],
+                                               const SegEntry *c,
+                                               const ModRec **mods,
+                                               double *fitd, double *cost)
+{
+    const ModRec *m[IPA2VEC_FIT_MAX_MODS] = {0};
+    int nmc = fit_modifiers(target, c, m);
+    double trial[NDIM];
+    apply_mod_set(trial, c, m, nmc);
+    *fitd = seg_dist(target, trial);
+    double cs = 0.0;
+    for (int k = 0; k < nmc; k++) cs += mod_cost(c, m[k]);
+    *cost = cs;
+    if (mods)
+        for (int k = 0; k < nmc; k++) mods[k] = m[k];
+    return nmc;
+}
+
+/* competition score: fit distance + priced modifier costs */
+static IPA2VEC_MAYBE_UNUSED double fit_score (double fitd, double vec_cost, int nm)
+{
+    return fitd + IPA2VEC_MOD_COST_LAMBDA * vec_cost
+                + IPA2VEC_MOD_COST_FLAT * nm;
+}
+
+/* ---- modifier inference (reverse fast path) -------------------------
+ * A target produced by the forward parser is a base plus a few
+ * modifiers.  Most modifiers are ABSOLUTE setters, so their active
+ * state is readable directly off the target's dimension values:
+ *   lips 0.8 + body -0.12 + root 0.3        -> ʷ
+ *   body -0.12 + root 0.3 (no lips)          -> ˠ
+ *   root 0.7 + body -0.08                    -> ˤ
+ *   body 0.24                                -> ʲ
+ *   place -0.6 + tip 1.0 / place -0.75       -> ◌̪
+ *   vel_open 0.6                             -> ◌̃
+ *   glottal_aperture 0.9                     -> ʰ
+ *   duration 1.5 / 2.0                       -> ◌̩ ◌ˑ / ː
+ *   tip 0.65 / 0.6 / 0.5                     -> ◌̺ ◌̻ ◌̽
+ * This turns the reverse search from "enumerate every (base × mod)"
+ * into "infer ≤ 5 hypotheses, verify greedily per base" —
+ * O(bases × |M̂|) instead of O(bases × mods + bases × pairs).  The
+ * verification is per-base greedy (only strictly-helping mods are
+ * kept, so no spurious diacritics) and the result is accepted ONLY
+ * when it is exact; everything else falls through to the full search.
+ * Confounded values (voicing, aperture 0, relative place/manner
+ * shifts) are deliberately not inferred. */
+#define IPA2VEC_INFER_MAX 5
+static IPA2VEC_MAYBE_UNUSED int infer_mods (const double target[NDIM],
+                                            const ModRec *out[IPA2VEC_INFER_MAX])
+{
+    int pi = dim_of_ok("place", DIM_TONGUE_TIP_POS);
+    int bi = dim_of_ok("tongue_body_pos", DIM_TONGUE_BODY_POS);
+    int li = dim_of_ok("lips_closed", DIM_LIPS_CLOSED);
+    int ri = dim_of_ok("lips_rounded", DIM_LIPS_ROUNDED);
+    int ti = dim_of_ok("tip_shape", DIM_TONGUE_TIP_HEIGHT);
+    int rii = dim_of_ok("tongue_root", DIM_TONGUE_ROOT);
+    int vi = dim_of_ok("vel_open", DIM_VEL_OPEN);
+    int ai = dim_of_ok("glottal_aperture", DIM_CONSTRICTED_GLOTTIS);
+    int di = dim_of_ok("duration", DIM_DURATION);
+    int n = 0;
+    double lips = target[ri], body = target[bi], root = target[rii];
+    if (lips == 0.8 && body == -0.12 && root == 0.3) {
+        const ModRec *m = find_mod(0x02B7);   /* ʷ */
+        if (m && m->apply && n < IPA2VEC_INFER_MAX) out[n++] = m;
+    } else if (body == -0.12 && root == 0.3) {
+        const ModRec *m = find_mod(0x02E0);   /* ˠ */
+        if (m && m->apply && n < IPA2VEC_INFER_MAX) out[n++] = m;
+    }
+    if (root == 0.7 && body == -0.08) {
+        const ModRec *m = find_mod(0x02E4);   /* ˤ */
+        if (m && m->apply && n < IPA2VEC_INFER_MAX) out[n++] = m;
+    }
+    if (body == 0.24) {
+        const ModRec *m = find_mod(0x02B2);   /* ʲ */
+        if (m && m->apply && n < IPA2VEC_INFER_MAX) out[n++] = m;
+    }
+    if ((target[pi] == -0.6 && target[ti] == 1.0) ||
+        (target[pi] == -0.75 && target[li] == 0.3)) {
+        const ModRec *m = find_mod(0x032A);   /* ◌̪ */
+        if (m && m->apply && n < IPA2VEC_INFER_MAX) out[n++] = m;
+    }
+    if (target[vi] == 0.6) {
+        const ModRec *m = find_mod(0x0303);   /* ◌̃ */
+        if (m && m->apply && n < IPA2VEC_INFER_MAX) out[n++] = m;
+    }
+    if (target[ai] == 0.9) {
+        const ModRec *m = find_mod(0x02B0);   /* ʰ */
+        if (m && m->apply && n < IPA2VEC_INFER_MAX) out[n++] = m;
+    }
+    if (target[di] == 0.5) {
+        /* a vowel + ◌̆ (1.0 × 0.5); syllabic consonants now carry
+         * vowel length (1.5), so 0.5 is never syllabic */
+        const ModRec *m = find_mod(0x0306);
+        if (m && m->apply && n < IPA2VEC_INFER_MAX) out[n++] = m;
+    } else if (target[di] == 1.5) {
+        /* syllabic consonant (nucleus length) or half-long */
+        const ModRec *ms[2] = { find_mod(0x0329), find_mod(0x02D1) };
+        for (int k = 0; k < 2 && n < IPA2VEC_INFER_MAX; k++)
+            if (ms[k] && ms[k]->apply) out[n++] = ms[k];
+    } else if (target[di] == 1.7) {
+        /* half-long affricate (midpoint toward long) */
+        const ModRec *m = find_mod(0x02D1);
+        if (m && m->apply && n < IPA2VEC_INFER_MAX) out[n++] = m;
+    } else if (target[di] == 1.9) {
+        /* syllabic affricate (affricate + mora) */
+        const ModRec *m = find_mod(0x0329);
+        if (m && m->apply && n < IPA2VEC_INFER_MAX) out[n++] = m;
+    } else if (target[di] == 2.0) {
+        const ModRec *m = find_mod(0x02D0);   /* ː */
+        if (m && m->apply && n < IPA2VEC_INFER_MAX) out[n++] = m;
+    }
+    if (target[ti] == 0.65) {
+        const ModRec *m = find_mod(0x033A);   /* ◌̺ */
+        if (m && m->apply && n < IPA2VEC_INFER_MAX) out[n++] = m;
+    }
+    if (target[ti] == 0.6) {
+        const ModRec *m = find_mod(0x033B);   /* ◌̻ */
+        if (m && m->apply && n < IPA2VEC_INFER_MAX) out[n++] = m;
+    }
+    if (target[ti] == 0.5) {
+        const ModRec *m = find_mod(0x033D);   /* ◌̽ */
+        if (m && m->apply && n < IPA2VEC_INFER_MAX) out[n++] = m;
+    }
+    return n;
+}
+
+/* greedy verification of the inferred hypotheses per base: keep only
+ * mods that strictly reduce the distance, and accept the best base by
+ * the same competition score as the full search. */
+static IPA2VEC_MAYBE_UNUSED void verify_infer (const double target[NDIM],
+                                               const ModRec *hyp[IPA2VEC_INFER_MAX],
+                                               int nh,
+                                               const SegEntry **outb,
+                                               const ModRec **outmods,
+                                               int *outnm, double *outd)
+{
+    const SegEntry *best = NULL;
+    int best_nm = 0;
+    double best_d = 1e300, best_cost = 0.0;
+    double trial[NDIM];
+    for (int i = 0; i < CUR_NSEG; i++) {
+        const SegEntry *b = &CUR_SEG[i];
+        const ModRec *ch[IPA2VEC_INFER_MAX];
+        int nch = 0;
+        double curd = seg_dist(target, b->v);
+        for (int round = 0; round < nh && nch < IPA2VEC_INFER_MAX; round++) {
+            int bi2 = -1;
+            double bd = curd;
+            for (int k = 0; k < nh; k++) {
+                int used = 0;
+                for (int u = 0; u < nch; u++)
+                    if (ch[u]->apply == hyp[k]->apply) { used = 1; break; }
+                if (used) continue;
+                const ModRec *tmp[IPA2VEC_INFER_MAX + 1];
+                int nt = 0;
+                for (int u = 0; u < nch; u++) tmp[nt++] = ch[u];
+                tmp[nt++] = hyp[k];
+                apply_mod_set(trial, b, tmp, nt);
+                double d = seg_dist(target, trial);
+                if (d < bd - 1e-12) { bd = d; bi2 = k; }
+            }
+            if (bi2 < 0) break;
+            ch[nch++] = hyp[bi2];
+            curd = bd;
+        }
+        double cost = 0.0;
+        for (int k = 0; k < nch; k++) cost += mod_cost(b, ch[k]);
+        if (fit_score(curd, cost, nch) < fit_score(best_d, best_cost, best_nm)) {
+            best_d = curd; best_cost = cost; best = b; best_nm = nch;
+            for (int k = 0; k < nch; k++) outmods[k] = ch[k];
+        }
+    }
+    *outb = best; *outnm = best_nm; *outd = best_d;
+}
+
+/* reverse fit with base competition — an informed two-phase search
+ * instead of fitting many bases blindly:
+ *   phase 1 estimates every base cheaply — its best single modifier
+ *     and its best modifier PAIR, each priced with the per-modifier
+ *     cost (fit_d + LAMBDA·Σvec-cost + FLAT·n) — and only the bases
+ *     whose estimate can win (top-K) receive the full greedy fit.
+ * The greedy can land on a far base (syllabic ɡ̩ -> ɣ, ʯ -> ɵ) because
+ * modifiers move the target away from its true base; the pair estimate
+ * catches the true base for ʯ (ɻ+[ʷ,◌̩] = its exact score, ranked
+ * first) while squeezed impostors (ɵ+[̜,̺,̩,̫]) rank below it. */
+#define IPA2VEC_FIT_EST_MODS  8     /* best single mods kept per base  */
+#define IPA2VEC_FIT_EST_TOP   16    /* bases that get the full fit     */
+#define IPA2VEC_FIT_MAX_CAND  256
+static IPA2VEC_MAYBE_UNUSED void fit_best (const double target[NDIM],
+                                           const SegEntry **outb,
+                                           const ModRec **outmods,
+                                           int *outnm, double *outd)
+{
+    const SegEntry *first = NULL;
+    double fd = 0.0;
+    nearest_base(target, &first, &fd);
+    /* exact base vector: nothing to fit */
+    if (fd <= 1e-9) {
+        *outb = first; *outnm = 0; *outd = 0.0;
+        return;
+    }
+    /* modifier-inference fast path: read the active modifiers off the
+     * target's dimension values and verify them greedily per base —
+     * O(bases × |M̂|) instead of the full estimate.  Accepted only
+     * when the verification is EXACT (a target that reproduces a base
+     * + the inferred mods cannot be improved on). */
+    {
+        const ModRec *hyp[IPA2VEC_INFER_MAX];
+        int nh = infer_mods(target, hyp);
+        if (nh > 0) {
+            const SegEntry *ib = NULL;
+            const ModRec *imods[IPA2VEC_INFER_MAX] = {0};
+            int inm = 0;
+            double id = 1e300;
+            verify_infer(target, hyp, nh, &ib, imods, &inm, &id);
+            if (id <= 1e-9) {
+                *outb = ib; *outnm = inm; *outd = id;
+                for (int k = 0; k < inm; k++) outmods[k] = imods[k];
+                return;
+            }
+        }
+    }
+    /* global best exact single-modifier and pair candidates */
+    const SegEntry *gsb = NULL;
+    const ModRec *gsm = NULL;
+    double gsd = 1e300, gsc = 0.0;
+    const SegEntry *gpb = NULL;
+    const ModRec *gpm1 = NULL, *gpm2 = NULL;
+    double gpd = 1e300, gpc = 0.0;
+    const SegEntry *cand[IPA2VEC_FIT_MAX_CAND];
+    double cande[IPA2VEC_FIT_MAX_CAND];
+    int nc = 0;
+    for (int pass = 0; pass < 2 && nc < IPA2VEC_FIT_MAX_CAND; pass++) {
+        int n = (pass == 0) ? CUR_NSEG : N_EXTRA;
+        for (int i = 0; i < n && nc < IPA2VEC_FIT_MAX_CAND; i++) {
+            const SegEntry *b = (pass == 0) ? &CUR_SEG[i] : &EXTRA_BASE[i];
+            if (pass == 1 && !extra_is_reverse_base(i)) continue;
+            const ModRec *bestm[IPA2VEC_FIT_EST_MODS] = {0};
+            double bestd[IPA2VEC_FIT_EST_MODS];
+            double bestc[IPA2VEC_FIT_EST_MODS];
+            for (int t = 0; t < IPA2VEC_FIT_EST_MODS; t++) bestd[t] = 1e300;
+            double est = seg_dist(target, b->v);
+            for (int j = 0; j < NMODS; j++) {
+                const ModRec *m = &MODS[j];
+                if (!m->apply || is_ligature_cp(m->cp)) continue;
+                if (!m->reverse) continue;
+                if (m->tier == TIER_AIRSTREAM && m->air < 0) continue;
+                double trial[NDIM];
+                memcpy(trial, b->v, sizeof(double) * NDIM);
+                apply_voicing_mod(trial, m, b);
+                double c = seg_dist(b->v, trial);
+                double e = seg_dist(target, trial) +
+                           IPA2VEC_MOD_COST_LAMBDA * c +
+                           IPA2VEC_MOD_COST_FLAT;
+                if (e < est) est = e;
+                for (int t = 0; t < IPA2VEC_FIT_EST_MODS; t++) {
+                    if (e < bestd[t]) {
+                        for (int u = IPA2VEC_FIT_EST_MODS - 1; u > t; u--) {
+                            bestm[u] = bestm[u - 1];
+                            bestd[u] = bestd[u - 1];
+                            bestc[u] = bestc[u - 1];
+                        }
+                        bestm[t] = m;
+                        bestd[t] = e;
+                        bestc[t] = c;
+                        break;
+                    }
+                }
+            }
+            if (bestm[0] && bestd[0] < gsd) {
+                gsb = b; gsm = bestm[0]; gsd = bestd[0]; gsc = bestc[0];
+            }
+            /* best modifier pair among the kept singles */
+            for (int a = 0; a < IPA2VEC_FIT_EST_MODS && bestm[a]; a++) {
+                for (int k2 = a + 1; k2 < IPA2VEC_FIT_EST_MODS && bestm[k2]; k2++) {
+                    const ModRec *ms[2] = { bestm[a], bestm[k2] };
+                    /* apply in reparse order: the emitted spelling is
+                     * re-sorted by tier, so evaluating the pair in pick
+                     * order would claim d=0 for a vector the spelling
+                     * cannot reproduce (lˠ̙ vs l̙ˠ) */
+                    if (mod_apply_key(ms[1]) < mod_apply_key(ms[0])) {
+                        const ModRec *t = ms[0]; ms[0] = ms[1]; ms[1] = t;
+                    }
+                    double trial[NDIM];
+                    apply_mod_set(trial, b, ms, 2);
+                    double e = seg_dist(target, trial) +
+                               IPA2VEC_MOD_COST_LAMBDA * (bestc[a] + bestc[k2]) +
+                               2 * IPA2VEC_MOD_COST_FLAT;
+                    if (e < est) est = e;
+                    if (e < gpd) {
+                        gpb = b; gpm1 = bestm[a]; gpm2 = bestm[k2];
+                        gpd = e; gpc = bestc[a] + bestc[k2];
+                    }
+                }
+            }
+            cand[nc] = b;
+            cande[nc] = est;
+            nc++;
+        }
+    }
+    /* exact 1- or 2-modifier decomposition: the estimate IS the fit —
+     * dist 0 cannot be improved and the cost model already ranked the
+     * candidate, so no greedy search is needed (the common case:
+     * plain letters, one diacritic, ʯ = ɻ+[ʷ,◌̩], aʷ = a+[ʷ]) */
+    {
+        double best_e = 1e300;
+        int use_pair = 0;
+        double sdist = gsd - IPA2VEC_MOD_COST_LAMBDA * gsc - IPA2VEC_MOD_COST_FLAT;
+        double pdist = gpd - IPA2VEC_MOD_COST_LAMBDA * gpc - 2 * IPA2VEC_MOD_COST_FLAT;
+        if (gsm && sdist <= 1e-9 && gsd < best_e) { best_e = gsd; use_pair = 0; }
+        if (gpm1 && pdist <= 1e-9 && gpd < best_e) { best_e = gpd; use_pair = 1; }
+        if (best_e < 1e300) {
+            if (use_pair) {
+                *outb = gpb; *outnm = 2;
+                /* return in reparse order so the emitted spelling
+                 * re-parses to the same vector */
+                if (mod_apply_key(gpm2) < mod_apply_key(gpm1)) {
+                    outmods[0] = gpm2; outmods[1] = gpm1;
+                } else {
+                    outmods[0] = gpm1; outmods[1] = gpm2;
+                }
+                *outd = pdist > 0.0 ? pdist : 0.0;
+            } else {
+                *outb = gsb; *outnm = 1;
+                outmods[0] = gsm;
+                *outd = sdist > 0.0 ? sdist : 0.0;
+            }
+            return;
+        }
+    }
+    /* full greedy fit of the best-estimate bases (raw nearest always):
+     * selection-sort the estimates and fit the top-K.  An EXACT
+     * decomposition (d = 0 — the target is a parseable spelling)
+     * always beats a merely close one: ʂ̩'s vector is 0.1 away from
+     * the affricate base ʈ͡ʂ, but the exact ʂ+[◌̩] reading is the
+     * round trip; only when nothing is exact does the near fit win. */
+    const SegEntry *fit[IPA2VEC_FIT_EST_TOP + 1];
+    int nfit = 0;
+    fit[nfit++] = first;
+    for (int r = 0; r < IPA2VEC_FIT_EST_TOP && nc; ) {
+        int bi = 0;
+        for (int i = 1; i < nc; i++)
+            if (cande[i] < cande[bi]) bi = i;
+        /* consumed candidates are marked 1e300; distances that overflow
+         * to INF also compare >= 1e300 — with only such entries left the
+         * min-scan would re-pick a consumed dup forever (hang) */
+        if (!(cande[bi] < 1e300)) break;
+        const SegEntry *b = cand[bi];
+        cande[bi] = 1e300;
+        int dup = 0;
+        for (int k = 0; k < nfit; k++)
+            if (fit[k] == b) { dup = 1; break; }
+        if (dup) continue;
+        fit[nfit++] = b;
+        r++;
+    }
+    const SegEntry *best = NULL;
+    int best_nm = 0;
+    double best_d = 1e300, best_cost = 0.0;
+    const SegEntry *exact_b = NULL;
+    int exact_nm = 0;
+    double exact_d = 0.0, exact_cost = 0.0, exact_score = 1e300;
+    for (int k = 0; k < nfit; k++) {
+        const ModRec *m[IPA2VEC_FIT_MAX_MODS] = {0};
+        double dc, cc;
+        int nmc = fit_candidate(target, fit[k], m, &dc, &cc);
+        if (dc <= 1e-9) {
+            double sc = fit_score(dc, cc, nmc);
+            if (sc < exact_score) {
+                exact_score = sc; exact_b = fit[k]; exact_nm = nmc;
+                exact_d = dc; exact_cost = cc;
+                for (int j = 0; j < nmc; j++) outmods[j] = m[j];
+            }
+        } else if (!exact_b &&
+                   fit_score(dc, cc, nmc) < fit_score(best_d, best_cost, best_nm)) {
+            best_d = dc; best_cost = cc; best = fit[k]; best_nm = nmc;
+            for (int j = 0; j < nmc; j++) outmods[j] = m[j];
+        }
+    }
+    if (exact_b) {
+        best = exact_b; best_nm = exact_nm;
+        best_d = exact_d; best_cost = exact_cost;
+    }
+    *outb = best;
+    *outnm = best_nm;
+    *outd = best_d;
 }
 
 /* rebuild an IPA string from (base, modifier cps): base then combining
@@ -2743,6 +3816,7 @@ static IPA2VEC_MAYBE_UNUSED const char *combining_form(const ModRec *m)
 static IPA2VEC_MAYBE_UNUSED int mod_is_spacing(const ModRec *m)
 {
     if (m->apply == mod_phar) return 1;        /* emitted as ˤ U+02E4 */
+    if (m->apply == mod_lab) return 1;         /* emitted as ʷ U+02B7 */
     if (m->apply == mod_voiceless) return 0;   /* emitted as ◌̥/◌̊ */
     if (combining_form(m)) return 0;           /* ˔ ˕ -> ◌̝ ◌̞ */
     const unsigned char *g = (const unsigned char *)m->ipa;
@@ -2802,15 +3876,33 @@ static IPA2VEC_MAYBE_UNUSED const char *base_tail_marks(const char *s)
     return tail;
 }
 
+/* does the segment's spelling carry a below combining mark (n̪, d̥)?
+ * Below marks in the base force later below marks (voiceless ring,
+ * syllabic stroke) to move above. */
+static IPA2VEC_MAYBE_UNUSED int seg_has_below(const char *ipa)
+{
+    const unsigned char *p = (const unsigned char *)ipa;
+    while (*p) {
+        unsigned long cp;
+        int k = utf8_decode(p, &cp);
+        if (!k) break;
+        if (cp >= 0x0316 && cp <= 0x0345) return 1;
+        p += k;
+    }
+    return 0;
+}
+
 /* build the IPA spelling: base letter (without its own trailing spacing
  * marks) + combining marks in feature-tier order, then all spacing
  * superscript marks (the base's own + the fitted modifiers) last, in
  * feature-tier order.
  * Standard symbols only: spacing modifier letters are replaced by their
  * combining forms where one exists; below-marks on descender letters are
- * moved above (voiceless ◌̥ -> ◌̊). */
+ * moved above (voiceless ◌̥ -> ◌̊); i/j with an above mark covering the
+ * dot (or `dotless` from a dotless ı/ȷ input) are written dotless
+ * (j̊ -> ȷ̊, í -> ı́). */
 static IPA2VEC_MAYBE_UNUSED void build_ipa (const SegEntry *base, const ModRec **mods, int nmods,
-                       char *out, size_t outsz)
+                       int dotless, char *out, size_t outsz)
 {
     /* copy to a local array so we can reorder without touching caller data */
     const ModRec *ordered[IPA2VEC_FIT_MAX_MODS];
@@ -2831,10 +3923,83 @@ static IPA2VEC_MAYBE_UNUSED void build_ipa (const SegEntry *base, const ModRec *
     } else {
         desc = has_descender(base->ipa);
     }
+    /* dot-capable core: i/j, whose dot is covered by above marks */
+    int is_dot_core = (corelen == 1 && (core[0] == 'i' || core[0] == 'j'));
+    /* the voiceless ring goes above on descender letters AND on the
+     * dot-capable i/j — there it covers the dot, so the letter is
+     * written dotless instead (i̥ -> ı̊, j̥ -> ȷ̊) */
+    int ring_above = desc || is_dot_core;
+    /* would any emitted combining mark sit above the letter, covering
+     * the dot of i/j?  Mirrors the pass-0 glyph selection below (the
+     * ring moves above on descender / dot-capable letters, the
+     * syllabic stroke moves above on descenders or after below marks). */
+    int dot_cov = dotless;
+    if (!dot_cov) {
+        for (int i = 0; i < n && !dot_cov; i++) {
+            const ModRec *m = ordered[i];
+            if (mod_is_spacing(m)) continue;
+            unsigned long cp = 0;
+            if (m->apply == mod_voiceless) {
+                int below_other = 0;
+                for (int k = 0; k < n && !below_other; k++) {
+                    if (k == i) continue;
+                    unsigned long c2 = ordered[k]->cp;
+                    if (ordered[k]->apply == mod_voiceless)
+                        c2 = ring_above ? 0x030A : 0x0325;
+                    if (c2 >= 0x0316 && c2 <= 0x0345) below_other = 1;
+                }
+                cp = (ring_above || below_other) ? 0x030A : 0x0325;
+            } else if (m->apply == mod_syl) {
+                int below = desc;
+                for (int k = 0; k < n && !below; k++) {
+                    if (k == i) continue;
+                    unsigned long c2 = ordered[k]->cp;
+                    if (ordered[k]->apply == mod_voiceless)
+                        c2 = ring_above ? 0x030A : 0x0325;
+                    if (c2 >= 0x0316 && c2 <= 0x0345) below = 1;
+                }
+                if (seg_has_below(base->ipa)) below = 1;
+                cp = below ? 0x030D : 0x0329;
+            } else {
+                const char *comb = combining_form(m);
+                const unsigned char *g = (const unsigned char *)(comb ? comb : m->ipa);
+                while (*g) {
+                    unsigned long c2;
+                    int k = utf8_decode(g, &c2);
+                    if (!k) break;
+                    if (c2 != 0x25CC) { cp = c2; break; }
+                    g += k;
+                }
+            }
+            if (cp && is_above_combining(cp)) dot_cov = 1;
+        }
+    }
     size_t used = 0;
-    if (corelen + 1 <= outsz) {
+    /* dotless i/j: when an above mark covers the dot (or the input was
+     * written dotless ı/ȷ) the dotted letter is replaced by its dotless
+     * form — the standard spelling of ȷ̊ and of ı with above marks */
+    if (dot_cov && corelen == 1 && (core[0] == 'i' || core[0] == 'j')) {
+        const char *df = (core[0] == 'i') ? "\xC4\xB1" : "\xC8\xB7";  /* ı / ȷ */
+        size_t k = strlen(df);
+        if (k + 1 <= outsz) {
+            memcpy(out, df, k);
+            used = k;
+            out[used] = 0;
+        }
+    } else if (corelen + 1 <= outsz) {
         memcpy(out, base->ipa, corelen);
         used = corelen;
+        out[used] = 0;
+    }
+
+    /* the base's own trailing spacing marks (kʼ's ʼ, lˠ's ˠ) stay with
+     * the base spelling: emitting them after the fitted combining marks
+     * (k̥ʼ) re-parses as k+[◌̥,ʼ] — voiceless applied to the CORE — while
+     * the fit's base kʼ applies it to the row (full devoicing), so the
+     * spelling must read "kʼ̥" (row kʼ + ◌̥) to reproduce the vector */
+    if (tail && used + strlen(tail) + 1 <= outsz) {
+        memcpy(out + used, tail, strlen(tail));
+        used += strlen(tail);
         out[used] = 0;
     }
 
@@ -2846,13 +4011,31 @@ static IPA2VEC_MAYBE_UNUSED void build_ipa (const SegEntry *base, const ModRec *
         /* prefer the combining form of spacing modifier letters */
         const char *comb = combining_form(m);
         if (comb) glyph = comb;
+        /* below mark already emitted (the voiceless ring counts as
+         * below unless ring_above), or the segment's own spelling has
+         * one (n̪, d̥) */
+        int below_emitted = 0;
+        for (int k = 0; k < n && !below_emitted; k++) {
+            if (k == i) continue;
+            unsigned long c2 = ordered[k]->cp;
+            if (ordered[k]->apply == mod_voiceless)
+                c2 = ring_above ? 0x030A : 0x0325;
+            if (c2 >= 0x0316 && c2 <= 0x0345) below_emitted = 1;
+        }
+        int base_below = seg_has_below(base->ipa);
         /* voiceless: standard form is ◌̥ (below ring); on descender
-         * letters the below ring collides with the descender, so the
-         * above ring ◌̊ is used instead (ŋ̥ -> ŋ̊, but m̥ stays m̥).
-         * The choice depends on the letter, not on which MODS glyph was
-         * picked during fitting. */
+         * letters, dot-capable i/j, or after a below mark the above ring
+         * ◌̊ is used instead (ŋ̥ -> ŋ̊, ɹ̝̊ keeps ̝ below and the ring
+         * above, but m̥ stays m̥). */
         if (m->apply == mod_voiceless)
-            glyph = desc ? "\xcc\x8a" : "\xcc\xa5";
+            glyph = (ring_above || below_emitted) ? "\xcc\x8a" : "\xcc\xa5";
+        /* syllabic: standard form is ◌̩ (below); use the above line ◌̍
+         * when the letter has a descender (ɻ̩ -> ɻ̍, ŋ̩ -> ŋ̍), its own
+         * spelling has a below mark (n̪̩ -> n̪̍, d̥̩ -> d̥̍), or a below
+         * mark was already emitted (t̪̩ -> t̪̍). */
+        if (m->apply == mod_syl)
+            glyph = (desc || below_emitted || base_below)
+                    ? "\xcc\x8d" : "\xcc\xa9";
         /* pharyngealised: emit the unambiguous superscript ˤ (U+02E4)
          * rather than the velarised-or-pharyngealised overlay ◌̴ */
         if (m->apply == mod_phar)
@@ -2876,13 +4059,6 @@ static IPA2VEC_MAYBE_UNUSED void build_ipa (const SegEntry *base, const ModRec *
         }
     }
 
-    /* the base's own trailing spacing marks come before any fitted ones */
-    if (tail && used + strlen(tail) + 1 <= outsz) {
-        memcpy(out + used, tail, strlen(tail));
-        used += strlen(tail);
-        out[used] = 0;
-    }
-
     /* pass 1: spacing superscripts from the fitted modifiers (typographic
      * new characters — appended last) */
     for (int i = 0; i < n; i++) {
@@ -2895,14 +4071,21 @@ static IPA2VEC_MAYBE_UNUSED void build_ipa (const SegEntry *base, const ModRec *
         /* voiceless: standard form is ◌̥ (below ring); on descender
          * letters the below ring collides with the descender, so the
          * above ring ◌̊ is used instead (ŋ̥ -> ŋ̊, but m̥ stays m̥).
+         * On the dot-capable i/j the ring goes above too, covering the
+         * dot, and the letter is written dotless (i̥ -> ı̊, j̥ -> ȷ̊).
          * The choice depends on the letter, not on which MODS glyph was
          * picked during fitting. */
         if (m->apply == mod_voiceless)
-            glyph = desc ? "\xcc\x8a" : "\xcc\xa5";
+            glyph = ring_above ? "\xcc\x8a" : "\xcc\xa5";
         /* pharyngealised: emit the unambiguous superscript ˤ (U+02E4)
          * rather than the velarised-or-pharyngealised overlay ◌̴ */
         if (m->apply == mod_phar)
             glyph = "\xcb\xa4";
+        /* labialised: emit the standard superscript ʷ (U+02B7) — the
+         * combining inverted double arch ◌̫ (U+032B) was withdrawn at
+         * the 1989 Kiel Convention */
+        if (m->apply == mod_lab)
+            glyph = "\xca\xb7";
         /* strip the U+25CC dotted-circle placeholder from display glyphs
          * (MODS entries are written "◌̝" for readability; the emitted IPA
          * spelling carries only the combining mark itself) */
@@ -3088,7 +4271,7 @@ static IPA2VEC_MAYBE_UNUSED int opt_school(const char *arg)
     return 0;
 }
 
-/* -i/--information: repository, copyleft, feature overview (CLI-friendly;
+/* -i/--information: repository, licence, feature overview (CLI-friendly;
  * not the full README, which is printed by -R/--readme).  The body is
  * tailored per tool (ipa2vec / vec2ipa / vec4ipa) since each direction
  * has its own feature set and input syntax. */
@@ -3098,7 +4281,7 @@ static IPA2VEC_MAYBE_UNUSED void print_info(const char *tool)
         printf("ipa2vec — IPA/extIPA → 16-D articulatory vectors, v%s\n",
                IPA2VEC_VERSION);
         printf("Repository: https://github.com/csiroqa/vec4ipa.git\n");
-        printf("License   : MIT — see LICENSE (copyleft: free to use, modify, share)\n");
+        printf("License   : MIT — see LICENSE (permissive: free to use, modify, share)\n");
         printf("Spec      : docs/SPEC.md · IPA_VECTORS.md · metric.json\n");
         printf("Core      : src/ipa2vec_core.h (shared by all three tools)\n\n");
         printf("ipa2vec is the forward converter of the vec4ipa suite:\n");
@@ -3116,7 +4299,7 @@ static IPA2VEC_MAYBE_UNUSED void print_info(const char *tool)
         printf("vec2ipa — 16-D articulatory vectors → IPA/extIPA, v%s\n",
                IPA2VEC_VERSION);
         printf("Repository: https://github.com/csiroqa/vec4ipa.git\n");
-        printf("License   : MIT — see LICENSE (copyleft: free to use, modify, share)\n");
+        printf("License   : MIT — see LICENSE (permissive: free to use, modify, share)\n");
         printf("Spec      : docs/SPEC.md · IPA_VECTORS.md · metric.json\n");
         printf("Core      : src/ipa2vec_core.h (shared by all three tools)\n\n");
         printf("vec2ipa is the reverse converter of the vec4ipa suite:\n");
@@ -3130,7 +4313,7 @@ static IPA2VEC_MAYBE_UNUSED void print_info(const char *tool)
         printf("vec4ipa — complete IPA vector inventory, both directions, v%s\n",
                IPA2VEC_VERSION);
         printf("Repository: https://github.com/csiroqa/vec4ipa.git\n");
-        printf("License   : MIT — see LICENSE (copyleft: free to use, modify, share)\n");
+        printf("License   : MIT — see LICENSE (permissive: free to use, modify, share)\n");
         printf("Spec      : docs/SPEC.md · IPA_VECTORS.md · metric.json\n");
         printf("Core      : src/ipa2vec_core.h (shared by all three tools)\n\n");
         printf("vec4ipa is the full-featured entry point of the suite:\n");
@@ -3149,14 +4332,26 @@ static IPA2VEC_MAYBE_UNUSED void print_info(const char *tool)
     printf("Weights/lambda: metric.json (override with --metric; see --help)\n");
 }
 
+/* transcription narrowness levels: max modifiers per segment and the
+ * minimum relative distance gain a modifier must achieve to be kept.
+ * Shared by opt_width (CLI), the Win32 GUI and the WinUI wrapper. */
+static IPA2VEC_MAYBE_UNUSED void width_apply(int level)
+{
+    static const int maxmods[5] = { 2, 3, 4, 6, 10 };
+    static const double mingain[5] = { 0.25, 0.10, 0.04, 0.015, 0.001 };
+    if (level < 0) level = 0;
+    if (level > 4) level = 4;
+    g_fit_max_mods = maxmods[level];
+    g_fit_min_gain = mingain[level];
+    g_width_level = level;
+}
+
 /* transcription narrowness: --narrowness <broadest|broad|medium|narrow|narrowest>
  * (alias --width).  Legacy levels 0-4 are accepted too.  Long form only
  * (short -w is taken by vec4ipa's --weights).
  * Returns 1 if matched (level set), -1 if malformed, 0 if not ours. */
 static IPA2VEC_MAYBE_UNUSED int opt_width(const char *arg, int argc, char **argv, int *i)
 {
-    static const int maxmods[5] = { 2, 3, 4, 6, 10 };
-    static const double mingain[5] = { 0.25, 0.10, 0.04, 0.015, 0.001 };
     static const char *names[5] = { "broadest", "broad", "medium", "narrow", "narrowest" };
     const char *v = NULL;
     int level = -1;
@@ -3177,9 +4372,7 @@ static IPA2VEC_MAYBE_UNUSED int opt_width(const char *arg, int argc, char **argv
         for (int k = 0; k < 5; k++)
             if (strcmp(v, names[k]) == 0) { level = k; break; }
     if (level < 0) return -1;
-    g_fit_max_mods = maxmods[level];
-    g_fit_min_gain = mingain[level];
-    g_width_level = level;
+    width_apply(level);
     return 1;
 }
 
@@ -3352,6 +4545,7 @@ static IPA2VEC_MAYBE_UNUSED int json_number (JsonCtx *c, double *out)
     double v = strtod(c->p, &endp);
     if (endp == c->p) return -1;
     c->p = endp;
+    if (isnan(v) || isinf(v)) return -1;   /* NaN/Inf would poison distances */
     *out = v;
     return 0;
 }
@@ -3436,9 +4630,21 @@ static IPA2VEC_MAYBE_UNUSED int load_metric_json (const char *path)
         if (*c.p == '}') { c.p++; break; }
         if (json_key(&c, "weights")) {
             if (json_num_array(&c, g_metric_w, NDIM) != 0) goto bad;
+            for (int i = 0; i < NDIM; i++)
+                if (g_metric_w[i] < 0.0) {
+                    fprintf(stderr, "--metric: '%s': negative weight for dim %d\n",
+                            path, i);
+                    free(buf);
+                    return -1;
+                }
             have_w = 1;
         } else if (json_key(&c, "lambda")) {
             if (json_number(&c, &g_metric_lambda) != 0) goto bad;
+            if (g_metric_lambda < 0.0) {
+                fprintf(stderr, "--metric: '%s': negative lambda\n", path);
+                free(buf);
+                return -1;
+            }
         } else if (json_key(&c, "metric")) {
             json_ws(&c);
             if (c.p < c.end && *c.p == 'n') {   /* null */
@@ -3573,7 +4779,14 @@ static IPA2VEC_MAYBE_UNUSED int load_scheme_file (const char *path)
             while (k < MAXDIM) {
                 while (*q == ' ' || *q == '\t') q++;
                 if (*q == 0) break;
-                weights[k++] = strtod(q, &q);
+                char *endp = NULL;
+                double w = strtod(q, &endp);
+                if (endp == q || isnan(w) || isinf(w) || w < 0.0) {
+                    fprintf(stderr, "--scheme: %s:%d: bad weight\n", path, line_no);
+                    goto bad;
+                }
+                weights[k++] = w;
+                q = endp;
             }
             if (ndim && k != ndim) {
                 fprintf(stderr, "--scheme: %s:%d: %d weights for %d dims\n",
@@ -3582,7 +4795,12 @@ static IPA2VEC_MAYBE_UNUSED int load_scheme_file (const char *path)
             }
             have_w = 1;
         } else if (strcmp(tok, "lambda") == 0) {
-            lam = strtod(p, NULL);
+            char *endp = NULL;
+            lam = strtod(p, &endp);
+            if (endp == p || isnan(lam) || isinf(lam) || lam < 0.0) {
+                fprintf(stderr, "--scheme: %s:%d: bad lambda\n", path, line_no);
+                goto bad;
+            }
         } else if (strcmp(tok, "seg") == 0) {
             if (!ndim) {
                 fprintf(stderr, "--scheme: %s:%d: seg before ndim\n", path, line_no);
@@ -3598,7 +4816,16 @@ static IPA2VEC_MAYBE_UNUSED int load_scheme_file (const char *path)
             e.ipa = strdup(ipa);
             if (!e.ipa) goto bad;
             for (int k = 0; k < ndim; k++) {
-                e.v[k] = strtod(p, &p);
+                char *endp = NULL;
+                double x = strtod(p, &endp);
+                /* missing/extra values must not silently become 0.0 */
+                if (endp == p || isnan(x) || isinf(x)) {
+                    fprintf(stderr, "--scheme: %s:%d: bad value for seg %s\n",
+                            path, line_no, ipa);
+                    goto bad;
+                }
+                e.v[k] = x;
+                p = endp;
                 while (*p == ' ' || *p == '\t') p++;
             }
             char airbuf[64] = "pulmonic";
@@ -3615,6 +4842,9 @@ static IPA2VEC_MAYBE_UNUSED int load_scheme_file (const char *path)
             else if (strcmp(airbuf, "glottalic-ingressive") == 0) e.airstream = 2;
             else if (strcmp(airbuf, "lingual") == 0) e.airstream = 3;
             else if (strcmp(airbuf, "percussive") == 0) e.airstream = 4;
+            else if (strcmp(airbuf, "pulmonic") != 0)
+                fprintf(stderr, "--scheme: %s:%d: unknown airstream '%s' (seg %s)\n",
+                        path, line_no, airbuf, ipa);
             if (nseg >= cap) {
                 cap = cap ? cap * 2 : 64;
                 SegEntry *ns = realloc(segs, (size_t)cap * sizeof(SegEntry));
@@ -3623,6 +4853,11 @@ static IPA2VEC_MAYBE_UNUSED int load_scheme_file (const char *path)
             }
             segs[nseg] = e;
             nseg++;
+            if (nseg > 512) {
+                fprintf(stderr, "--scheme: %s:%d: too many segments (max 512)\n",
+                        path, line_no);
+                goto bad;
+            }
         }
     }
     fclose(f);
@@ -3641,6 +4876,14 @@ static IPA2VEC_MAYBE_UNUSED int load_scheme_file (const char *path)
     }
 
     /* install */
+    /* free a previously installed heap scheme (--scheme twice) */
+    if (g_scheme_heap) {
+        for (int i = 0; i < MAXDIM; i++)
+            free((void *)g_dimname[i]);
+        free((void *)g_seg_table);
+        free((void *)g_name_table);
+        g_scheme_heap = 0;
+    }
     g_ndim = ndim;
     for (int i = 0; i < MAXDIM; i++) {
         g_dimname[i] = (i < dim_count) ? dim_names[i] :
@@ -3661,8 +4904,11 @@ static IPA2VEC_MAYBE_UNUSED int load_scheme_file (const char *path)
     g_seg_table = segs;
     g_nseg = nseg;
     g_name_table = names_tab;
+    g_scheme_heap = 1;
     g_metric_full = 0;
     scheme_invalidate_caches();
+    if (!have_w)
+        fprintf(stderr, "--scheme: warning: no weight line; using compiled defaults\n");
     fprintf(stderr, "--scheme: loaded %d dims, %d weights, lambda %.3f, %d segments\n",
             g_ndim, ndim, lam, g_nseg);
     return 0;
@@ -3829,29 +5075,44 @@ static IPA2VEC_MAYBE_UNUSED int parse_vector_arg(const char *s, double out[NDIM]
     char buf[512];
     int bl = snprintf(buf, sizeof(buf), "%s", s);
     if (bl < 0 || (size_t)bl >= sizeof(buf)) return -1;
+    /* split off trailing tone groups "(...)(...)" first, so commas inside
+     * them (e.g. "(4,5)") are not treated as vector separators.  Everything
+     * from the FIRST '(' onward is annotation — stripping only the last
+     * group left "(4,5)" in the number stream for two-or-more groups. */
+    char *groups = strchr(buf, '(');
+    if (groups) *groups = 0;
     char *tok = strtok(buf, ", \t");
     int i = 0;
     while (tok && i < NDIM) {
         char *endp = NULL;
         double x = strtod(tok, &endp);
-        if (endp == tok || isnan(x) || isinf(x)) return -1;
+        /* reject non-finite AND huge values: a component of ~1e150+
+         * squares past DBL_MAX, making every weighted distance INF —
+         * which then defeats the fit's "no candidate" markers */
+        if (endp == tok || isnan(x) || isinf(x) ||
+            x > 1e150 || x < -1e150) return -1;
         out[i++] = x;
         tok = strtok(NULL, ", \t");
     }
     return (i == NDIM && tok == NULL) ? 0 : -1;
 }
 
-/* parse trailing tone groups like "(3)(0)" or "(4,5)(1,3)" into the
- * segment's extra vectors (first group -> vec 0, second -> vec 1,
- * third -> 3-D vec 2) */
+/* parse trailing tone groups like "(3)?(0)" or "(4,5)?(1,3)" into the
+ * segment's extra vectors (slot 0 -> vec 0, slot 1 -> vec 1, slot 2 ->
+ * 3-D vec 2).  The printed annotation separates slots with '?' (an empty
+ * slot prints '?', e.g. "?(5,5)" is sandhi-only, "??(0,0,1)" is the 3-D
+ * vector) — empty slots must advance the slot position or a bare group
+ * lands in the wrong vector.  Bare "(3)(0)" input is also accepted. */
 static IPA2VEC_MAYBE_UNUSED void parse_tone_groups(const char *s, SegVec *sv)
 {
     for (int g = 0; g < 3; g++) {
         sv->tkind[g] = 0;
         sv->tone[g][0] = sv->tone[g][1] = sv->tone[g][2] = NAN;
     }
-    const char *p = s;
-    while ((p = strchr(p, '(')) != NULL) {
+    int slot = 0;
+    for (const char *p = s; *p && slot < 3; p++) {
+        if (*p == '?') { slot++; continue; }
+        if (*p != '(') continue;
         p++;
         double vals[3] = { 0, 0, 0 };
         int n = 0;
@@ -3866,13 +5127,13 @@ static IPA2VEC_MAYBE_UNUSED void parse_tone_groups(const char *s, SegVec *sv)
         }
         if (*p == ')') p++;
         if (n < 1 || n > 3) continue;
-        int slot = -1;
-        for (int g2 = 0; g2 < 3; g2++)
-            if (sv->tkind[g2] == 0) { slot = g2; break; }
-        if (slot < 0) break;
         sv->tkind[slot] = slot == 2 ? 2 : 1;
         for (int k = 0; k < n; k++) sv->tone[slot][k] = vals[k];
-        if (n == 1) sv->tone[slot][1] = vals[0];
+        /* level tones are stored doubled (v,v) — but only in the contour
+         * slots: doubling into the 3-D slot would set the global (↗/↘)
+         * component from a single upstep/downstep value */
+        if (n == 1 && slot < 2) sv->tone[slot][1] = vals[0];
+        slot++;
     }
 }
 
@@ -3905,15 +5166,33 @@ static IPA2VEC_MAYBE_UNUSED int run_distance(const char *seg_a, const char *seg_
  * so the DP prefers replacing a segment over gapping it. */
 #define IPA2VEC_ALIGN_GAP 2.0
 
+/* fit against the best of several candidate bases: the greedy
+ * single-base fit can land on a far base whose duration sits between
+ * the target and the true base (syllabic ɡ̩ -> ɣ, because duration 0.5
+ * is closer to the fricative's 0.75 than to the stop's 0).  Thin
+ * wrapper over fit_best (inference fast path + estimate + cost model);
+ * `first' is the nearest_base result and is ignored (fit_best
+ * recomputes it, keeping the extIPA gating). */
+static IPA2VEC_MAYBE_UNUSED const SegEntry *fit_best_base(
+    const double target[NDIM], const SegEntry *first,
+    const ModRec *mods[IPA2VEC_FIT_MAX_MODS], int *nm_out)
+{
+    (void)first;
+    const SegEntry *b = NULL;
+    double d = 0.0;
+    fit_best(target, &b, mods, nm_out, &d);
+    return b;
+}
+
 /* rebuilt IPA label for one segment (nearest base + modifier fit) */
 static IPA2VEC_MAYBE_UNUSED void seg_label(const SegVec *sv, char *buf, size_t sz)
 {
-    const SegEntry *b; double d;
-    nearest_base(sv->v, &b, &d);
+    const SegEntry *b;
     const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
-    int nm = fit_modifiers(sv->v, b, mods);
+    int nm = 0;
+    b = fit_best_base(sv->v, NULL, mods, &nm);
     order_mods(mods, nm);
-    build_ipa(b, mods, nm, buf, sz);
+    build_ipa(b, mods, nm, sv->dotless, buf, sz);
 }
 
 /* assimilation pairs: a secondary-articulation modifier written on a
@@ -3935,7 +5214,7 @@ static const AssimPair ASSIM_PAIRS[] = {
     { "weak_asp",    "h",  { "glottal_aperture", NULL } },
     { "breathy_asp", "ɦ",  { "glottal_aperture", "voiced", NULL } },
     { "pal",         "j",  { "tongue_body_pos", NULL } },
-    { "lab",         "w",  { "lips_rounded", NULL } },
+    { "lab",         "w",  { "lips_rounded", "tongue_body_pos", "tongue_root", NULL } },
     { "vel",         "ɣ",  { "tongue_body_pos", "tongue_root", NULL } },
     { "phar",        "ʕ",  { "tongue_root", "tongue_body_pos", NULL } },
 };
@@ -4002,8 +5281,99 @@ static IPA2VEC_MAYBE_UNUSED double seg_dist_assim (const SegVec *a,
     }
     double d = sqrt(base * base + r);
     if (a->airstream != b->airstream)
-        d += METRIC_LAMBDA;
+        d += g_metric_lambda;
     return d;
+}
+
+/* vowel-likeness for the diphthong-compression rule: full-length, oral,
+ * open vocal tract at a neutral place with no lip closure or tongue-tip
+ * gesture.  Name-based dim lookups so scheme-independent (the "place" and
+ * "tip_shape" gates apply only to schemes that have those axes). */
+static IPA2VEC_MAYBE_UNUSED int seg_is_vowel(const SegVec *s)
+{
+    int pi = dim_of_ok("place", -1);
+    if (pi >= 0 && s->v[pi] != 0.0) return 0;
+    int ti = dim_of_ok("tip_shape", -1);
+    if (ti >= 0 && s->v[ti] > 0.4) return 0;
+    return s->v[dim_of_ok("lips_closed", DIM_LIPS_CLOSED)] == 0.0 &&
+           s->v[dim_of_ok("duration", DIM_DURATION)] >= 1.0 &&
+           s->v[dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA)] >= 0.4;
+}
+
+/* trajectory ("block") distance between two vowel units, each side
+ * carrying 1..IPA2VEC_BLOCK_MAX anchor segments — the once-and-for-all
+ * replacement for every mono/di-phthong and vowel-cluster comparison.
+ * Axioms:
+ *   A1 representative — the mean of the anchors is the unit's quality
+ *      position; quality cost = weighted point distance of the means
+ *      (the intermediate quality, ɛ for /ai/);
+ *   A2 containment — a unit whose anchors lie inside the other's span
+ *      (per dim) is a sub-trajectory: no reach penalty; only the gap
+ *      between the two spans (per-dim, 0 when they overlap or touch)
+ *      costs — a sub-glide like /ɛe/ of /ai/ is not penalised for
+ *      being narrower, while a separated span (e.g. /ai/ vs /u/ on
+ *      rounding) still pays;
+ *   A3 length — the mora difference of the duration sums, one distance
+ *      unit per mora (a deliberately softer rate than the segment
+ *      metric's duration weight: at the full weight of 5 every contour
+ *      would sit at ≥ 2.24, farther than /a/~/ɛ/ = 1.26; at 1.0 the
+ *      intermediate distance /ai/~/ɛ/ matches the single-vowel
+ *      reference exactly);
+ *   A4 order — only an INVERTED correspondence is penalised: the
+ *      reversed pointwise sum exceeding the in-order sum (over the
+ *      overlapping anchors, k,m ≥ 2) — /ai/ vs /ia/ pays, /ai/ vs
+ *      /ɛe/ (parallel glides) pays nothing. */
+#define IPA2VEC_CONTOUR_MORA 1.0
+#define IPA2VEC_BLOCK_MAX 8
+static IPA2VEC_MAYBE_UNUSED double seg_block_dist(const SegVec *A, int na,
+                                                  const SegVec *B, int nb)
+{
+    if (na == 1 && nb == 1)
+        return seg_dist_full(&A[0], &B[0]);
+    metric_ensure();
+    int du = dim_of_ok("duration", DIM_DURATION);
+    double s = 0.0;
+    for (int i = 0; i < g_ndim; i++) {
+        if (i == du) continue;
+        double ma = 0.0, mb = 0.0;
+        double loa = A[0].v[i], hia = A[0].v[i];
+        double lob = B[0].v[i], hib = B[0].v[i];
+        for (int k = 0; k < na; k++) {
+            ma += A[k].v[i];
+            if (A[k].v[i] < loa) loa = A[k].v[i];
+            if (A[k].v[i] > hia) hia = A[k].v[i];
+        }
+        for (int k = 0; k < nb; k++) {
+            mb += B[k].v[i];
+            if (B[k].v[i] < lob) lob = B[k].v[i];
+            if (B[k].v[i] > hib) hib = B[k].v[i];
+        }
+        ma /= na;
+        mb /= nb;
+        s += g_metric_w[i] * (ma - mb) * (ma - mb);
+        double gap = 0.0;   /* A2: span separation only */
+        if (lob > hia) gap = lob - hia;
+        else if (loa > hib) gap = loa - hib;
+        s += g_metric_w[i] * gap * gap;
+    }
+    double da = 0.0, db = 0.0;
+    for (int k = 0; k < na; k++) da += A[k].v[du];
+    for (int k = 0; k < nb; k++) db += B[k].v[du];
+    s += IPA2VEC_CONTOUR_MORA * (da - db) * (da - db);
+    if (na >= 2 && nb >= 2) {   /* A4: inversion penalty only */
+        int L = na < nb ? na : nb;
+        double d1 = 0.0, d2 = 0.0;
+        for (int t = 0; t < L; t++) {
+            d1 += seg_dist_full(&A[t], &B[t]);
+            d2 += seg_dist_full(&A[t], &B[L - 1 - t]);
+        }
+        if (d1 > d2)
+            s += (d1 - d2) * (d1 - d2);
+    }
+    double d0 = sqrt(s);
+    if (A[0].airstream != B[0].airstream)
+        d0 += g_metric_lambda;
+    return d0;
 }
 
 /* sequence (syllable/word) alignment: edit-distance DP over segments with
@@ -4013,6 +5383,11 @@ static IPA2VEC_MAYBE_UNUSED double seg_dist_assim (const SegVec *a,
  * absorbs its dimensions, so the compressed pair is compared with those
  * dims skipped and the residue against the glide added back (the same
  * component counted once).  Release diacritics are not pairs (tˡ ≠ t+l).
+ * A second rule compresses any all-vowel block on A against any
+ * all-vowel block on B via the trajectory distance — mono/di-phthongs
+ * and vowel clusters: /ai/ ~ /ɛ/ (ɛ is the intermediate quality of
+ * the a→i glide), /ai/ ~ /ɛe/, /aieu/ ~ /eou/ — keeping the contour's
+ * duration, its extremes, and the anchor order.
  * Prints the alignment and the total distance. */
 static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
                                           const char *toolname)
@@ -4039,9 +5414,18 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
         return 1;
     }
     size_t w = (size_t)(nb + 1);
-    double *dp = (double *)malloc((size_t)(na + 1) * w * sizeof(double));
-    unsigned char *bk = (unsigned char *)malloc((size_t)(na + 1) * w);
+    /* calloc: the dp/bk border cells (row 0 / column 0) are never
+     * written, and the traceback may read them — zero-init avoids
+     * uninitialised-memory reads (UB) */
+    double *dp = (double *)calloc((size_t)(na + 1) * w, sizeof(double));
+    unsigned char *bk = (unsigned char *)calloc((size_t)(na + 1) * w, 1);
     if (!dp || !bk) { free(dp); free(bk); fprintf(stderr, "out of memory\n"); return 1; }
+    int ra[MAX_SEGS + 1], rb[MAX_SEGS + 1];
+    ra[0] = rb[0] = 0;
+    for (int i = 1; i <= na; i++)
+        ra[i] = seg_is_vowel(&a.segs[i - 1]) ? ra[i - 1] + 1 : 0;
+    for (int j = 1; j <= nb; j++)
+        rb[j] = seg_is_vowel(&b.segs[j - 1]) ? rb[j - 1] + 1 : 0;
     for (int i = 0; i <= na; i++) dp[(size_t)i * w + 0] = i * IPA2VEC_ALIGN_GAP;
     for (int j = 0; j <= nb; j++) dp[0 * w + (size_t)j] = j * IPA2VEC_ALIGN_GAP;
     for (int i = 1; i <= na; i++) {
@@ -4073,6 +5457,24 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
                         seg_dist_assim(&b.segs[j - 1], &a.segs[i - 2],
                                        &a.segs[i - 1], pk);
                     if (comp < best) { best = comp; bkbest = 4; }
+                }
+            }
+            /* vowel-block compression — any all-vowel run on A (length k)
+             * against any all-vowel run on B (length m), k+m >= 3:
+             * mono/di-phthong and vowel-cluster comparisons via the
+             * trajectory distance (representative + reach + length +
+             * order).  The traceback code packs (k, m). */
+            if (ra[i] + rb[j] >= 3) {
+                for (int k = 1; k <= ra[i] && k <= IPA2VEC_BLOCK_MAX; k++) {
+                    for (int m = 1; m <= rb[j] && m <= IPA2VEC_BLOCK_MAX; m++) {
+                        if (k + m < 3) continue;
+                        double comp = dp[(size_t)(i - k) * w + (size_t)(j - m)] +
+                            seg_block_dist(&a.segs[i - k], k, &b.segs[j - m], m);
+                        if (comp < best) {
+                            best = comp;
+                            bkbest = (unsigned char)(5 + (k - 1) * 8 + (m - 1));
+                        }
+                    }
                 }
             }
             dp[(size_t)i * w + (size_t)j] = best;
@@ -4124,6 +5526,40 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
                      seg_dist_assim(&b.segs[j - 1], &a.segs[i - 2],
                                     &a.segs[i - 1], pk));
             i -= 2; j--;
+        } else if (k >= 5) {   /* vowel block (k1, m1): A[i-k1..i-1] ~ B[j-m1..j-1] */
+            int k1 = (k - 5) / 8 + 1, m1 = (k - 5) % 8 + 1;
+            if (i >= k1 && j >= m1) {
+                char line[160];
+                int pos = 0;
+                pos += snprintf(line + pos, sizeof(line) - pos, "  ");
+                for (int t = 0; t < k1 && pos < (int)sizeof(line) - 40; t++) {
+                    seg_label(&a.segs[i - k1 + t], a1, sizeof(a1));
+                    pos += snprintf(line + pos, sizeof(line) - pos, "%s%s",
+                                    t ? " + " : "", a1);
+                }
+                pos += snprintf(line + pos, sizeof(line) - pos, " ~ ");
+                for (int t = 0; t < m1 && pos < (int)sizeof(line) - 40; t++) {
+                    seg_label(&b.segs[j - m1 + t], b1, sizeof(b1));
+                    pos += snprintf(line + pos, sizeof(line) - pos, "%s%s",
+                                    t ? " + " : "", b1);
+                }
+                snprintf(line + pos, sizeof(line) - pos, "  d=%.4f",
+                         seg_block_dist(&a.segs[i - k1], k1,
+                                        &b.segs[j - m1], m1));
+                snprintf(lines[nl++], sizeof(lines[0]), "%s", line);
+                i -= k1;
+                j -= m1;
+            } else if (j > 0) {
+                seg_label(&b.segs[j - 1], b1, sizeof(b1));
+                snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
+                         "-", b1, IPA2VEC_ALIGN_GAP);
+                j--;
+            } else {
+                seg_label(&a.segs[i - 1], a1, sizeof(a1));
+                snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
+                         a1, "-", IPA2VEC_ALIGN_GAP);
+                i--;
+            }
         } else if (j > 0) {   /* unreachable fallback */
             seg_label(&b.segs[j - 1], b1, sizeof(b1));
             snprintf(lines[nl++], sizeof(lines[0]), "  %-8s ~ %-8s  gap %.4f",
@@ -4137,7 +5573,7 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
         }
         if (nl >= (int)(sizeof(lines) / sizeof(lines[0]))) break;
     }
-    printf("/%s/  vs  /%s/  aligned d=%.4f\n", seq_a, seq_b, total);
+    printf("%s  vs  %s  aligned d=%.4f\n", seq_a, seq_b, total);
     while (nl > 0) puts(lines[--nl]);
     free(dp); free(bk);
     return 0;
@@ -4153,37 +5589,57 @@ static IPA2VEC_MAYBE_UNUSED int run_reverse(const char *vecstr, int nearest_only
         return 1;
     }
     parse_tone_groups(vecstr, &sv);
-    const SegEntry *b; double d;
-    nearest_base(sv.v, &b, &d);
     if (nearest_only) {
+        const SegEntry *b; double d;
+        nearest_base(sv.v, &b, &d);
         printf("%s%s%s  %s  d=%.4f  (%s)\n", ipabrk_o(), b->ipa, ipabrk_c(),
                base_name(b), d, AIRSTREAM_LABELS[b->airstream]);
         return 0;
     }
+    const SegEntry *b; double d;
     const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
-    int nm = fit_modifiers(sv.v, b, mods);
+    int nm = 0;
+    /* fit against the best of several candidate bases: the greedy
+     * single-base fit can land on a far base whose duration sits
+     * between the target and the true base (syllabic ɡ̩ -> ɣ, because
+     * duration 0.5 is closer to the fricative's 0.75 than to the
+     * stop's 0).  fit_best tries the raw-nearest base, every base
+     * within a raw window, and the K raw-nearest bases overall. */
+    fit_best(sv.v, &b, mods, &nm, &d);
+    /* affricate decode competes when it beats the single-base fit; on an
+     * exact fit (d=0) it cannot win (afd < 0 is impossible) and it is
+     * the dominant cost of the reverse path — skip it */
+    if (d > 1e-6) {
     /* affricate decode competes when it beats the single-base fit */
     const SegEntry *afc = NULL, *afr = NULL;
+    const ModRec *afrm[4];
+    int afnm = 0;
     double afd = 0.0;
-    if (affricate_decode(sv.v, &afc, &afr, &afd) == 0) {
+    if (affricate_decode(sv.v, &afc, &afr, afrm, &afnm, &afd) == 0) {
         const ModRec *cur[IPA2VEC_FIT_MAX_MODS + 4];
         int nc = 0;
         for (int k = 0; k < nm; k++) cur[nc++] = mods[k];
         double trial[NDIM];
         apply_mod_set(trial, b, cur, nc);
         double d_fit = seg_dist(sv.v, trial);
-        if (afd < d_fit * 0.85) {
-            char afipa[128];
-            snprintf(afipa, sizeof(afipa), "%s\xCD\xA1%s", afc->ipa, afr->ipa);
+        /* strictly better within float noise: an exact single-base fit
+         * (d=0) must not lose to a spurious affricate that happens to
+         * reproduce the same vector (ɖ͡ɻ for syllabic ɻ̩) */
+        if (afd + 1e-9 < d_fit * 0.85) {
+            char rel[128];
+            build_ipa(afr, afrm, afnm, 0, rel, sizeof(rel));
+            char afipa[192];
+            snprintf(afipa, sizeof(afipa), "%s\xCD\xA1%s", afc->ipa, rel);
             printf("%s%s%s  (affricate %s+%s)  d=%.4f  ->  %s%s%s\n",
-                   ipabrk_o(), afc->ipa, ipabrk_c(), afc->ipa, afr->ipa, afd,
+                   ipabrk_o(), afc->ipa, ipabrk_c(), afc->ipa, rel, afd,
                    ipabrk_o(), afipa, ipabrk_c());
             return 0;
         }
     }
+    }
     order_mods(mods, nm);   /* canonical order — same as the rebuilt IPA */
     char ipa[128];
-    build_ipa(b, mods, nm, ipa, sizeof(ipa));
+    build_ipa(b, mods, nm, sv.dotless, ipa, sizeof(ipa));
     char tb[48];
     tone_rebuild(&sv, tb, sizeof(tb));
     printf("%s%s%s  (%s", ipabrk_o(), b->ipa, ipabrk_c(), base_name(b));
@@ -4240,24 +5696,113 @@ static IPA2VEC_MAYBE_UNUSED int run_forward(const char *str, int ir, int json,
         export_ir(po.layer1, po.n1, po.layer2, po.n2, irbase, toolname);
 
     if (ir) {
-        printf("input: /%s/\n", str);
+        printf("input: %s\n", str);
         print_layer(po.layer1, po.n1, "layer1 (char order) ");
         print_layer(po.layer2, po.n2, "layer2 (feature order)");
         for (int s = 0; s < po.nsegs; s++) {
             printf("vector[%d]: (", s);
             for (int i = 0; i < NDIM; i++)
                 printf("%s%.4f", i ? ", " : "", po.segs[s].v[i]);
-            printf(")  %s%s%s\n", AIRSTREAM_LABELS[po.segs[s].airstream],
-                   po.segs[s].note[0] ? "  [" : "", po.segs[s].note);
-            const SegEntry *b; double d;
-            nearest_base(po.segs[s].v, &b, &d);
+            printf(")  %s%s%s%s\n", AIRSTREAM_LABELS[po.segs[s].airstream],
+                   po.segs[s].note[0] ? "  [" : "", po.segs[s].note,
+                   po.segs[s].note[0] ? "]" : "");
+            const SegEntry *b;
             const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
-            int nm = fit_modifiers(po.segs[s].v, b, mods);
+            int nm = 0;
+            b = fit_best_base(po.segs[s].v, NULL, mods, &nm);
             char rebuilt[128];
-            build_ipa(b, mods, nm, rebuilt, sizeof(rebuilt));
+            /* tie-spelled input: rebuild verbatim from layer1, so the
+             * release keeps its own modifiers (tɹ̝̊ -> t͡ɹ̝̊, ʡʢ -> ʡ͡ʢ) */
+            int tie_spelled = 0;
+            {
+                int seen = 0;
+                for (int k = 0; k < po.n1; k++) {
+                    if (po.layer1[k].kind == TK_BASE) {
+                        if (seen == s) {
+                            for (int k2 = k + 1; k2 < po.n1; k2++) {
+                                if (po.layer1[k2].kind == TK_LIG) {
+                                    tie_spelled = 1;
+                                    break;
+                                }
+                                if (po.layer1[k2].kind == TK_BASE) break;
+                            }
+                            break;
+                        }
+                        seen++;
+                    }
+                }
+            }
+            if (tie_spelled) {
+                /* closure = first base of the segment, release = base
+                 * after the tie with its combining marks, from layer1 */
+                int seen = 0;
+                const char *cl = NULL;
+                for (int k = 0; k < po.n1; k++) {
+                    if (po.layer1[k].kind == TK_BASE) {
+                        if (seen == s) { cl = po.layer1[k].ipa; break; }
+                        seen++;
+                    }
+                }
+                const SegEntry *relb = NULL;
+                const ModRec *relm[IPA2VEC_FIT_MAX_MODS];
+                int nrelm = 0;
+                int got = 0;
+                for (int k = 0; k < po.n1; k++) {
+                    if (po.layer1[k].kind == TK_LIG) {
+                        int k2 = k + 1;
+                        if (k2 < po.n1 && po.layer1[k2].kind == TK_BASE) {
+                            relb = po.layer1[k2].seg;
+                            for (int k3 = k2 + 1; k3 < po.n1; k3++) {
+                                if (po.layer1[k3].kind == TK_BASE ||
+                                    po.layer1[k3].kind == TK_LIG) break;
+                                if (po.layer1[k3].kind == TK_MOD &&
+                                    po.layer1[k3].mod &&
+                                    nrelm < IPA2VEC_FIT_MAX_MODS)
+                                    relm[nrelm++] = po.layer1[k3].mod;
+                            }
+                            got = 1;
+                        }
+                        break;
+                    }
+                }
+                if (cl && got && relb) {
+                    char rel[128];
+                    build_ipa(relb, relm, nrelm, 0, rel, sizeof(rel));
+                    snprintf(rebuilt, sizeof(rebuilt), "%s\xCD\xA1%s", cl, rel);
+                } else {
+                    build_ipa(b, mods, nm, po.segs[s].dotless, rebuilt, sizeof(rebuilt));
+                }
+            } else {
+                /* not tie-spelled: an affricate decode must be clearly
+                 * better than the fit (ɻ̩ must not become ɖ͡ɻ); on an
+                 * exact base (d=0) it can never win — skip the decode
+                 * (it is the dominant cost of this path) */
+                const SegEntry *nb = NULL;
+                double nd = 0.0;
+                nearest_base(po.segs[s].v, &nb, &nd);
+                const SegEntry *afc = NULL, *afr = NULL;
+                const ModRec *afrm[4];
+                int afnm = 0;
+                double afd = 0.0;
+                if (nd > 1e-6 &&
+                    affricate_decode(po.segs[s].v, &afc, &afr, afrm, &afnm, &afd) == 0) {
+                    double trial[NDIM];
+                    apply_mod_set(trial, b, mods, nm);
+                    if (afd < seg_dist(po.segs[s].v, trial) * 0.85 - 1e-9) {
+                        char rel[128];
+                        build_ipa(afr, afrm, afnm, 0, rel, sizeof(rel));
+                        snprintf(rebuilt, sizeof(rebuilt), "%s\xCD\xA1%s",
+                                 afc->ipa, rel);
+                    } else {
+                        build_ipa(b, mods, nm, po.segs[s].dotless, rebuilt, sizeof(rebuilt));
+                    }
+                } else {
+                    build_ipa(b, mods, nm, po.segs[s].dotless, rebuilt, sizeof(rebuilt));
+                }
+            }
             char tb[48];
             tone_rebuild(&po.segs[s], tb, sizeof(tb));
-            printf("rebuilt[%d]: /%s%s/\n", s, rebuilt, tb);
+            printf("rebuilt[%d]: %s%s%s%s\n", s, ipabrk_o(), rebuilt, tb, ipabrk_c());
         }
         return 0;
     }

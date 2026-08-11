@@ -39,7 +39,7 @@ def load_scheme(path):
     dims = []
     weights = None
     lam = None
-    entries = []   # (ipa, [ndim floats], airstream_idx)
+    entries = []   # (ipa, [ndim floats], airstream_label)
     for ln in open(path, encoding="utf-8"):
         t = ln.strip()
         if not t or t.startswith("#"):
@@ -57,11 +57,7 @@ def load_scheme(path):
             ipa = parts[1]
             vals = [float(x) for x in parts[2:2 + ndim]]
             air = parts[2 + ndim] if len(parts) > 2 + ndim else "pulmonic"
-            idx = AIRSTREAM_INDEX.get(air)
-            if idx is None:
-                print(f"WARN {ipa}: unknown airstream {air!r}", file=sys.stderr)
-                idx = 0
-            entries.append((ipa, vals, idx))
+            entries.append((ipa, vals, air))
     if ndim is None or weights is None:
         sys.exit("gen_vectors_h: bad scheme file (need ndim + weight)")
     return ndim, dims, weights, lam, entries
@@ -83,7 +79,7 @@ def main():
         lam = metric["lambda"]
         dims = metric["dimensions"]
     load_names()
-    emit(ndim if scheme_path else 16)
+    emit(ndim if scheme_path else 16, scheme_path)
 
 
 def parse_md():
@@ -145,9 +141,12 @@ def cstr(s: str) -> str:
     return ''.join(out)
 
 
-def emit(ndim):
+def emit(ndim, scheme_path=None):
     lines = []
-    lines.append("/* Auto-generated from IPA_VECTORS.md + metric.json — do not edit. */")
+    if scheme_path:
+        lines.append(f"/* Auto-generated from {scheme_path} — do not edit. */")
+    else:
+        lines.append("/* Auto-generated from IPA_VECTORS.md + metric.json — do not edit. */")
     lines.append("#ifndef IPA2VEC_VECTORS_H")
     lines.append("#define IPA2VEC_VECTORS_H")
     lines.append("")

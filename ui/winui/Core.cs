@@ -366,7 +366,7 @@ namespace Vec4ipaUI
 
         /// <summary>Example vector repeated in the error hints.</summary>
         private const string VectorExample =
-            "0,0,0.55,1,0,0,0,0,0,0,0.9,0,0,0,0,1 (4,5)";
+            "-0.45,0,0,0,1,0,0,0,0,0.9,0,0,0,0,0,1";
 
         /// <summary>Warning suffix in Chinese (UI display language for
         /// these messages is zh; do not localise into English).</summary>
@@ -431,14 +431,16 @@ namespace Vec4ipaUI
                 if (v == null && nums.Count > 3) continue;
                 if (tonePos >= 3) break;
                 if (nums.Count > 0 && nums.Count <= 3)
+                {
                     toneSlots[tonePos] = nums.ToArray();
-                tonePos++;
+                    tonePos++;
+                }
             }
             var (toneStr, toneWarn) = ToneSymbols(toneSlots);
             if (v == null)
             {
                 if (groups.All(string.IsNullOrEmpty))
-                    return "No vector given - type 16 comma-separated numbers, " +
+                    return "No vector given - type 16 comma-separated numbers,\n" +
                            "e.g. " + VectorExample;
                 /* no main vector, but tone groups exist: echo the tones */
                 if (toneStr.Length > 0)
@@ -456,10 +458,13 @@ namespace Vec4ipaUI
             string result = sb.ToString();
             if (toneStr.Length > 0)
             {
-                /* append the tone symbols inside the rebuilt IPA */
-                int idx = result.LastIndexOf('/');
-                if (idx > 0 && result.EndsWith("/"))
-                    result = result[..idx] + toneStr + "/";
+                /* append the tone symbols inside the rebuilt IPA:
+                 * phonetic brackets [..] or narrowest (..) */
+                char close = result.EndsWith("\u27E7")
+                    ? '\u27E7' : ']';
+                int idx = result.LastIndexOf(close);
+                if (idx > 0 && result.EndsWith(close.ToString()))
+                    result = result[..idx] + toneStr + close;
                 else
                     result += "  tone: " + toneStr;
             }
