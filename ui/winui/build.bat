@@ -47,9 +47,8 @@ if not errorlevel 1 (
     pushd ..\..
     rem the Makefile targets carry the .exe suffix on Windows
     make ipa2vec.exe vec2ipa.exe vec4ipa.exe
-    set "RC=%ERRORLEVEL%"
     popd
-    if not "%RC%"=="0" exit /b 1
+    if errorlevel 1 exit /b 1
 ) else (
     for %%t in (ipa2vec vec2ipa vec4ipa) do (
         gcc -O2 -Wall -Wextra -std=c11 -Wno-unused-function -Wno-unused-variable ^

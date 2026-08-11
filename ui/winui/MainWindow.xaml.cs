@@ -72,11 +72,15 @@ namespace Vec4ipaUI
         {
             _startupArgs = args;
             InitializeComponent();
+            _fmtRows = new[] { FmtRow0, FmtRow1, FmtRow2, FmtRow3 };
+            _fmtItems = new[] { FmtItem0, FmtItem1, FmtItem2, FmtItem3 };
+            _fmtChecks = new[] { FmtCheck0, FmtCheck1, FmtCheck2, FmtCheck3 };
             Title = "vec4ipa Workbench";
             SetIcon();
             RestoreState();
             WireSplitGrip();
             WireCursorMagnet();
+            WireWidthBtn();
             /* the magnet caches hwnd/DPI; a move onto a monitor with a
              * different scale invalidates it (SizeChanged fires on the
              * resulting rescale) */
@@ -283,7 +287,7 @@ namespace Vec4ipaUI
                 _coreOk = true;
                 UpdateButtons();
                 _argsPending = true;
-                StatusText.Text = $"core {ver} - width {WidthCombo.SelectedIndex}";
+                StatusText.Text = $"core {ver} - width {(int)WidthSlider.Value}";
                 return true;
             }
             catch (System.DllNotFoundException)
@@ -649,7 +653,7 @@ namespace Vec4ipaUI
                     {
                         string w = args[++i];
                         if (w.Length == 1 && w[0] >= '0' && w[0] <= '4')
-                            WidthCombo.SelectedIndex = w[0] - '0';
+                            WidthSlider.Value = w[0] - '0';
                     }
                 }
                 else if (a == "--theme")
@@ -1298,6 +1302,14 @@ namespace Vec4ipaUI
             ToolTipService.SetToolTip(ExtToggle, zh
                 ? "外部输入：软键盘输入到其他应用的当前窗口"
                 : "Global input: type into the focused window of other apps");
+            ToolTipService.SetToolTip(WidthBtn, zh
+                ? $"窄度 {WidthSlider.Value:0} - 长按展开"
+                : $"narrowness {WidthSlider.Value:0} - hold to expand");
+            WidthPopLabel.Text = zh ? "窄度" : "narrowness";
+            WidthPopHint.Text = zh ? "0 最宽 · 4 最窄" : "0 broadest · 4 narrowest";
+            WidthPopPill.Width = zh ? 46 : 78;
+            int wv = Math.Clamp((int)Math.Round(WidthSlider.Value), 0, 4);
+            WidthBtnLabel.Text = (zh ? LevelNamesZh : CompactNamesEn)[wv];
 
             var menus = new (Microsoft.UI.Xaml.Controls.MenuFlyoutItemBase Ctl, string Text)[]
             {
@@ -1329,7 +1341,9 @@ namespace Vec4ipaUI
             DistA.PlaceholderText = zh ? "符号 A" : "symbol A";
             DistB.PlaceholderText = zh ? "符号 B" : "symbol B";
             Title = zh ? "vec4ipa 工作台" : "vec4ipa Workbench";
-            FmtVectors.Content = zh ? "向量" : "vectors";
+            FmtBtnLabel.Text = (zh ? FmtNamesZh : FmtNamesEn)[_fmtIndex];
+            ToolTipService.SetToolTip(FmtBtn, (zh ? FmtNamesZh : FmtNamesEn)
+                [_fmtIndex] + (zh ? " - 长按选择格式" : " - hold to pick format"));
             CopyBtn.Content = zh ? "复制" : "Copy";
             ClearBtn.Content = zh ? "清除" : "Clear";
         }
@@ -1679,21 +1693,23 @@ namespace Vec4ipaUI
                              "Nothing to convert - type or click an IPA symbol first.");
                 return;
             }
-            var rows = Core.ForwardRaw(ipa);
-            if (rows == null || rows.Length == 0)
+            var rows = Core.ForwardWithTone(ipa, out var ferr);
+            if (rows.Length == 0)
             {
-                AppendOutput("=== Loop ===\nparse error");
+                AppendOutput("=== Loop ===\nparse error" +
+                             (ferr != null ? ": " + ferr : ""));
                 return;
             }
-            int width = WidthCombo.SelectedIndex;
+            int width = (int)WidthSlider.Value;
             if (width < 0) width = 3;
             var sb = new System.Text.StringBuilder();
             for (int s = 0; s < rows.Length; s++)
             {
-                var vec = string.Join(",", Array.ConvertAll(rows[s],
-                    x => x.ToString("F4")));
+                var (vec, annot) = rows[s];
                 sb.AppendLine($"[{s}] vector: ({vec})");
-                sb.AppendLine($"    fit:   {Core.Reverse(vec, width)}");
+                /* the 16-dim vector carries no tone; pass the annotation
+                 * so the fit re-emits it (p̋ -> [p˥]) */
+                sb.AppendLine($"    fit:   {Core.Reverse(vec + annot, width)}");
             }
             AppendOutput("=== IPA -> vector -> IPA (loop) ===\n" +
                          sb.ToString().TrimEnd());
@@ -1892,7 +1908,7 @@ namespace Vec4ipaUI
         {
             try
             {
-                if (_drag || _externalMode) return;
+                if (_drag || _externalMode || _widthOpen) return;
                 long now = Environment.TickCount64;
                 if (now - _lastCursorMoveTick < 16) return;
                 _lastCursorMoveTick = now;
@@ -2085,8 +2101,11 @@ namespace Vec4ipaUI
                 .ThenBy(Pos));
             _allCons.AddRange(TieComposites);
             _allNp.Clear();
-            _allNp.AddRange(Core.KeyboardConsNp()
-                .OrderBy(s => AirstreamWeight(Info(s)))
+            /* non-pulmonic: airstream class comes from the DLL (derived
+             * from the vector, not the table's distance-model field) */
+            var npClass = Core.KeyboardConsNp();
+            _allNp.AddRange(npClass.Keys
+                .OrderBy(s => npClass[s])
                 .ThenBy(s => MannerWeight(Info(s)))
                 .ThenBy(Pos));
 
@@ -2816,7 +2835,7 @@ namespace Vec4ipaUI
                              "Nothing to convert - type or click an IPA symbol first.");
                 return;
             }
-            int fmt = FormatCombo.SelectedIndex;
+            int fmt = _fmtIndex;
             string? result;
             switch (fmt)
             {
@@ -2863,9 +2882,664 @@ namespace Vec4ipaUI
             IpaInputRight.Focus(FocusState.Programmatic);
         }
 
+        /* Button marks pointer events handled, so the long-press gestures
+         * must be wired with handledEventsToo. Note: PointerCanceled and
+         * PointerCaptureLost are deliberately NOT wired to closing - the
+         * popup covering the button can cancel the capture mid-hold (the
+         * box under the cursor then takes over and the real release
+         * closes it), and WinUI does not release mouse capture on button
+         * up, so every press must end with an explicit release */
+        private void WireWidthBtn()
+        {
+            try
+            {
+                WidthBtn.AddHandler(UIElement.PointerPressedEvent,
+                    new PointerEventHandler(WidthBtn_PointerPressed), true);
+                WidthBtn.AddHandler(UIElement.PointerMovedEvent,
+                    new PointerEventHandler(WidthBtn_PointerMoved), true);
+                WidthBtn.AddHandler(UIElement.PointerReleasedEvent,
+                    new PointerEventHandler(WidthBtn_PointerReleased), true);
+                FmtBtn.AddHandler(UIElement.PointerPressedEvent,
+                    new PointerEventHandler(FmtBtn_PointerPressed), true);
+                FmtBtn.AddHandler(UIElement.PointerMovedEvent,
+                    new PointerEventHandler(FmtBtn_PointerMoved), true);
+                FmtBtn.AddHandler(UIElement.PointerReleasedEvent,
+                    new PointerEventHandler(FmtBtn_PointerReleased), true);
+            }
+            catch (Exception ex) { LogExt("wire width btn err " + ex.Message); }
+        }
+
+        /* ---- narrowness control: compact button; long-pressing it pops
+         * up a virtual overlay box on a separate layer (the layout below
+         * is never touched). The box is centred over the button, grows
+         * out of it on open and shrinks back into it on release ----
+         *
+         * The thumb position is a continuous, non-linear function of the
+         * cursor position: within each step the fractional position goes
+         * through the S-curve g(t) = t^p / (t^p + (1-t)^p), so the thumb
+         * is pulled strongly toward the ticks and rests at the midpoints.
+         * No velocity is involved; the cursor itself is only moved along
+         * Y, magnetically pulled onto the slider row when it gets near. */
+
+        private const double WidthMagnetP = 3.0;   /* S-curve steepness */
+        private const double WidthYBand = 34;      /* Y magnet radius (DIP) */
+        private const double ElasticMax = 12.0;    /* overscroll cap (DIP) */
+        private const double ElasticSoft = 30.0;   /* overscroll softness */
+
+        /* elastic overscroll: 1 - 1/(1 + o/soft), asymptotic towards cap */
+        private static double Elastic(double o) =>
+            ElasticMax * (1.0 - 1.0 / (1.0 + o / ElasticSoft));
+
+        private static readonly string[] LevelNamesEn =
+            { "broadest", "broad", "medium", "narrow", "narrowest" };
+        private static readonly string[] LevelNamesZh =
+            { "最宽", "宽", "中", "窄", "最窄" };
+        private static readonly string[] CompactNamesEn =
+            { "b4-est", "broad", "medium", "narrow", "n5-est" };
+
+        private DispatcherTimer? _widthHoldTimer;
+        private bool _widthOpen;
+        private UIElement? _widthPrevFocus;
+        private Microsoft.UI.Xaml.Media.Animation.Storyboard? _widthAnim;
+
+        private void WidthBtn_PointerPressed(object sender,
+            PointerRoutedEventArgs e)
+        {
+            try { WidthBtn.CapturePointer(e.Pointer); }
+            catch { }
+            _widthHoldTimer?.Stop();
+            _widthHoldTimer = new DispatcherTimer
+            { Interval = TimeSpan.FromMilliseconds(400) };
+            _widthHoldTimer.Tick += (s, a) =>
+            {
+                _widthHoldTimer?.Stop();
+                OpenWidthPop();
+            };
+            _widthHoldTimer.Start();
+        }
+
+        private void WidthBtn_PointerMoved(object sender,
+            PointerRoutedEventArgs e)
+        {
+            if (!_widthOpen) return;
+            if (!e.GetCurrentPoint(WidthBtn).Properties.IsLeftButtonPressed)
+                return;
+            AdjustWidthFromPointer(e);
+        }
+
+        private void WidthPop_PointerPressed(object sender,
+            PointerRoutedEventArgs e)
+        {
+            try { WidthPopBox.CapturePointer(e.Pointer); }
+            catch { }
+            AdjustWidthFromPointer(e);
+        }
+
+        private void WidthPop_PointerMoved(object sender,
+            PointerRoutedEventArgs e)
+        {
+            if (!_widthOpen) return;
+            if (!e.GetCurrentPoint(WidthPopBox).Properties.IsLeftButtonPressed)
+                return;
+            AdjustWidthFromPointer(e);
+        }
+
+        /* continuous non-linear thumb position from the cursor position,
+         * plus a Y-axis magnet that pulls the cursor onto the slider row */
+        private void AdjustWidthFromPointer(PointerRoutedEventArgs e)
+        {
+            if (WidthSlider.ActualWidth <= 0) return;
+            var p = e.GetCurrentPoint(WidthSlider);
+            double w = WidthSlider.ActualWidth;
+            double f = Math.Clamp(p.Position.X / w, 0, 1);
+            double v = f * 4.0;
+            double disp;
+            if (f <= 0) disp = 0;
+            else if (f >= 1) disp = 4;
+            else
+            {
+                int k = (int)Math.Floor(v);
+                if (k > 3) k = 3;
+                double t = v - k;
+                double tn = Math.Pow(t, WidthMagnetP);
+                double g = tn / (tn + Math.Pow(1 - t, WidthMagnetP));
+                disp = k + g;
+            }
+            WidthSlider.Value = Math.Clamp(disp, 0, 4);
+
+            /* elastic overscroll feedback: dragging beyond the track
+             * shifts the whole box, compressed, and it returns smoothly */
+            double x = p.Position.X;
+            WidthPopShift.X = x > w ? Elastic(x - w)
+                              : x < 0 ? -Elastic(-x) : 0.0;
+
+            /* Y-axis magnet: near the slider row the cursor itself is
+             * pulled onto it (X stays untouched) */
+            double cy = p.Position.Y - WidthSlider.ActualHeight / 2;
+            if (Math.Abs(cy) <= WidthYBand &&
+                p.Position.X >= -WidthYBand &&
+                p.Position.X <= w + WidthYBand)
+                SnapCursorY(WidthSlider.ActualHeight / 2);
+        }
+
+        /* move the cursor's Y onto the slider row (screen coords; the
+         * cursor's X is left untouched) */
+        private void SnapCursorY(double yDip)
+        {
+            try
+            {
+                var root = Content.XamlRoot.Content as UIElement;
+                if (root == null) return;
+                var t = WidthSlider.TransformToVisual(root);
+                var pt = t.TransformPoint(new Windows.Foundation.Point(0, 0));
+                double scale = DpiScale();
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                GetCursorPos(out var cur);
+                var ptClient = new POINT32
+                {
+                    X = 0,
+                    Y = (int)((pt.Y + yDip) * scale),
+                };
+                ClientToScreen(hwnd, ref ptClient);
+                SetCursorPos(cur.X, ptClient.Y);
+            }
+            catch (Exception ex) { LogExt("snap y err " + ex.Message); }
+        }
+
+        /* releasing anywhere commits the value and closes the box */
+        private void WidthBtn_PointerReleased(object sender,
+            PointerRoutedEventArgs e)
+        {
+            _widthHoldTimer?.Stop();
+            try { WidthBtn.ReleasePointerCapture(e.Pointer); } catch { }
+            CloseWidthPop();
+        }
+
+        private void WidthPop_PointerReleased(object sender,
+            PointerRoutedEventArgs e)
+        {
+            try { WidthPopBox.ReleasePointerCapture(e.Pointer); } catch { }
+            CloseWidthPop();
+        }
+
+        /* fallback: a release anywhere on the overlay layer closes it
+         * (covers the case where pointer capture was lost) */
+        private void WidthOverlay_PointerReleased(object sender,
+            PointerRoutedEventArgs e)
+        {
+            CloseWidthPop();
+        }
+
+        private void OpenWidthPop()
+        {
+            if (_widthOpen) return;
+            _widthOpen = true;
+            _widthAnim?.Stop();
+            _fmtAnim?.Stop();
+            var root = Content.XamlRoot.Content as UIElement;
+            if (root != null)
+            {
+                /* centre the box over the button it grows out of
+                 * (coordinates relative to the overlay itself) */
+                var t = WidthBtn.TransformToVisual(WidthOverlay);
+                var pt = t.TransformPoint(new Windows.Foundation.Point(0, 0));
+                double bx = pt.X + (WidthBtn.ActualWidth - WidthPopBox.Width) / 2;
+                double by = pt.Y + (WidthBtn.ActualHeight - WidthPopBox.Height) / 2;
+                WidthPopBox.Margin = new Thickness(bx, by, 0, 0);
+            }
+            WidthOverlay.Visibility = Visibility.Visible;
+            WidthPopBox.Visibility = Visibility.Visible;
+            WidthPopBox.Opacity = 0;
+            FmtPopBox.Visibility = Visibility.Collapsed;
+            _widthPrevFocus =
+                FocusManager.GetFocusedElement(Content.XamlRoot) as UIElement;
+            try { WidthPopBox.Focus(FocusState.Programmatic); } catch { }
+            WidthPopScale.ScaleX = 0.3;
+            WidthPopScale.ScaleY = 0.3;
+            var openEase = new Microsoft.UI.Xaml.Media.Animation.CubicEase
+            { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut };
+            var bounce = new Microsoft.UI.Xaml.Media.Animation.BackEase
+            { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut,
+              Amplitude = 0.5 };
+            var sb = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+            sb.Children.Add(Anim(WidthPopBox, "Opacity", 0, 1, 180, openEase));
+            sb.Children.Add(Anim(WidthPopScale, "ScaleX", 0.3, 1, 220, bounce));
+            sb.Children.Add(Anim(WidthPopScale, "ScaleY", 0.3, 1, 220, bounce));
+            _widthAnim = sb;
+            sb.Begin();
+
+            /* the initial thumb follows the cursor (still pressed over the
+             * button), not the previously stored value; runs after the
+             * box's first layout so the slider geometry is final */
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                try
+                {
+                    var root = Content.XamlRoot.Content as UIElement;
+                    if (root == null || WidthSlider.ActualWidth <= 0) return;
+                    var hwnd = WinRT.Interop.WindowNative
+                        .GetWindowHandle(this);
+                    GetCursorPos(out var cur);
+                    ScreenToClient(hwnd, ref cur);
+                    double scale = DpiScale();
+                    var t = WidthSlider.TransformToVisual(root);
+                    var pt = t.TransformPoint(
+                        new Windows.Foundation.Point(0, 0));
+                    double f = Math.Clamp(
+                        (cur.X / scale - pt.X) / WidthSlider.ActualWidth,
+                        0, 1);
+                    WidthSlider.Value = Math.Clamp(f * 4.0, 0, 4);
+                }
+                catch (Exception ex) { LogExt("width init pos err " + ex.Message); }
+            });
+        }
+
+        private void CloseWidthPop()
+        {
+            if (!_widthOpen) return;
+            _widthOpen = false;
+            WidthSlider.Value = Math.Round(WidthSlider.Value);
+            _widthAnim?.Stop();
+            var closeEase = new Microsoft.UI.Xaml.Media.Animation.CubicEase
+            { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseIn };
+            var sb = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+            sb.Children.Add(Anim(WidthPopBox, "Opacity", 1, 0, 120, closeEase));
+            sb.Children.Add(Anim(WidthPopScale, "ScaleX", 1, 0.3, 120, closeEase));
+            sb.Children.Add(Anim(WidthPopScale, "ScaleY", 1, 0.3, 120, closeEase));
+            sb.Completed += (s, a) =>
+            {
+                WidthOverlay.Visibility = Visibility.Collapsed;
+                WidthPopBox.Opacity = 1;
+                WidthPopScale.ScaleX = 1;
+                WidthPopScale.ScaleY = 1;
+            };
+            _widthAnim = sb;
+            sb.Begin();
+            RestoreFocus(_widthPrevFocus, WidthBtn);
+        }
+
+        private static Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+            Anim(DependencyObject target, string prop,
+                 double from, double to, int ms,
+                 Microsoft.UI.Xaml.Media.Animation.EasingFunctionBase ease)
+        {
+            var da = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+            {
+                From = from,
+                To = to,
+                Duration = new Duration(TimeSpan.FromMilliseconds(ms)),
+                EasingFunction = ease,
+            };
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(da, target);
+            Microsoft.UI.Xaml.Media.Animation.Storyboard
+                .SetTargetProperty(da, prop);
+            return da;
+        }
+
+        /* the button's label, the popup level pill and the tooltip all
+         * follow the value */
+        private void WidthSlider_ValueChanged(object sender,
+            Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        {
+            if (WidthBtnLabel == null) return;
+            int v = (int)Math.Round(e.NewValue);
+            v = Math.Clamp(v, 0, 4);
+            WidthBtnLabel.Text = _zh ? LevelNamesZh[v] : CompactNamesEn[v];
+            WidthPopVal.Text = (_zh ? LevelNamesZh : LevelNamesEn)[v];
+            ToolTipService.SetToolTip(WidthBtn, _zh
+                ? $"窄度 {v}（{(_zh ? LevelNamesZh : LevelNamesEn)[v]}）- 长按展开"
+                : $"narrowness {v} ({(_zh ? LevelNamesZh : LevelNamesEn)[v]}) - hold to expand");
+        }
+
+        /* ---- format picker: long-pressing the format button pops up a
+         * vertical slide-to-select list on the same overlay layer. The
+         * selection is a continuous non-linear function of the cursor Y
+         * (same S-curve as the narrowness picker); a highlight pill
+         * slides over the rows and the selection commits on release.
+         * Rendered from scratch (rows + pill), no Slider reused ---- */
+
+        private static readonly string[] FmtNamesEn =
+            { "vectors", "query", "layers", "JSON" };
+        private static readonly string[] FmtNamesZh =
+            { "向量", "查询", "层", "JSON" };
+
+        private DispatcherTimer? _fmtHoldTimer;
+        private bool _fmtOpen;
+        private int _fmtIndex;
+        private double _fmtDisp;
+        private UIElement? _fmtPrevFocus;
+        private Microsoft.UI.Xaml.Media.Animation.Storyboard? _fmtAnim;
+        private TextBlock[] _fmtRows = Array.Empty<TextBlock>();
+        private Border[] _fmtItems = Array.Empty<Border>();
+        private TextBlock[] _fmtChecks = Array.Empty<TextBlock>();
+        private int _fmtSelVis = -1;
+        private Microsoft.UI.Xaml.Media.Brush? _fmtOnAccent;
+        private Microsoft.UI.Xaml.Media.Brush? _fmtTextFill;
+        private long _fmtMoveTick;
+        private double _lastFmtRawY;
+        private double _lastFmtForceDip;
+
+        private void FmtBtn_PointerPressed(object sender,
+            PointerRoutedEventArgs e)
+        {
+            try { FmtBtn.CapturePointer(e.Pointer); }
+            catch { }
+            _fmtHoldTimer?.Stop();
+            _fmtHoldTimer = new DispatcherTimer
+            { Interval = TimeSpan.FromMilliseconds(400) };
+            _fmtHoldTimer.Tick += (s, a) =>
+            {
+                _fmtHoldTimer?.Stop();
+                OpenFmtPop();
+            };
+            _fmtHoldTimer.Start();
+        }
+
+        private void FmtBtn_PointerMoved(object sender,
+            PointerRoutedEventArgs e)
+        {
+            if (!_fmtOpen) return;
+            if (!e.GetCurrentPoint(FmtBtn).Properties.IsLeftButtonPressed)
+                return;
+            AdjustFmtFromPointer(e);
+        }
+
+        private void FmtPop_PointerPressed(object sender,
+            PointerRoutedEventArgs e)
+        {
+            try { FmtPopBox.CapturePointer(e.Pointer); }
+            catch { }
+            AdjustFmtFromPointer(e);
+        }
+
+        private void FmtPop_PointerMoved(object sender,
+            PointerRoutedEventArgs e)
+        {
+            if (!_fmtOpen) return;
+            if (!e.GetCurrentPoint(FmtPopBox).Properties.IsLeftButtonPressed)
+                return;
+            AdjustFmtFromPointer(e);
+        }
+
+        /* Selection follows the cursor directly - no filter, no chase
+         * animation, so there is no lag:
+         *  - the pill is CENTRED on the cursor (half a row subtracted);
+         *  - the S-curve magnet (t^3/(t^3+(1-t)^3), a high-order curve)
+         *    is the velocity profile itself: near a row centre the slope
+         *    is ~0 (slow crawl into the snap), between rows it is steep
+         *    (fast transit) - crisp 吸附 without sluggishness;
+         *  - a cursor force field (attraction into the row centres,
+         *    repulsion out of the very core) dents the real cursor so
+         *    the rows feel tactile.
+         * Hot path: no allocations, no resource lookups. */
+        private const double FmtRowH = 43;
+        private const double FmtTop = 1;
+
+        private void AdjustFmtFromPointer(PointerRoutedEventArgs e)
+        {
+            if (FmtPopBox.ActualHeight <= 0) return;
+            var p = e.GetCurrentPoint(FmtPopBox);
+            double f = Math.Clamp(
+                (p.Position.Y - FmtTop) / (FmtRowH * 4), 0, 1);
+            double v = Math.Clamp(f * 4.0 - 0.5, 0, 3);
+            int k = (int)Math.Floor(v);
+            double t = v - k;
+            double tn = t * t * t;
+            double g = tn / (tn + (1 - t) * (1 - t) * (1 - t));
+            double magV = k + g;                  /* magnetised, centred */
+            _fmtDisp = magV;
+            FmtPillTrans.Y = magV * FmtRowH;
+
+            /* elastic overscroll feedback: dragging beyond the rows
+             * shifts the whole box, compressed, and it returns smoothly */
+            double yLocal = p.Position.Y - FmtTop;
+            double limit = FmtRowH * 4;
+            FmtPopShift.Y = yLocal > limit ? Elastic(yLocal - limit)
+                          : yLocal < 0 ? -Elastic(-yLocal) : 0.0;
+
+            /* pointer speed (raw: our own previous displacement is
+             * subtracted, so the measurement cannot feed back) */
+            long now = Environment.TickCount64;
+            double dt = Math.Max((now - _fmtMoveTick) / 1000.0, 0.001);
+            double rawY = p.Position.Y - _lastFmtForceDip;
+            double speedDip = Math.Abs(rawY - _lastFmtRawY) / dt;
+            _lastFmtRawY = rawY;
+            _fmtMoveTick = now;
+            double speedF = Math.Clamp((speedDip - 80.0) / 320.0, 0.0, 1.0);
+
+            /* between rows the accent pill contracts, at the row centres
+             * it is full size: the deformation follows the pill's
+             * distance from the nearest row centre (0 at a centre,
+             * 1 between rows), smoothed exponentially so the breathing
+             * animates. The narrowness box is left untouched - its
+             * width never changes. */
+            double t2 = 2.0 * Math.Abs(_fmtDisp - Math.Round(_fmtDisp));
+            double shrink = 0.15 * t2 * t2;
+            double tgt = 1.0 - shrink;
+            const double kS = 0.4;
+            FmtPillBreath.ScaleX += (tgt - FmtPillBreath.ScaleX) * kS;
+            FmtPillBreath.ScaleY += (tgt - FmtPillBreath.ScaleY) * kS;
+
+            /* cursor force field (only inside the rows band): attract
+             * into the row centres, repel out of the very core; the
+             * cursor settles on a small ring around each centre.
+             * Speed-gated: slow, deliberate moves pass through
+             * unhindered - the field only dents fast flicks. */
+            if (speedF > 0 && yLocal >= -10 && yLocal <= limit + 10)
+            {
+                double d = yLocal / FmtRowH - 0.5 - Math.Round(
+                    yLocal / FmtRowH - 0.5);
+                double ad = Math.Abs(d);
+                const double zone = 0.20, core = 0.06;
+                const double kA = 0.30, kR = 1.0;
+                double dispDip;
+                if (ad < core) dispDip = d * kR * FmtRowH;
+                else if (ad < zone)
+                    dispDip = -Math.Sign(d) * kA * ad * FmtRowH;
+                else dispDip = 0;
+                dispDip *= speedF;
+                _lastFmtForceDip = dispDip;
+                if (dispDip != 0) OffsetCursorY(dispDip);
+            }
+            else
+            {
+                _lastFmtForceDip = 0;
+            }
+
+            int sel = (int)Math.Round(magV);
+            if (sel != _fmtSelVis) UpdateFmtSel(sel);
+        }
+
+        /* displace the real cursor along Y by deltaDip (screen coords) */
+        private void OffsetCursorY(double deltaDip)
+        {
+            try
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                GetCursorPos(out var cur);
+                double scale = DpiScale();
+                int dy = (int)Math.Round(deltaDip * scale);
+                if (dy == 0) return;
+                SetCursorPos(cur.X, cur.Y + dy);
+            }
+            catch (Exception ex) { LogExt("cursor force err " + ex.Message); }
+        }
+
+        private void FmtBtn_PointerReleased(object sender,
+            PointerRoutedEventArgs e)
+        {
+            _fmtHoldTimer?.Stop();
+            try { FmtBtn.ReleasePointerCapture(e.Pointer); } catch { }
+            CloseFmtPop();
+        }
+
+        private void FmtPop_PointerReleased(object sender,
+            PointerRoutedEventArgs e)
+        {
+            try { FmtPopBox.ReleasePointerCapture(e.Pointer); } catch { }
+            CloseFmtPop();
+        }
+
+        private void OpenFmtPop()
+        {
+            if (_fmtOpen) return;
+            CloseWidthPop();          /* one popup at a time */
+            _fmtOpen = true;
+            _fmtAnim?.Stop();
+            _widthAnim?.Stop();       /* its Completed would collapse the
+                                         overlay mid-open */
+            WidthOverlay.Visibility = Visibility.Visible;
+            FmtPopBox.Visibility = Visibility.Visible;
+            WidthPopBox.Visibility = Visibility.Collapsed;
+            _fmtPrevFocus =
+                FocusManager.GetFocusedElement(Content.XamlRoot) as UIElement;
+            try { FmtPopBox.Focus(FocusState.Programmatic); } catch { }
+            var root = Content.XamlRoot.Content as UIElement;
+            if (root != null)
+            {
+                var t = FmtBtn.TransformToVisual(WidthOverlay);
+                var pt = t.TransformPoint(new Windows.Foundation.Point(0, 0));
+                double bx = Math.Max(0,
+                    pt.X + (FmtBtn.ActualWidth - FmtPopBox.Width) / 2);
+                double by = Math.Max(0,
+                    pt.Y + (FmtBtn.ActualHeight - FmtPopBox.Height) / 2);
+                FmtPopBox.Margin = new Thickness(bx, by, 0, 0);
+            }
+            _fmtSelVis = -1;
+            FmtPillBreath.ScaleX = 1;
+            FmtPillBreath.ScaleY = 1;
+            FmtPillTrans.Y = _fmtIndex * FmtRowH;
+            UpdateFmtSel(_fmtIndex);
+            FmtPopBox.Opacity = 0;
+            FmtPopScale.ScaleX = 0.3;
+            FmtPopScale.ScaleY = 0.3;
+            var openEase = new Microsoft.UI.Xaml.Media.Animation.CubicEase
+            { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut };
+            var bounce = new Microsoft.UI.Xaml.Media.Animation.BackEase
+            { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut,
+              Amplitude = 0.5 };
+            var sb = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+            sb.Children.Add(Anim(FmtPopBox, "Opacity", 0, 1, 180, openEase));
+            sb.Children.Add(Anim(FmtPopScale, "ScaleX", 0.3, 1, 220, bounce));
+            sb.Children.Add(Anim(FmtPopScale, "ScaleY", 0.3, 1, 220, bounce));
+            _fmtAnim = sb;
+            sb.Begin();
+
+            /* the initial selection follows the cursor (still pressed
+             * over the button), not the previously stored state; runs
+             * after the box's first layout so its geometry is final */
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                try
+                {
+                    var root = Content.XamlRoot.Content as UIElement;
+                    if (root == null) return;
+                    var hwnd = WinRT.Interop.WindowNative
+                        .GetWindowHandle(this);
+                    GetCursorPos(out var cur);
+                    ScreenToClient(hwnd, ref cur);
+                    double scale = DpiScale();
+                    var tf = FmtPopBox.TransformToVisual(root);
+                    var pt = tf.TransformPoint(
+                        new Windows.Foundation.Point(0, 0));
+                    double f = Math.Clamp(
+                        (cur.Y / scale - pt.Y - FmtTop) / (FmtRowH * 4),
+                        0, 1);
+                    double v = Math.Clamp(f * 4.0 - 0.5, 0, 3);
+                    int k = (int)Math.Floor(v);
+                    double ft = v - k;
+                    double tn = ft * ft * ft;
+                    double g = tn / (tn + (1 - ft) * (1 - ft) * (1 - ft));
+                    double magV = k + g;
+                    _fmtDisp = magV;
+                    FmtPillTrans.Y = magV * FmtRowH;
+                    _fmtMoveTick = Environment.TickCount64;
+                    _lastFmtRawY = 0;
+                    _lastFmtForceDip = 0;
+                    int sel = (int)Math.Round(magV);
+                    _fmtSelVis = -1;
+                    UpdateFmtSel(sel);
+                }
+                catch (Exception ex) { LogExt("fmt init pos err " + ex.Message); }
+            });
+        }
+
+        private void CloseFmtPop()
+        {
+            if (!_fmtOpen) return;
+            _fmtOpen = false;
+            _fmtIndex = Math.Clamp((int)Math.Round(_fmtDisp), 0, 3);
+            FmtBtnLabel.Text = (_zh ? FmtNamesZh : FmtNamesEn)[_fmtIndex];
+            ToolTipService.SetToolTip(FmtBtn, (_zh ? FmtNamesZh : FmtNamesEn)
+                [_fmtIndex] + (_zh ? " - 长按选择格式" : " - hold to pick format"));
+            _fmtAnim?.Stop();
+            var closeEase = new Microsoft.UI.Xaml.Media.Animation.CubicEase
+            { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseIn };
+            var sb = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+            sb.Children.Add(Anim(FmtPopBox, "Opacity", 1, 0, 120, closeEase));
+            sb.Children.Add(Anim(FmtPopScale, "ScaleX", 1, 0.3, 120, closeEase));
+            sb.Children.Add(Anim(FmtPopScale, "ScaleY", 1, 0.3, 120, closeEase));
+            sb.Completed += (s, a) =>
+            {
+                WidthOverlay.Visibility = Visibility.Collapsed;
+                FmtPopBox.Visibility = Visibility.Collapsed;
+                FmtPopBox.Opacity = 1;
+                FmtPopScale.ScaleX = 1;
+                FmtPopScale.ScaleY = 1;
+            };
+            _fmtAnim = sb;
+            sb.Begin();
+            RestoreFocus(_fmtPrevFocus, FmtBtn);
+        }
+
+        /* give keyboard focus back to the element focused before the popup
+         * opened; deferred so the button's own Click (raised after our
+         * PointerReleased handler) does not steal it first */
+        private void RestoreFocus(UIElement? prev, UIElement fallback)
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (prev != null && prev.Focus(FocusState.Programmatic)) return;
+                try { fallback.Focus(FocusState.Programmatic); } catch { }
+            });
+        }
+
+        /* selection visuals: row text/check colors swap when the pill
+         * reaches a new row (the pill itself tracks the cursor directly).
+         * Brushes are cached - never resolved in the hot path */
+        private void UpdateFmtSel(int sel)
+        {
+            var onAccent = _fmtOnAccent ??=
+                Res("TextOnAccentFillColorPrimaryBrush");
+            var textFill = _fmtTextFill ??=
+                Res("TextFillColorPrimaryBrush");
+            for (int i = 0; i < _fmtRows.Length; i++)
+            {
+                _fmtRows[i].Foreground = i == sel ? onAccent : textFill;
+                _fmtChecks[i].Foreground = i == sel ? onAccent : textFill;
+                _fmtChecks[i].Visibility =
+                    i == sel ? Visibility.Visible : Visibility.Collapsed;
+            }
+            _fmtSelVis = sel;
+        }
+
+        private void UpdateFmtRows()
+        {
+            var names = _zh ? FmtNamesZh : FmtNamesEn;
+            for (int i = 0; i < _fmtRows.Length; i++)
+                _fmtRows[i].Text = names[i];
+            UpdateFmtSel(_fmtIndex);
+        }
+
+        private static Microsoft.UI.Xaml.Media.Brush Res(string key) =>
+            Microsoft.UI.Xaml.Application.Current.Resources[key]
+                as Microsoft.UI.Xaml.Media.Brush
+                ?? new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                    Microsoft.UI.Colors.Gray);
+
         private void ReverseBtn_Click(object sender, RoutedEventArgs e)
         {
-            int width = WidthCombo.SelectedIndex;
+            int width = (int)WidthSlider.Value;
             if (width < 0) width = 3;
             var lines = VecInput.Text.Split('\n',
                 StringSplitOptions.RemoveEmptyEntries);
@@ -2892,6 +3566,11 @@ namespace Vec4ipaUI
             string norm = text.Replace("\r\n", "\n")
                               .Replace('\r', '\n')
                               .Replace("\n", "\r");
+            /* always end the appended block with a paragraph break: the
+             * document's trailing implicit paragraph makes the char check
+             * below see '\r' even when the visible text has no newline,
+             * so without this the next section would be glued to ours */
+            if (!norm.EndsWith("\r")) norm += "\r";
             var endRange = doc.GetRange(0, int.MaxValue);
             int end = endRange.EndPosition;
             /* append at the very end; O(1) instead of re-setting the

@@ -228,6 +228,21 @@ static void kb_build_all(HWND parent)
         n++;
         if (n % trow == 0) { x = x0; y += 33; } else x += 39;
     }
+    /* Chinese tone classes in the four-corner order, 4 per row:
+     *   上 ꜂꜃ | 去 ꜄꜅   (top)
+     *   平 ꜀꜁ | 入 ꜆꜇   (bottom)
+     * i.e. 阴上 阳上 | 阴去 阳去 / 阴平 阳平 | 阴入 阳入 */
+    static const wchar_t *class_syms[] = {
+        L"\uA702", L"\uA703", L"\uA704", L"\uA705",
+        L"\uA700", L"\uA701", L"\uA706", L"\uA707",
+    };
+    int cy = y + 33;
+    int cx = x0;
+    int base_id = (int)(sizeof(tone_syms) / sizeof(tone_syms[0]));
+    for (i = 0; i < (int)(sizeof(class_syms) / sizeof(class_syms[0])); i++) {
+        kb_add(parent, 3, IDB_TONE + base_id + i, class_syms[i], cx, cy, 36, 30);
+        if ((i + 1) % 4 == 0) { cx = x0; cy += 33; } else cx += 39;
+    }
 
     for (i = 1; i < KB_GROUPS; i++) {
         for (int j = 0; j < g_kb_n[i]; j++)
@@ -365,14 +380,16 @@ static void do_reverse(HWND out, const char *vecstr)
     char ipa[128];
     build_ipa(b, mods, nm, 0, ipa, sizeof(ipa));
     char line[256];
-    snprintf(line, sizeof(line), "/%s/  (%s", b->ipa, base_name(b));
+    snprintf(line, sizeof(line), "%s%s%s  (%s", ipabrk_o(), b->ipa,
+             ipabrk_c(), base_name(b));
     for (int j = 0; j < nm; j++) {
         char m[64];
         snprintf(m, sizeof(m), " +%s", mods[j]->latin);
         strncat(line, m, sizeof(line) - strlen(line) - 1);
     }
     char tail[160];
-    snprintf(tail, sizeof(tail), ")  d=%.4f  ->  /%s/", d, ipa);
+    snprintf(tail, sizeof(tail), ")  d=%.4f  ->  %s%s%s", d,
+             ipabrk_o(), ipa, ipabrk_c());
     strncat(line, tail, sizeof(line) - strlen(line) - 1);
     out_append(out, line);
 }

@@ -397,12 +397,28 @@ static IPA2VEC_MAYBE_UNUSED double seg_dist (const double a[MAXDIM], const doubl
     return sqrt(s);
 }
 
+static IPA2VEC_MAYBE_UNUSED double air_gap (int air_a, int air_b);  /* fwd: below */
+
 static IPA2VEC_MAYBE_UNUSED double seg_dist_full (const SegVec *a, const SegVec *b)
 {
     double d = seg_dist(a->v, b->v);
-    if (a->airstream != b->airstream)
-        d += g_metric_lambda;
+    d += air_gap(a->airstream, b->airstream);
     return d;
+}
+
+/* the airstream gap penalty: pulmonic <-> glottalic-egressive pairs are
+ * exempt.  An ejective (kʼ) is its own base segment — the fit hits the
+ * kʼ row directly and its contrast lives in the laryngeal dims
+ * (aperture/tension/larynx) — so k~kʼ keeps the minimal-pair distance
+ * (v8 semantics) instead of gaining LAMBDA.  All other class changes
+ * (implosive, lingual, percussive) keep the penalty. */
+static IPA2VEC_MAYBE_UNUSED double air_gap (int air_a, int air_b)
+{
+    if (air_a == air_b) return 0.0;
+    int lo = air_a < air_b ? air_a : air_b;
+    int hi = air_a < air_b ? air_b : air_a;
+    if (lo == 0 && hi == 1) return 0.0;   /* pulmonic <-> ejective */
+    return g_metric_lambda;
 }
 
 /* ------------------------------------------------------------------ */
@@ -482,20 +498,29 @@ static const SegEntry EXTRA_BASE[] = {
      * (aperture -0.55) with the larynx pulled down, exactly like ɓ */
     { "\xe1\xb6\x91", { 0.0, 0.0, 0.0, 0.0, 0.9, 0.0, 0.0, 0.0,
                         1.0, -0.55, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0 }, 2 },
-    /* ȶ U+0236: voiceless alveolo-palatal stop (curl notation, Sinologist);
-     * standard spelling t̠ʲ — place kept 0.05 off alveolar /t/ (-0.45)
-     * so the standard fallback lands on /t/, not the retroflex /ʈ/ */
-    { "\xc8\xb6", { -0.40, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+    /* ȶ U+0236: voiceless alveolo-palatal stop (curl notation, Sinologist;
+     * standard spelling t̠ʲ / c̟).  Modeled like ȵ: pre-palatal slot
+     * (place 0.0, midway between ɕ/ʑ at -0.15 and the palatal series at
+     * 0.15), palatal body 0.40, no tip gesture — the default-charset
+     * fallback is exactly the composed spelling c̟ (d=0); the retroflex
+     * ʈ stays far via the body penalty */
+    { "\xc8\xb6", { 0.0, 0.40, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0,
                     0.0, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 }, 0 },
-    /* ȡ U+0221: voiced alveolo-palatal stop (standard spelling d̠ʲ) */
-    { "\xc8\xa1", { -0.40, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+    /* ȡ U+0221: voiced alveolo-palatal stop (standard spelling d̠ʲ / ɟ̟);
+     * same pre-palatal model — falls back exactly to ɟ̟ (d=0) */
+    { "\xc8\xa1", { 0.0, 0.40, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0,
                     1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 }, 0 },
-    /* ȵ U+0235: voiced alveolo-palatal nasal (standard spelling n̠ʲ) */
-    { "\xc8\xb5", { -0.40, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0,
+    /* ȵ U+0235: voiced alveolo-palatal nasal (standard spelling n̠ʲ / ɲ̟).
+     * Modeled as the pre-palatal nasal: place 0.0, palatal body 0.40,
+     * no tip gesture — the default-charset fallback is exactly ɲ̟ (d=0)
+     * (dialectology reads ȵ ~ ɲ).  A tip_shape of 0.8/1.0 would hand
+     * the fallback to the retroflex ɳ instead. */
+    { "\xc8\xb5", { 0.0, 0.40, 0.0, 0.0, 0.25, 0.0, 1.0, 0.0,
                     1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 }, 0 },
-    /* ȴ U+0234: voiced alveolo-palatal lateral (standard spelling l̠ʲ);
-     * closure height aligned with /l/ (0.7) so the fallback is /l/ */
-    { "\xc8\xb4", { -0.40, 0.0, 0.0, 0.0, 0.7, 0.0, 0.0, 1.0,
+    /* ȴ U+0234: voiced alveolo-palatal lateral (standard spelling l̠ʲ / ʎ̟);
+     * same pre-palatal model as ȵ/ȶ/ȡ — falls back exactly to ʎ̟ (d=0);
+     * the retroflex ɭ stays far via the body penalty */
+    { "\xc8\xb4", { 0.0, 0.40, 0.0, 0.0, 0.25, 0.0, 0.0, 1.0,
                     1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.5, 1.0 }, 0 },
     /* ʞ U+029E: velar click (posterior-release).  Unlike the other
      * clicks the salient burst comes from the BACK closure (velar), so
@@ -902,7 +927,7 @@ static const ModRec MODS[] = {
     { 0x02B0, "ʰ",   "asp",       TIER_LARYNGEAL, -1, mod_asp,          0, {0,0} , NULL, 1  },
     { 0x02B2, "ʲ",   "pal",       TIER_PLACE,     -1, mod_pal,         0, {0,0} , NULL, 1  },
     { 0x02B7, "ʷ",   "lab",       TIER_PLACE,     -1, mod_lab,         0, {0,0} , NULL, 1  },
-    { 0x02BC, "ʼ",   "ej",        TIER_AIRSTREAM, 0,  mod_ejective,    0, {0,0} , NULL, 1  },
+    { 0x02BC, "ʼ",   "ej",        TIER_AIRSTREAM, 1,  mod_ejective,    0, {0,0} , NULL, 1  },
     { 0x02BD, "ʽ",   "weak_asp",  TIER_LARYNGEAL, -1, mod_weak_asp,    0, {0,0} , "quote ʽ reinterpreted as weak aspiration", 0  },
     { 0x2018, "‘",   "weak_asp",  TIER_LARYNGEAL, -1, mod_weak_asp,    0, {0,0} , "quote ‘ reinterpreted as weak aspiration", 0  },
     { 0x201B, "‛",   "weak_asp",  TIER_LARYNGEAL, -1, mod_weak_asp,    0, {0,0} , "quote ‛ reinterpreted as weak aspiration", 0  },
@@ -1007,10 +1032,10 @@ static const ModRec MODS[] = {
     /* --- pitch contour marks (diacritics) — no articulatory effect --- */
     { 0x1DC4, "◌᷄", "pitch_highrise",  TIER_COUNT, -1, NULL, 1, {4, 5} , NULL, 1  },
     { 0x1DC5, "◌᷅", "pitch_lowrise",  TIER_COUNT, -1, NULL, 1, {1, 2} , NULL, 1  },
-    { 0x1DC6, "◌᷆", "pitch_highfall", TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
-    { 0x1DC7, "◌᷇", "pitch_midrise",  TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
+    { 0x1DC6, "◌᷆", "pitch_highfall", TIER_COUNT, -1, NULL, 1, {5, 4} , NULL, 1  },
+    { 0x1DC7, "◌᷇", "pitch_midrise",  TIER_COUNT, -1, NULL, 1, {3, 4} , NULL, 1  },
     { 0x1DC8, "◌᷈", "pitch_risefall", TIER_COUNT, -1, NULL, 1, {3, 4, 3} , NULL, 1  },
-    { 0x1DC9, "◌᷉", "pitch_fallrise", TIER_COUNT, -1, NULL, 0, {0,0} , NULL, 1  },
+    { 0x1DC9, "◌᷉", "pitch_fallrise", TIER_COUNT, -1, NULL, 1, {4, 3, 4} , NULL, 1  },
     /* --- undertie (linking) — ignored --- */
     { 0x203F, "‿",   "link",     TIER_COUNT,     -1, NULL, 0, {0,0} , NULL, 1  },
 };
@@ -4114,7 +4139,8 @@ static IPA2VEC_MAYBE_UNUSED void build_ipa (const SegEntry *base, const ModRec *
  * vectors — the inverse of the forward tone parsing: 5-level contour
  * letters (˩˨˧˦˥), sandhi letters (꜖꜕꜔꜓꜒), then the 3-D marks
  * (upstep ꜛ / downstep ꜜ, global ↗ / ↘, Chinese tone class ꜀…꜇). */
-static IPA2VEC_MAYBE_UNUSED void tone_rebuild (const SegVec *sv, char *out, size_t outsz)
+static IPA2VEC_MAYBE_UNUSED void tone_rebuild (const SegVec *sv, char *pre, size_t pre_sz,
+                                               char *out, size_t outsz)
 {
     static const char *L5  = "\xcb\xa5\xcb\xa6\xcb\xa7\xcb\xa8\xcb\xa9";   /* ˥˦˧˨˩ */
     static const char *S5  = "\xea\x9c\x92\xea\x9c\x93\xea\x9c\x94"
@@ -4123,12 +4149,17 @@ static IPA2VEC_MAYBE_UNUSED void tone_rebuild (const SegVec *sv, char *out, size
                              "\xea\x9c\x84\xea\x9c\x85\xea\x9c\x86\xea\x9c\x87"; /* ꜀꜁꜂꜃꜄꜅꜆꜇ */
     size_t used = 0;
     out[0] = 0;
+    if (pre && pre_sz) pre[0] = 0;
     /* 5-level letters ˥˦˧˨˩ (U+02E5-U+02E9) are 2-byte UTF-8; the
      * sandhi/class letters and ↗↘ꜛꜜ are 3-byte UTF-8.  Copy exactly the
      * letter's byte width (strlen on a mid-string pointer would copy the
      * whole remaining tail). */
 #define TONE_APPENDN(s, n) do { const char *_s = (s); \
     if (used + (n) + 1 < outsz) { memcpy(out + used, _s, (n)); used += (n); out[used] = 0; } \
+    } while (0)
+#define TONE_APPENDPRE(s, n) do { const char *_s = (s); \
+    size_t _u = strlen(pre); \
+    if (_u + (n) + 1 < pre_sz) { memcpy(pre + _u, _s, (n)); pre[_u + (n)] = 0; } \
     } while (0)
 
     if (sv->tkind[0] == 1) {
@@ -4154,10 +4185,13 @@ static IPA2VEC_MAYBE_UNUSED void tone_rebuild (const SegVec *sv, char *out, size
     if (sv->tkind[2] == 2) {
         /* postposed marks set only their own component; the others stay
          * NAN — treat NAN as "absent" and round negatives correctly
-         * ((int)(-3 + 0.5) truncates to -2) */
+         * ((int)(-3 + 0.5) truncates to -2).  Upstep/downstep (dim 0)
+         * are PREPOSED: per IPA convention they mark the pitch of the
+         * FOLLOWING syllable and are written before it (ꜛu, not uꜛ);
+         * the global rise/fall and the tone class stay postposed. */
         double s = sv->tone[2][0];
-        if (!isnan(s) && s < 0) TONE_APPENDN("\xea\x9c\x9b", 3);        /* ꜛ upstep */
-        else if (!isnan(s) && s > 0) TONE_APPENDN("\xea\x9c\x9c", 3);   /* ꜜ downstep */
+        if (!isnan(s) && s < 0) TONE_APPENDPRE("\xea\x9c\x9b", 3);        /* ꜛ upstep */
+        else if (!isnan(s) && s > 0) TONE_APPENDPRE("\xea\x9c\x9c", 3);   /* ꜜ downstep */
         double g = sv->tone[2][1];
         if (!isnan(g) && g > 0) TONE_APPENDN("\xe2\x86\x97", 3);        /* ↗ */
         else if (!isnan(g) && g < 0) TONE_APPENDN("\xe2\x86\x98", 3);   /* ↘ */
@@ -4172,6 +4206,7 @@ static IPA2VEC_MAYBE_UNUSED void tone_rebuild (const SegVec *sv, char *out, size
         }
     }
 #undef TONE_APPENDN
+#undef TONE_APPENDPRE
 }
 
 /* print the 5-group tone annotation, e.g.  ()?(1,2)?(4,5)  */
@@ -5075,12 +5110,13 @@ static IPA2VEC_MAYBE_UNUSED int parse_vector_arg(const char *s, double out[NDIM]
     char buf[512];
     int bl = snprintf(buf, sizeof(buf), "%s", s);
     if (bl < 0 || (size_t)bl >= sizeof(buf)) return -1;
-    /* split off trailing tone groups "(...)(...)" first, so commas inside
-     * them (e.g. "(4,5)") are not treated as vector separators.  Everything
-     * from the FIRST '(' onward is annotation — stripping only the last
-     * group left "(4,5)" in the number stream for two-or-more groups. */
-    char *groups = strchr(buf, '(');
-    if (groups) *groups = 0;
+    /* split off trailing tone groups "(...)" / "?(...)" first, so commas
+     * inside them (e.g. "(4,5)") are not treated as vector separators.
+     * Everything from the FIRST '(' or '?' onward is annotation — the
+     * '?' separators glue onto the last number ("1.0000??(0,0,1)"). */
+    for (char *q = buf; *q; q++) {
+        if (*q == '(' || *q == '?') { *q = 0; break; }
+    }
     char *tok = strtok(buf, ", \t");
     int i = 0;
     while (tok && i < NDIM) {
@@ -5091,6 +5127,9 @@ static IPA2VEC_MAYBE_UNUSED int parse_vector_arg(const char *s, double out[NDIM]
          * which then defeats the fit's "no candidate" markers */
         if (endp == tok || isnan(x) || isinf(x) ||
             x > 1e150 || x < -1e150) return -1;
+        /* reject trailing junk ("1.0000??" would silently truncate) */
+        while (*endp == ' ' || *endp == '\t') endp++;
+        if (*endp) return -1;
         out[i++] = x;
         tok = strtok(NULL, ", \t");
     }
@@ -5280,8 +5319,7 @@ static IPA2VEC_MAYBE_UNUSED double seg_dist_assim (const SegVec *a,
         r += g_metric_w[di] * d * d;
     }
     double d = sqrt(base * base + r);
-    if (a->airstream != b->airstream)
-        d += g_metric_lambda;
+    d += air_gap(a->airstream, b->airstream);
     return d;
 }
 
@@ -5640,11 +5678,11 @@ static IPA2VEC_MAYBE_UNUSED int run_reverse(const char *vecstr, int nearest_only
     order_mods(mods, nm);   /* canonical order — same as the rebuilt IPA */
     char ipa[128];
     build_ipa(b, mods, nm, sv.dotless, ipa, sizeof(ipa));
-    char tb[48];
-    tone_rebuild(&sv, tb, sizeof(tb));
+    char tpre[16], tb[48];
+    tone_rebuild(&sv, tpre, sizeof(tpre), tb, sizeof(tb));
     printf("%s%s%s  (%s", ipabrk_o(), b->ipa, ipabrk_c(), base_name(b));
     for (int j = 0; j < nm; j++) printf(" +%s", mods[j]->latin);
-    printf(")  d=%.4f  ->  %s%s%s%s\n", d, ipabrk_o(), ipa, tb, ipabrk_c());
+    printf(")  d=%.4f  ->  %s%s%s%s%s\n", d, ipabrk_o(), tpre, ipa, tb, ipabrk_c());
     return 0;
 }
 
@@ -5800,9 +5838,9 @@ static IPA2VEC_MAYBE_UNUSED int run_forward(const char *str, int ir, int json,
                     build_ipa(b, mods, nm, po.segs[s].dotless, rebuilt, sizeof(rebuilt));
                 }
             }
-            char tb[48];
-            tone_rebuild(&po.segs[s], tb, sizeof(tb));
-            printf("rebuilt[%d]: %s%s%s%s\n", s, ipabrk_o(), rebuilt, tb, ipabrk_c());
+            char tpre[16], tb[48];
+            tone_rebuild(&po.segs[s], tpre, sizeof(tpre), tb, sizeof(tb));
+            printf("rebuilt[%d]: %s%s%s%s%s\n", s, ipabrk_o(), tpre, rebuilt, tb, ipabrk_c());
         }
         return 0;
     }

@@ -364,6 +364,70 @@ namespace Vec4ipaUI
             return sb.ToString();
         }
 
+        /// <summary>Forward vectors + per-segment tone annotation in the
+        /// CLI print_tone format ("(3)?(0)", "?(5,5)", "??(0,0,1)"), so
+        /// Reverse() can round-trip the tones (the 16-dim vector itself
+        /// carries no tone data).</summary>
+        public static (string Vec, string ToneAnnot)[] ForwardWithTone(
+            string ipa, out string? error)
+        {
+            error = null;
+            var err = new StringBuilder(256);
+            var vecs = new double[NDIM * MAX_TOKS];
+            var tone = new double[9 * MAX_TOKS];
+            var tkind = new int[3 * MAX_TOKS];
+            int n = ipa2v_forward_tone(ipa, err, 256, vecs, tone, tkind);
+            if (n < 0) { error = err.ToString(); return Array.Empty<(string, string)>(); }
+            var rows = new (string, string)[n];
+            for (int s = 0; s < n; s++)
+            {
+                var sb = new StringBuilder();
+                for (int i = 0; i < NDIM; i++)
+                    sb.Append(i == 0 ? $"{vecs[s * NDIM + i]:F4}"
+                                     : $",{vecs[s * NDIM + i]:F4}");
+                rows[s] = (sb.ToString(), ToneAnnotation(tone, tkind, s));
+            }
+            return rows;
+        }
+
+        /* CLI print_tone format: "(v)?(v,v)?(u,g,c)"; empty slots '?' */
+        private static string ToneAnnotation(double[] tone, int[] tkind, int s)
+        {
+            int last = -1;
+            for (int g = 0; g < 3; g++)
+                if (tkind[s * 3 + g] != 0) last = g;
+            if (last < 0) return "";
+            var sb = new StringBuilder();
+            for (int g = 0; g <= last; g++)
+            {
+                if (g > 0) sb.Append('?');
+                if (tkind[s * 3 + g] == 0) continue;
+                sb.Append('(');
+                if (g == 2)
+                {
+                    for (int d = 0; d < 3; d++)
+                    {
+                        double val = tone[s * 9 + 6 + d];
+                        sb.Append(d == 0 ? "" : ",")
+                          .Append(double.IsNaN(val) ? "0" : val.ToString("0.#"));
+                    }
+                }
+                else
+                {
+                    bool b2 = double.IsNaN(tone[s * 9 + g * 3 + 2]);
+                    int nvals = b2
+                        ? (Math.Abs(tone[s * 9 + g * 3] -
+                                    tone[s * 9 + g * 3 + 1]) < 1e-9 ? 1 : 2)
+                        : 3;
+                    for (int k = 0; k < nvals; k++)
+                        sb.Append(k == 0 ? "" : ",")
+                          .Append(tone[s * 9 + g * 3 + k].ToString("0.#"));
+                }
+                sb.Append(')');
+            }
+            return sb.ToString();
+        }
+
         /// <summary>Example vector repeated in the error hints.</summary>
         private const string VectorExample =
             "-0.45,0,0,0,1,0,0,0,0,0.9,0,0,0,0,0,1";
@@ -378,75 +442,40 @@ namespace Vec4ipaUI
 
         public static string? Reverse(string vectorText, int width)
         {
-            /* 1) "?" stands for an empty vector - normalise to () */
             string input = vectorText.Trim();
-            string norm = System.Text.RegularExpressions.Regex.Replace(
-                input, @"\?", "()");
 
-            /* 2) extract every parenthesised group in order */
-            var groups = new List<string>();
-            string bare = System.Text.RegularExpressions.Regex.Replace(
-                norm, @"\(([^()]*)\)", m =>
-                {
-                    groups.Add(m.Groups[1].Value.Trim());
-                    return " ";
-                });
+            /* split into the numeric head and the tone annotation.  The
+             * annotation uses the CLI print_tone format: slots separated
+             * by '?', an empty slot prints '?' — "(1,2)?(4,5)",
+             * "?(5,5)", "??(0,0,1)".  The vector may also be wrapped:
+             * "(0.5,-0.9,...)". */
+            int firstParen = input.IndexOf('(');
+            string head = firstParen >= 0 ? input[..firstParen] : input;
+            string annot = firstParen >= 0 ? input[firstParen..] : "";
 
-            /* 3) if the leading 16 numbers are not wrapped in (),
-             * wrap them implicitly as the first group */
-            var bareNums = bare.Split(new[] { ',', ' ', '\t', ';' },
-                StringSplitOptions.RemoveEmptyEntries);
-            if (bareNums.Length > 0)
+            double[]? v = TryParseVector(head);
+            if (v == null && firstParen >= 0)
             {
-                if (bareNums.Length != NDIM)
-                    return $"I need 16 comma-separated numbers (I found " +
-                           $"{bareNums.Length} outside the groups).\n" +
-                           "Example: " + VectorExample;
-                groups.Insert(0, string.Join(",", bareNums));
-            }
-
-            /* 4) parse in order: first group = main vector (16 numbers);
-             * following groups fill tone slots 0/1/2 by position - empty
-             * groups (() or ?) keep their slot but produce no symbols */
-            double[]? v = null;
-            double[][] toneSlots = new double[3][];
-            int tonePos = 0;
-            foreach (var g in groups)
-            {
-                var nums = new List<double>();
-                foreach (var tok in g.Split(',',
-                             StringSplitOptions.RemoveEmptyEntries))
+                int close = input.IndexOf(')', firstParen);
+                if (close > 0)
                 {
-                    if (double.TryParse(tok,
-                            System.Globalization.NumberStyles.Float,
-                            System.Globalization.CultureInfo.InvariantCulture,
-                            out var d))
-                        nums.Add(d);
-                }
-                if (v == null && nums.Count == NDIM)
-                {
-                    v = nums.ToArray();
-                    continue;
-                }
-                if (v == null && nums.Count > 3) continue;
-                if (tonePos >= 3) break;
-                if (nums.Count > 0 && nums.Count <= 3)
-                {
-                    toneSlots[tonePos] = nums.ToArray();
-                    tonePos++;
+                    v = TryParseVector(input[(firstParen + 1)..close]);
+                    if (v != null)
+                        annot = close + 1 < input.Length
+                            ? input[(close + 1)..] : "";
                 }
             }
-            var (toneStr, toneWarn) = ToneSymbols(toneSlots);
             if (v == null)
             {
-                if (groups.All(string.IsNullOrEmpty))
-                    return "No vector given - type 16 comma-separated numbers,\n" +
-                           "e.g. " + VectorExample;
-                /* no main vector, but tone groups exist: echo the tones */
-                if (toneStr.Length > 0)
-                    return toneStr + (toneWarn.Length > 0
-                        ? ToneWarnPrefix + toneWarn + ToneWarnSuffix : "");
-                return "I need 16 comma-separated numbers.\n" +
+                /* no main vector: echo the tone groups if any */
+                var (echoPre, echoPost, echoWarn) = ToneSymbols(ParseToneSlots(annot));
+                if ((echoPre + echoPost).Length > 0)
+                    return echoPre + echoPost + (echoWarn.Length > 0
+                        ? ToneWarnPrefix + echoWarn + ToneWarnSuffix : "");
+                return "I need 16 comma-separated numbers (I found " +
+                       head.Split(new[] { ',', ' ', '\t', ';', '?' },
+                           StringSplitOptions.RemoveEmptyEntries).Length +
+                       " outside the groups).\n" +
                        "Example: " + VectorExample;
             }
             for (int i = 0; i < NDIM; i++)
@@ -456,25 +485,86 @@ namespace Vec4ipaUI
             var sb = new StringBuilder(512);
             ipa2v_reverse(v, width, sb, 512);
             string result = sb.ToString();
-            if (toneStr.Length > 0)
+            var (tonePre, tonePost, toneWarn) = ToneSymbols(ParseToneSlots(annot));
+            if ((tonePre + tonePost).Length > 0)
             {
-                /* append the tone symbols inside the rebuilt IPA:
-                 * phonetic brackets [..] or narrowest (..) */
+                /* append the tone symbols around the rebuilt IPA:
+                 * preposed upstep/downstep right after the opening
+                 * bracket (ꜛu), the rest before the closing one (u˥)
+                 * — phonetic brackets [..] or narrowest ⟦..⟧ */
+                char open = result.StartsWith("\u27E6") ? '\u27E6' : '[';
                 char close = result.EndsWith("\u27E7")
                     ? '\u27E7' : ']';
-                int idx = result.LastIndexOf(close);
-                if (idx > 0 && result.EndsWith(close.ToString()))
-                    result = result[..idx] + toneStr + close;
+                int openIdx = result.IndexOf(open);
+                int closeIdx = result.LastIndexOf(close);
+                if (openIdx >= 0 && closeIdx > openIdx &&
+                    result.EndsWith(close.ToString()))
+                    result = result[..(openIdx + 1)] + tonePre +
+                             result[(openIdx + 1)..closeIdx] + tonePost + close;
                 else
-                    result += "  tone: " + toneStr;
+                    result += "  tone: " + tonePre + tonePost;
             }
             if (toneWarn.Length > 0)
                 result += ToneWarnPrefix + toneWarn + ToneWarnSuffix;
             return result;
         }
 
-        /* tone slots (by position) -> (IPA tone symbols, warning) */
-        private static (string, string) ToneSymbols(double[][] slots)
+        /* 16 comma-separated numbers -> vector; null on any parse problem.
+         * '?' is also a separator: a tone annotation glued directly to
+         * the vector ("...1.0000??(0,0,1)") would otherwise stick to the
+         * last number and fail to parse */
+        private static double[]? TryParseVector(string head)
+        {
+            var nums = head.Split(new[] { ',', ' ', '\t', ';', '?' },
+                StringSplitOptions.RemoveEmptyEntries);
+            if (nums.Length != NDIM) return null;
+            var v = new double[NDIM];
+            for (int i = 0; i < NDIM; i++)
+                if (!double.TryParse(nums[i],
+                        System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out v[i]))
+                    return null;
+            return v;
+        }
+
+        /* tone annotation slots: '(' groups fill the current slot in
+         * order; '?' advances to the next (empty) slot; "()" is ignored */
+        private static double[][] ParseToneSlots(string annot)
+        {
+            var slots = new double[3][];
+            int slot = 0;
+            for (int i = 0; i < annot.Length && slot < 3; i++)
+            {
+                if (annot[i] == '?') { slot++; continue; }
+                if (annot[i] != '(') continue;
+                int close = annot.IndexOf(')', i);
+                if (close < 0) break;
+                var vals = new List<double>();
+                foreach (var tok in annot[(i + 1)..close].Split(',',
+                             StringSplitOptions.RemoveEmptyEntries))
+                    if (double.TryParse(tok,
+                            System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            out var d))
+                        vals.Add(d);
+                if (vals.Count > 0 && vals.Count <= 3)
+                {
+                    slots[slot] = vals.ToArray();
+                    slot++;
+                }
+                i = close;
+            }
+            return slots;
+        }
+
+        /* tone slots (by position) -> (preposed, postposed, warning).
+         * Upstep/downstep (3-D slot dim 0) are PREPOSED per IPA
+         * convention (they mark the FOLLOWING syllable: ꜛu not uꜛ);
+         * everything else (5-level, sandhi, global ↗↘, class) is
+         * postposed. */
+        private static (string Pre, string Post, string Warn) ToneSymbols(
+            double[][] slots)
         {
             const string L5 = "\u02E9\u02E8\u02E7\u02E6\u02E5"; // 1..5 -> ˩˨˧˦˥
             const string S5 = "\uA716\uA715\uA714\uA713\uA712"; // 1..5 -> ꜖꜕꜔꜓꜒
@@ -519,11 +609,13 @@ namespace Vec4ipaUI
             }
 
             /* slot 2: 3-D vector - negative values are legal (upstep,
-             * downstep, falling, negative tone classes) */
+             * downstep, falling, negative tone classes).  dim 0 (upstep/
+             * downstep) goes PREPOSED; dims 1-2 (global, class) postposed */
+            var pre = new StringBuilder();
             if (slots.Length > 2 && slots[2] != null && slots[2].Length >= 1)
             {
                 double u = slots[2][0];
-                if (u < 0) sb.Append('\uA71B'); else if (u > 0) sb.Append('\uA71C');
+                if (u < 0) pre.Append('\uA71B'); else if (u > 0) pre.Append('\uA71C');
                 if (slots[2].Length >= 2)
                 {
                     double g = slots[2][1];
@@ -541,7 +633,7 @@ namespace Vec4ipaUI
                     if (cls != '\0') sb.Append(cls);
                 }
             }
-            return (sb.ToString(), warn);
+            return (pre.ToString(), sb.ToString(), warn);
         }
 
         public static string Query(string sym)
@@ -552,10 +644,28 @@ namespace Vec4ipaUI
         }
 
         public static string[] KeyboardCons() => KbList(ipa2v_kb_cons);
-        public static string[] KeyboardConsNp() => KbList(ipa2v_kb_cons_np);
         public static string[] KeyboardVowels() => KbList(ipa2v_kb_vowels);
         public static string[] KeyboardMods() => KbList(ipa2v_kb_mods);
         public static string[] KeyboardTones() => KbList(ipa2v_kb_tones);
+
+        /// <summary>Non-pulmonic consonants with their phonetic airstream
+        /// class (1 ejective, 2 implosive, 3 lingual, 4 percussive) — the
+        /// DLL derives it from the vector, since the table's airstream
+        /// field serves the distance model (ejectives stay pulmonic).</summary>
+        public static Dictionary<string, int> KeyboardConsNp()
+        {
+            var sb = new StringBuilder(MAX_KBTEXT);
+            ipa2v_kb_cons_np(sb, MAX_KBTEXT);
+            var map = new Dictionary<string, int>();
+            foreach (var line in sb.ToString().Split('\n',
+                         StringSplitOptions.RemoveEmptyEntries))
+            {
+                var p = line.Split('\t');
+                if (p.Length == 2 && int.TryParse(p[1], out var c))
+                    map[p[0]] = c;
+            }
+            return map;
+        }
 
         private static string[] KbList(Func<StringBuilder, int, int> fn)
         {

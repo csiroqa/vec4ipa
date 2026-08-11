@@ -23,7 +23,7 @@
                             <ControlTemplate TargetType="Button">
                                 <Border Background="{TemplateBinding Background}"
                                         CornerRadius="{TemplateBinding CornerRadius}">
-                                    <Grid>
+    <Grid>
                                         <VisualStateManager.VisualStateGroups>
                                             <VisualStateGroup x:Name="CommonStates">
                                                 <VisualState x:Name="Normal"/>
@@ -172,12 +172,13 @@
                 </Button>
                 <Button x:Name="LoopBtn" MinHeight="34" Grid.Column="4" Content="Loop" Padding="10,4"
                         Click="Loop_Click"/>
-                <ComboBox x:Name="FormatCombo" Grid.Column="5" SelectedIndex="0" Width="100" MinHeight="34">
-                    <ComboBoxItem x:Name="FmtVectors" Content="vectors"/>
-                    <ComboBoxItem x:Name="FmtQuery" Content="query"/>
-                    <ComboBoxItem x:Name="FmtLayers" Content="layers"/>
-                    <ComboBoxItem Content="JSON"/>
-                </ComboBox>
+                <Button x:Name="FmtBtn" Grid.Column="5" Width="76" MinHeight="34"
+                        Padding="10,4"
+                        ToolTipService.ToolTip="vectors - hold to pick format">
+                    <TextBlock x:Name="FmtBtnLabel" Text="vectors"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Button>
                 <Button x:Name="ConvertBtn" MinHeight="34" Grid.Column="6" Content="Convert"
                         Padding="10,4" HorizontalAlignment="Stretch"
                         Click="ConvertBtn_Click"/>
@@ -194,14 +195,18 @@
                 <TextBox x:Name="VecInput" Grid.Column="0" FontSize="15"
                          AcceptsReturn="True" Height="72"
                          TextWrapping="Wrap"/>
+                <!-- narrowness button restored to its original spot: stacked
+                     above the Reverse button (a real Button so it matches
+                     the other buttons; its pointer events are wired in code
+                     with handledEventsToo since Button marks them handled) -->
                 <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Top">
-                    <ComboBox x:Name="WidthCombo" SelectedIndex="3">
-                        <ComboBoxItem Content="width 0"/>
-                        <ComboBoxItem Content="width 1"/>
-                        <ComboBoxItem Content="width 2"/>
-                        <ComboBoxItem Content="width 3"/>
-                        <ComboBoxItem Content="width 4"/>
-                    </ComboBox>
+                    <Button x:Name="WidthBtn"
+                            HorizontalAlignment="Stretch" MinHeight="34"
+                            ToolTipService.ToolTip="narrowness - hold to expand">
+                        <TextBlock x:Name="WidthBtnLabel" Text="narrow"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Button>
                     <Button x:Name="ReverseBtn" Content="Reverse"
                             HorizontalAlignment="Stretch"
                             Click="ReverseBtn_Click"/>
@@ -326,6 +331,162 @@
             </StackPanel>
         </ScrollViewer>
         </Grid>
+        </Grid>
+
+        <!-- virtual overlay layer: the narrowness picker pops up here,
+             animated out of the button (centred over it), without touching
+             the layout or content of the layer below -->
+        <Grid x:Name="WidthOverlay" Grid.Row="1" Canvas.ZIndex="10"
+              Background="Transparent" Visibility="Collapsed"
+              PointerReleased="WidthOverlay_PointerReleased"
+              PointerCanceled="WidthOverlay_PointerReleased"
+              PointerCaptureLost="WidthOverlay_PointerReleased">
+            <Border x:Name="WidthPopBox" HorizontalAlignment="Left"
+                    VerticalAlignment="Top" Width="280" Height="102"
+                    CornerRadius="10" Padding="0"
+                    Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    Opacity="0"
+                    RenderTransformOrigin="0.5,0.5"
+                    PointerPressed="WidthPop_PointerPressed"
+                    PointerMoved="WidthPop_PointerMoved"
+                    PointerReleased="WidthPop_PointerReleased"
+                    PointerCanceled="WidthPop_PointerReleased"
+                    PointerCaptureLost="WidthPop_PointerReleased">
+                <Border.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="WidthPopScale"/>
+                        <TranslateTransform x:Name="WidthPopShift"/>
+                    </TransformGroup>
+                </Border.RenderTransform>
+                <Border CornerRadius="9" Margin="1"
+                        Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}">
+                    <StackPanel Spacing="3" Margin="13,7">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="WidthPopLabel" Text="narrowness"
+                                       FontSize="14" FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                            <Border x:Name="WidthPopPill" Grid.Column="1"
+                                    Width="78" CornerRadius="9" Padding="10,3"
+                                    Background="{ThemeResource AccentFillColorDefaultBrush}">
+                                <TextBlock x:Name="WidthPopVal" Text="narrow"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           TextAlignment="Center"
+                                           Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"/>
+                            </Border>
+                        </Grid>
+                        <Slider x:Name="WidthSlider"
+                                Orientation="Horizontal"
+                                Minimum="0" Maximum="4" Value="3"
+                                TickFrequency="1" TickPlacement="Outside"
+                                IsFocusEngagementEnabled="False"
+                                IsHitTestVisible="False"
+                                Height="40" VerticalAlignment="Center"
+                                ValueChanged="WidthSlider_ValueChanged"/>
+                        <TextBlock x:Name="WidthPopHint" Text="0 broadest · 4 narrowest"
+                                   FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+            </Border>
+
+            <!-- format picker: Fluent design - in-app acrylic surface on a
+                 solid base, rounded rows, accent selection pill with a
+                 check mark. Custom rendering, no Slider -->
+            <Border x:Name="FmtPopBox" HorizontalAlignment="Left"
+                    VerticalAlignment="Top" Width="140" Height="174"
+                    CornerRadius="10" Padding="0"
+                    Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    Opacity="0"
+                    RenderTransformOrigin="0.5,0"
+                    Visibility="Collapsed"
+                    PointerPressed="FmtPop_PointerPressed"
+                    PointerMoved="FmtPop_PointerMoved"
+                    PointerReleased="FmtPop_PointerReleased"
+                    PointerCanceled="FmtPop_PointerReleased"
+                    PointerCaptureLost="FmtPop_PointerReleased">
+                <Border.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="FmtPopScale"/>
+                        <TranslateTransform x:Name="FmtPopShift"/>
+                    </TransformGroup>
+                </Border.RenderTransform>
+                <Border CornerRadius="9" Margin="1"
+                        Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="43"/>
+                            <RowDefinition Height="43"/>
+                            <RowDefinition Height="43"/>
+                            <RowDefinition Height="43"/>
+                        </Grid.RowDefinitions>
+                        <Border x:Name="FmtPill" Grid.RowSpan="4"
+                                Height="43" CornerRadius="8"
+                                HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                                Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                RenderTransformOrigin="0.5,0.5"
+                                IsHitTestVisible="False">
+                            <Border.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform x:Name="FmtPillBreath"/>
+                                    <TranslateTransform x:Name="FmtPillTrans"/>
+                                </TransformGroup>
+                            </Border.RenderTransform>
+                        </Border>
+                        <Border x:Name="FmtItem0" Grid.Row="0" CornerRadius="8">
+                            <Grid>
+                                <TextBlock x:Name="FmtCheck0" Text="&#xE73E;"
+                                           FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
+                                           FontSize="12" VerticalAlignment="Center"
+                                           Margin="16,0,0,0" Visibility="Collapsed"/>
+                                <TextBlock x:Name="FmtRow0" Text="vectors"
+                                           FontSize="14" TextAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <Border x:Name="FmtItem1" Grid.Row="1" CornerRadius="8">
+                            <Grid>
+                                <TextBlock x:Name="FmtCheck1" Text="&#xE73E;"
+                                           FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
+                                           FontSize="12" VerticalAlignment="Center"
+                                           Margin="16,0,0,0" Visibility="Collapsed"/>
+                                <TextBlock x:Name="FmtRow1" Text="query"
+                                           FontSize="14" TextAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <Border x:Name="FmtItem2" Grid.Row="2" CornerRadius="8">
+                            <Grid>
+                                <TextBlock x:Name="FmtCheck2" Text="&#xE73E;"
+                                           FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
+                                           FontSize="12" VerticalAlignment="Center"
+                                           Margin="16,0,0,0" Visibility="Collapsed"/>
+                                <TextBlock x:Name="FmtRow2" Text="layers"
+                                           FontSize="14" TextAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <Border x:Name="FmtItem3" Grid.Row="3" CornerRadius="8">
+                            <Grid>
+                                <TextBlock x:Name="FmtCheck3" Text="&#xE73E;"
+                                           FontFamily="Segoe Fluent Icons,Segoe MDL2 Assets"
+                                           FontSize="12" VerticalAlignment="Center"
+                                           Margin="16,0,0,0" Visibility="Collapsed"/>
+                                <TextBlock x:Name="FmtRow3" Text="JSON"
+                                           FontSize="14" TextAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+            </Border>
         </Grid>
 
         <!-- status bar -->

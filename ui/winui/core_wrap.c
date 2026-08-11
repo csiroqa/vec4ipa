@@ -137,8 +137,9 @@ EXPORT int ipa2v_reverse(const double *v, int width,
             build_ipa(afr, afrm, afnm, 0, rel, sizeof(rel));
             char afipa[128];
             snprintf(afipa, sizeof(afipa), "%s\xCD\xA1%s", afc->ipa, rel);
-            snprintf(out, outsz, "/%s/  (affricate %s+%s)  d=%.4f  ->  /%s/",
-                     afc->ipa, afc->ipa, rel, afd, afipa);
+            snprintf(out, outsz, "%s%s%s  (affricate %s+%s)  d=%.4f  ->  %s%s%s",
+                     ipabrk_o(), afc->ipa, ipabrk_c(), afc->ipa, rel, afd,
+                     ipabrk_o(), afipa, ipabrk_c());
             return 0;
         }
     }
@@ -147,12 +148,14 @@ EXPORT int ipa2v_reverse(const double *v, int width,
     build_ipa(b, mods, nm, 0, ipa, sizeof(ipa));
 
     char buf[256];
-    snprintf(buf, sizeof(buf), "/%s/  (%s", b->ipa, base_name(b));
+    snprintf(buf, sizeof(buf), "%s%s%s  (%s", ipabrk_o(), b->ipa,
+             ipabrk_c(), base_name(b));
     for (int j = 0; j < nm; j++) {
         size_t L = strlen(buf);
         snprintf(buf + L, sizeof(buf) - L, " +%s", mods[j]->latin);
     }
-    snprintf(out, outsz, "%s)  d=%.4f  ->  /%s/", buf, d, ipa);
+    snprintf(out, outsz, "%s)  d=%.4f  ->  %s%s%s", buf, d,
+             ipabrk_o(), ipa, ipabrk_c());
     return 0;
 }
 
@@ -215,19 +218,37 @@ static int is_vowel_name(const char *name)
     return name && strstr(name, ".vwl") != NULL;
 }
 
+/* phonetic airstream class for KEYBOARD grouping.  The table's airstream
+ * field serves the distance model — ejective rows stay pulmonic so that
+ * kʼ~k fit consistently, and h is stored as glottalic-egressive in the
+ * scheme — so it is not the phonetic class; derive it from the vector:
+ *   0 pulmonic | 1 ejective | 2 implosive | 3 lingual | 4 percussive */
+static int kb_air_class(const SegEntry *e)
+{
+    int dap = dim_of_ok("glottal_aperture", 9);
+    int dly = dim_of_ok("larynx_height", 11);
+    int daf = dim_of_ok("airflow_direction", 15);
+    int dv  = dim_of_ok("voiced", 8);
+    if (e->airstream == 4) return 4;                    /* percussive */
+    if (e->v[daf] < 0)
+        return e->v[dv] >= 0.5 ? 2 : 3;                 /* implosive / lingual */
+    if (e->v[dap] <= -0.8 && e->v[dly] > 0.5) return 1; /* ejective */
+    return 0;                                           /* pulmonic */
+}
+
 EXPORT int ipa2v_kb_cons(char *out, size_t outsz)
 {
     size_t L = 0;
     for (int i = 0; i < NSEG; i++) {
         if (is_vowel_name(NAME_TABLE[i])) continue;
-        if (SEG_TABLE[i].airstream != 0) continue;   /* pulmonic only */
+        if (kb_air_class(&SEG_TABLE[i]) != 0) continue;   /* pulmonic only */
         int n = snprintf(out + L, outsz - L, "%s\n", SEG_TABLE[i].ipa);
         if (n < 0 || (size_t)n >= outsz - L) break;
         L += n;
     }
     for (int i = 0; i < N_EXTRA; i++) {
         if (is_vowel_name(EXTRA_NAMES[i])) continue;
-        if (EXTRA_BASE[i].airstream != 0) continue;
+        if (kb_air_class(&EXTRA_BASE[i]) != 0) continue;
         int n = snprintf(out + L, outsz - L, "%s\n", EXTRA_BASE[i].ipa);
         if (n < 0 || (size_t)n >= outsz - L) break;
         L += n;
@@ -235,21 +256,25 @@ EXPORT int ipa2v_kb_cons(char *out, size_t outsz)
     return (int)L;
 }
 
-/* non-pulmonic consonants: ejectives, implosives, clicks, percussives */
+/* non-pulmonic consonants, one "sym\tclass" line per entry (class =
+ * phonetic airstream class from kb_air_class): ejectives, implosives,
+ * clicks, percussives */
 EXPORT int ipa2v_kb_cons_np(char *out, size_t outsz)
 {
     size_t L = 0;
     for (int i = 0; i < NSEG; i++) {
         if (is_vowel_name(NAME_TABLE[i])) continue;
-        if (SEG_TABLE[i].airstream == 0) continue;
-        int n = snprintf(out + L, outsz - L, "%s\n", SEG_TABLE[i].ipa);
+        int c = kb_air_class(&SEG_TABLE[i]);
+        if (c == 0) continue;
+        int n = snprintf(out + L, outsz - L, "%s\t%d\n", SEG_TABLE[i].ipa, c);
         if (n < 0 || (size_t)n >= outsz - L) break;
         L += n;
     }
     for (int i = 0; i < N_EXTRA; i++) {
         if (is_vowel_name(EXTRA_NAMES[i])) continue;
-        if (EXTRA_BASE[i].airstream == 0) continue;
-        int n = snprintf(out + L, outsz - L, "%s\n", EXTRA_BASE[i].ipa);
+        int c = kb_air_class(&EXTRA_BASE[i]);
+        if (c == 0) continue;
+        int n = snprintf(out + L, outsz - L, "%s\t%d\n", EXTRA_BASE[i].ipa, c);
         if (n < 0 || (size_t)n >= outsz - L) break;
         L += n;
     }
@@ -289,8 +314,24 @@ EXPORT int ipa2v_kb_mods(char *out, size_t outsz)
 EXPORT int ipa2v_kb_tones(char *out, size_t outsz)
 {
     size_t L = 0;
+    /* Chinese tone classes first, in the four-corner order:
+     *   上 ꜂꜃ | 去 ꜄꜅   (top row)
+     *   平 ꜀꜁ | 入 ꜆꜇   (bottom row)
+     * i.e. 阴上 阳上 | 阴去 阳去 / 阴平 阳平 | 阴入 阳入 */
+    static const unsigned long class_order[8] = {
+        0xA702, 0xA703, 0xA704, 0xA705,
+        0xA700, 0xA701, 0xA706, 0xA707,
+    };
+    for (int c = 0; c < 8; c++) {
+        const ModRec *m = find_mod(class_order[c]);
+        if (!m) continue;
+        int n = snprintf(out + L, outsz - L, "%s\n", m->ipa);
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
+    }
     for (int i = 0; i < NMODS; i++) {
         if (MODS[i].tone_kind == 0) continue;
+        if (MODS[i].cp >= 0xA700 && MODS[i].cp <= 0xA707) continue;
         int n = snprintf(out + L, outsz - L, "%s\n", MODS[i].ipa);
         if (n < 0 || (size_t)n >= outsz - L) break;
         L += n;

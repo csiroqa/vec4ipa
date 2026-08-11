@@ -117,7 +117,7 @@ for ipa, want in UNREL:
           f"-> {nearest_base(ipa)}")
 
 # creaky stops are PHONATION variants of the base (aperture/tension
-# differ); with the larynx-height weight at 3 the ejective mechanism
+# differ); with the larynx-height weight at 6 the ejective mechanism
 # (larynx +1) stays far enough that the nearest base is the plain stop
 CREAK = [("p̰", "p"), ("t̰", "t"), ("k̰", "k"), ("q̰", "q")]
 for ipa, want in CREAK:
@@ -247,13 +247,13 @@ TONE_CASES = [
     ("ma˧˥",        "a˧˥"),
     ("ma˨˩˦",       "a˨˩˦"),
     ("ma˩˨꜓꜒",     "a˩˨꜓꜒"),
-    ("maꜛ",         "aꜛ"),
-    ("maꜜ",         "aꜜ"),
+    ("maꜛ",         "ꜛa"),   # upstep is PREPOSED (marks the following syllable)
+    ("maꜜ",         "ꜜa"),
     ("ma↗",         "a↗"),
     ("ma↘",         "a↘"),
     ("ma꜅",         "a꜅"),
     ("ma꜆˩",        "a˩꜆"),
-    ("ma˧ꜛ↗꜂",      "a˧ꜛ↗꜂"),
+    ("ma˧ꜛ↗꜂",      "ꜛa˧↗꜂"),
     ("ma˦˩˩",       "a˦˩˩"),
     # precomposed tone vowels -> base + 5-level tone letters
     # (IPA convention: ́=high ˦, ̀=low ˨, ̂=falling ˥˩, ̌=rising ˩˥,
@@ -273,7 +273,10 @@ TONE_CASES = [
     ("mǒ",          "o˩˥"),
     ("ma\u1DC4",    "a˦˥"),   # ᷄ high rising
     ("ma\u1DC5",    "a˩˨"),   # ᷅ low rising
+    ("ma\u1DC6",    "a˥˦"),   # ᷆ high falling
+    ("ma\u1DC7",    "a˧˦"),   # ᷇ mid rising
     ("ma\u1DC8",    "a˧˦˧"),  # ᷈ rising-falling
+    ("ma\u1DC9",    "a˦˧˦"),  # ᷉ falling-rising
     # decomposed tone diacritics behave identically
     ("ma\u0301",    "a˦"),
     ("ma\u0300",    "a˨"),
@@ -356,12 +359,16 @@ check("ᴇ vector nearest is e", nearest_base("e̞") != "ERR" and
 check("ᴇ vector rebuilds as e̞",
       parse_rebuilt(run(VEC2IPA, [fmt_vec(E_VEC)]).stdout) == "e̞",
       run(VEC2IPA, [fmt_vec(E_VEC)]).stdout.splitlines()[0][:60])
-# Sinologist curl letters are never reverse targets by default; their
-# standard spelling is t̠ʲ/d̠ʲ/n̠ʲ/l̠ʲ, so the fallback must be t/d/n/l
-for curl, fallback in (("ȶ", "[t]"), ("ȡ", "[d]"), ("ȵ", "[n]"), ("ȴ", "[l]")):
+# Sinologist curl letters are never reverse targets by default; they are
+# modeled as pre-palatal (place 0.0 + palatal body 0.40 + no tip
+# gesture), so each falls back EXACTLY to the composed palatal spelling:
+# ȶ -> c̟, ȡ -> ɟ̟, ȵ -> ɲ̟ (dialectology reads ȵ ~ ɲ), ȴ -> ʎ̟
+for curl, base in (("ȶ", "c"), ("ȡ", "ɟ"), ("ȵ", "ɲ"), ("ȴ", "ʎ")):
     nb = nearest_vec(vector_of(curl))
     check(f"{curl} vector not rebuilt as {curl} by default", nb != f"[{curl}]", nb)
-    check(f"{curl} vector falls back to {fallback}", nb == fallback, nb)
+    check(f"{curl} vector falls back to [{base}]", nb == f"[{base}]", nb)
+    rb = parse_rebuilt(run(VEC2IPA, [fmt_vec(vector_of(curl))]).stdout).strip()
+    check(f"{curl} rebuilds as {base}\u031f (d=0)", rb == f"{base}\u031f", rb)
 # --symbols is repeatable and accumulates; any combination is allowed
 check("--symbols sinologist allows ȶ",
       nearest_vec(vector_of("ȶ"), ("sinologist",)) == "[ȶ]", "")
