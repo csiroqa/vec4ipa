@@ -36,22 +36,31 @@ ui/winui/build.bat   # builds ipa2vec_core.dll + publishes dist\vec4ipa_ui.exe
 
 The binaries embed the full table; they do not read any file at runtime.
 
-## GUI wrapper (Windows)
+## GUI workbench (Windows)
 
-`ui/vec4ipa_ui.c` is a Win32 GUI front-end (`vec4ipa_ui.exe`,
-built by `make ui/vec4ipa_ui.exe`; on Windows `make all` builds it too). It provides:
+The modern front-end is the **WinUI 3 workbench** (`ui/winui/` →
+`vec4ipa_ui.exe`, built by `ui/winui/build.bat`; the output is a
+self-contained `dist\` folder — see [`ui/README.md`](ui/README.md)):
 
-- **File > Export command lines…** — a window showing the three CLI
-  invocations (`ipa2vec`, `vec2ipa`, `vec4ipa`) for the current
-  directory, with **Copy to clipboard** and **Save as .bat** buttons.
-- **File > Export tools…** — the three CLI executables are embedded
-  as resources in `vec4ipa_ui.exe`; this item writes them into a
-  folder of your choice, so a single shipped exe carries the whole
-  tool suite.
-- **File > Exit**, **Help > About**.
+- **IPA → vectors** — type IPA or click the grouped soft keyboard
+  (Consonants, Non-pulmonic, Vowels, Diacritics, Letters, Tones,
+  Recent) with a live filter; output as vectors, two-layer IR or JSON
+- **Vector → IPA** — 16-D input (multi-line batch) with a long-press
+  **narrowness** picker (levels 0–4 by name, magnetic cursor) and
+  reverse fit
+- **Loop** — IPA → vectors → reverse fit with the tone annotation
+  round-tripped (`tone=(…)` groups survive the round-trip)
+- **Format picker** — long-press the vectors/query/layers/JSON button
+  for an animated slide-to-select list
+- Compare symbols, weighted distance, history, examples, open-file
+  batch convert, views (table/modules/stats/weights), CSV/IR export,
+  bundled CLI tools, English/中文, system/light/dark themes
 
-Tool integration (input box, live IPA→vector→IPA round-trip) is
-planned for a later build.
+A legacy Win32 wrapper (`ui/vec4ipa_ui.c`, built by
+`make ui/vec4ipa_ui.exe`) is kept for reference: it embeds the three
+CLI tools as resources and can export them to a folder of your choice
+(File > Export tools…), so a single shipped exe carries the whole
+tool suite.
 
 ### Fonts
 

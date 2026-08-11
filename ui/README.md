@@ -30,6 +30,12 @@ ui/
   output as plain vectors, two-layer IR (with rebuilt IPA) or JSON
 - **Vector → IPA**: 16-D input (multi-line for batch), width 0-4,
   live **vector editor** with reverse preview
+- **Long-press pickers**: the narrowness control and the output
+  format selector pop up as Fluent in-app-acrylic overlays — hold
+  the button to open, slide with a magnetic S-curve cursor (the
+  format list animates its accent selection pill between rows)
+- **Loop**: IPA → vectors → reverse fit with the tone annotation
+  (`tone=(…)` groups) round-tripped
 - **IPA soft keyboard**: continuous scroll with grouped sections —
   Consonants (by place), Non-pulmonic (ejectives/implosives/clicks),
   Vowels (trapezium order), Diacritics, Letters, Tones, Recent.

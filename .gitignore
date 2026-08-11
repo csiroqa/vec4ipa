@@ -25,4 +25,6 @@ ui/winui/vec4ipa_ui.sln
 ui/winui/dist/
 ui/winui/.vs/
 ui/winui/*.user
+ui/winui/singlefile-dist/
+ui/winui/*.zip
 
