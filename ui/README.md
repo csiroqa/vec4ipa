@@ -96,6 +96,7 @@ text; the app falls back to system fonts if they are absent.
 
 - Startup diagnostics (`startup.log`, `crash.log`) go to
   `%TEMP%\vec4ipa\`, never into the app folder.
-- On some systems the compositor does not repaint theme resources
-  after a runtime theme switch; the workbench sets container
-  backgrounds explicitly to compensate.
+- The window uses the Fluent **Mica** backdrop (Windows 11); the XAML
+  containers stay transparent so the material shows through, and the
+  theme (system/light/dark) drives both the material and the theme
+  resources.

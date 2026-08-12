@@ -72,6 +72,14 @@ namespace Vec4ipaUI
         {
             _startupArgs = args;
             InitializeComponent();
+            /* Fluent material: Mica backdrop on the window, with the XAML
+             * content kept transparent so the material shows through.
+             * Falls back to plain backgrounds on systems without it. */
+            try
+            {
+                SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
+            }
+            catch (Exception ex) { LogExt("mica err " + ex.Message); }
             _fmtRows = new[] { FmtRow0, FmtRow1, FmtRow2, FmtRow3 };
             _fmtItems = new[] { FmtItem0, FmtItem1, FmtItem2, FmtItem3 };
             _fmtChecks = new[] { FmtCheck0, FmtCheck1, FmtCheck2, FmtCheck3 };
@@ -1645,11 +1653,9 @@ namespace Vec4ipaUI
                     default: theme = ElementTheme.Default; break;
                 }
                 root.RequestedTheme = theme;
-                /* The screen compositor does not repaint theme resources
-                 * after a runtime theme change on this system (background
-                 * stays dark while text goes dark -> looks all black).
-                 * Setting the backgrounds explicitly bypasses that. */
-                SetExplicitBackground(root, theme);
+                /* the Mica backdrop follows the window theme, so the XAML
+                 * containers stay transparent (no explicit backgrounds);
+                 * force a re-layout so theme brushes repaint */
                 root.InvalidateMeasure();
                 root.InvalidateArrange();
                 root.UpdateLayout();
@@ -1658,30 +1664,6 @@ namespace Vec4ipaUI
                 SetStatus("theme: " + name.ToLowerInvariant());
             }
             catch (Exception ex) { LogExt("apply theme err " + ex.Message); }
-        }
-
-        private void SetExplicitBackground(FrameworkElement root,
-                                           ElementTheme theme)
-        {
-            var bg = new Microsoft.UI.Xaml.Media.SolidColorBrush(
-                theme == ElementTheme.Light
-                    ? Windows.UI.Color.FromArgb(255, 243, 243, 243)
-                    : theme == ElementTheme.Dark
-                        ? Windows.UI.Color.FromArgb(255, 32, 32, 32)
-                        : Windows.UI.Color.FromArgb(255, 0, 0, 0));
-            if (theme == ElementTheme.Default)
-            {
-                /* restore theme-driven background */
-                if (root is Microsoft.UI.Xaml.Controls.Grid g) g.Background = null;
-                if (StatusText.Parent is Microsoft.UI.Xaml.Controls.Grid gridBg)
-                    gridBg.Background = null;
-                return;
-            }
-            /* apply to every container we own */
-            if (root is Microsoft.UI.Xaml.Controls.Grid rg)
-                rg.Background = bg;
-            if (StatusText.Parent is Microsoft.UI.Xaml.Controls.Grid sg2)
-                sg2.Background = bg;
         }
 
         private void Loop_Click(object sender, RoutedEventArgs e)
