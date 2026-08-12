@@ -2162,9 +2162,9 @@ namespace Vec4ipaUI
             }
             if (ConsKeys.Items.Count == 0) ConsKeys.Items.Add(new TextBlock
             {
-                Text = "(no matches)",
-                Foreground = Res("TextFillColorSecondaryBrush"),
-                Margin = new Thickness(4, 2, 0, 2),
+                Text = "(no matches)", Foreground =
+                    new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                        Microsoft.UI.Colors.Gray), Margin = new Thickness(4, 2, 0, 2),
             });
             foreach (var s in _allNp.Where(Matches))
             {
@@ -2307,20 +2307,27 @@ namespace Vec4ipaUI
                 var canvas = EnsureHoverCanvas();
                 if (canvas == null) return;
                 canvas.Children.Clear();
-                /* Fluent card: theme-driven surface + stroke */
+                /* follow the actual (effective) theme */
+                bool dark = (Content.XamlRoot.Content as FrameworkElement)
+                    ?.ActualTheme == ElementTheme.Dark;
                 var stack = new StackPanel { Spacing = 4 };
                 var border = new Border
                 {
                     MaxWidth = 480,
-                    Padding = new Thickness(14, 8, 14, 8),
-                    CornerRadius = new CornerRadius(8),
-                    Background = Res("CardBackgroundFillColorDefaultBrush"),
-                    BorderBrush = Res("CardStrokeColorDefaultBrush"),
-                    BorderThickness = new Thickness(1),
+                    Padding = new Thickness(10, 6, 10, 6),
+                    CornerRadius = new CornerRadius(6),
+                    Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                        Microsoft.UI.ColorHelper.FromArgb(
+                            245, (byte)(dark ? 40 : 245),
+                            (byte)(dark ? 40 : 245),
+                            (byte)(dark ? 40 : 245))),
                     Child = stack,
                 };
-                var fg = Res("TextFillColorPrimaryBrush");
-                var fgSub = Res("TextFillColorSecondaryBrush");
+                var fg = new Microsoft.UI.Xaml.Media.SolidColorBrush(
+                    Microsoft.UI.ColorHelper.FromArgb(
+                        255, (byte)(dark ? 240 : 20),
+                        (byte)(dark ? 240 : 20),
+                        (byte)(dark ? 240 : 20)));
                 stack.Children.Add(new TextBlock
                 {
                     Text = sym,
@@ -2342,7 +2349,7 @@ namespace Vec4ipaUI
                 {
                     Text = air,
                     FontSize = 13,
-                    Foreground = fgSub,
+                    Foreground = fg,
                     TextWrapping = TextWrapping.Wrap,
                     MaxWidth = 420,
                 });
@@ -2631,7 +2638,6 @@ namespace Vec4ipaUI
                 MinHeight = KeyMinHeight,
                 Padding = new Thickness(3, 2, 3, 2),
                 Margin = new Thickness(2),
-                CornerRadius = new CornerRadius(6),
             };
             if (!_symInfo.ContainsKey(sym))
                 _symInfo[sym] = QuerySymbol(sym);
