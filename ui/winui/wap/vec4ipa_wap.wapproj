@@ -25,6 +25,7 @@
     <TargetPlatformVersion>10.0.26100.0</TargetPlatformVersion>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <AppxPackageDir>$(MSBuildProjectDirectory)\..\AppPackages\</AppxPackageDir>
+    <DefaultLanguage>en-US</DefaultLanguage>
   </PropertyGroup>
   <PropertyGroup>
     <OutputPath>$(MSBuildProjectDirectory)\bin\$(Configuration)\$(Platform)\</OutputPath>
@@ -47,10 +48,31 @@
     <Content Include="..\bin\x64\Release\net9.0-windows10.0.19041.0\win-x64\MainWindow.xbf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="..\bin\x64\Release\net9.0-windows10.0.19041.0\win-x64\resources.pri">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>resources.pri</Link>
+    </Content>
     <ProjectReference Include="..\vec4ipa_ui.csproj">
       <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
     </ProjectReference>
   </ItemGroup>
+  <PropertyGroup>
+    <SdkBuildToolsProps>$(UserProfile)\.nuget\packages\microsoft.windows.sdk.buildtools\10.0.26100.1742\build\Microsoft.Windows.SDK.BuildTools.props</SdkBuildToolsProps>
+  </PropertyGroup>
+  <PropertyGroup>
+    <!-- the referenced net9 project ships its own resources.pri; the legacy
+         WAP's in-proc .resources scan cannot load net9 assemblies -->
+    <AppxGeneratePrisForPortableLibrariesEnabled>false</AppxGeneratePrisForPortableLibrariesEnabled>
+    <!-- keep the net9 project's resources.pri (it indexes App.xbf/MainWindow.xbf
+         and the assets; the WAP's own MakePri run produces an empty 920-byte
+         index that breaks XAML LoadComponent and tile-icon lookup) -->
+    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
+    <AppxUseResourceIndexerApi>false</AppxUseResourceIndexerApi>
+    <!-- the WinAppSDK MrtCore targets reassign the pipeline version only
+         after the Appx targets computed the sideload flag, so pin it -->
+    <BuildAppxSideloadPackageForUap>true</BuildAppxSideloadPackageForUap>
+  </PropertyGroup>
+  <Import Project="$(SdkBuildToolsProps)" Condition="Exists('$(SdkBuildToolsProps)')" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\AppxPackage\Microsoft.AppxPackage.Targets" />

@@ -3,6 +3,14 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
     <UseWinUI>true</UseWinUI>
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <!-- self-contained Windows App Runtime: dist\ runs on any machine
+         with no runtime install and no DDLM registration (framework-
+         dependent mode fails with REGDB_E_CLASSNOTREG in
+         Application.Start when the installed runtime's dynamic
+         dependency registration is unavailable).  The WAP/MSIX build
+         (ui/winui/wap) overrides this to false for its packaged app,
+         which uses the installed framework package instead. -->
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <Platforms>x64</Platforms>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -15,7 +23,7 @@
     <AssemblyName>vec4ipa_ui</AssemblyName>
     <ApplicationIcon>..\vec_ipa.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.3.0</Version>
+    <Version>1.0.0.0</Version>
     <Authors>vec4ipa contributors</Authors>
     <Description>WinUI 3 workbench for the vec4ipa tool suite (IPA &lt;-&gt; 16-D vectors).</Description>
     <Copyright>MIT</Copyright>
@@ -29,6 +37,24 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Assets\final_ink.png" Link="Assets\final_ink.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Square44x44Logo.png" Link="Assets\Square44x44Logo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Square71x71Logo.png" Link="Assets\Square71x71Logo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Square150x150Logo.png" Link="Assets\Square150x150Logo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Square310x310Logo.png" Link="Assets\Square310x310Logo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\StoreLogo.png" Link="Assets\StoreLogo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\SplashScreen.png" Link="Assets\SplashScreen.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="..\vec_ipa.ico" Link="vec_ipa.ico">

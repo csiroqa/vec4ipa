@@ -29,6 +29,7 @@
 #include <commctrl.h>
 #include <commdlg.h>
 #include <shlobj.h>
+#include <dwmapi.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -37,7 +38,7 @@
 #include "../src/readme_embed.h"
 
 #define APP_NAME      L"vec4ipa Workbench"
-#define APP_VERSION   L"0.2.0"
+#define APP_VERSION   L"1.0.0"
 
 /* control ids */
 #define IDC_EXPORT_TEXT 2001
@@ -177,7 +178,7 @@ static void kb_build_all(HWND parent)
     int vx0 = 8, vy0 = 6, vbw = 36, vbh = 30, vgap = 4;
     /* resolve dims by name: the compiled scheme is SPEC-NEXT order
      * (v[2]=lips_closed, v[3]=lips_rounded), not v8 order */
-    int vbody = dim_of_ok("body", DIM_TONGUE_BODY_POS);
+    int vbody = dim_of_ok("body", DIM_BODY);
     int varea = dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA);
     for (i = 0; i < NSEG; i++) {
         if (!is_vowel(&SEG_TABLE[i])) continue;
@@ -331,7 +332,7 @@ static void do_forward(HWND out, const char *str)
     for (int s = 0; s < po.nsegs; s++) {
         char line[512];
         snprintf(line, sizeof(line), "[%d] (", s);
-        for (int i = 0; i < NDIM; i++) {
+        for (int i = 0; i < g_ndim; i++) {
             char num[32];
             snprintf(num, sizeof(num), "%s%.4f", i ? ", " : "", po.segs[s].v[i]);
             strncat(line, num, sizeof(line) - strlen(line) - 1);
@@ -349,10 +350,10 @@ static void do_reverse(HWND out, const char *vecstr)
 {
     char buf[4096];
     snprintf(buf, sizeof(buf), "%s", vecstr);
-    double v[NDIM];
+    double v[MAXDIM];
     char *tok = strtok(buf, ", \t");
     int i = 0;
-    while (tok && i < NDIM) {
+    while (tok && i < g_ndim) {
         char *endp = NULL;
         double x = strtod(tok, &endp);
         if (endp == tok) { out_append(out, "bad vector: numbers expected"); return; }
@@ -363,12 +364,17 @@ static void do_reverse(HWND out, const char *vecstr)
         v[i++] = x;
         tok = strtok(NULL, ", \t");
     }
-    if (i != NDIM) {
-        out_append(out, "bad vector: need 16 comma-separated values");
+    if (i != g_ndim) {
+        char msg[64];
+        snprintf(msg, sizeof(msg), "bad vector: need %d comma-separated values", g_ndim);
+        out_append(out, msg);
         return;
     }
-    if (tok)
-        out_append(out, "warning: extra values beyond 16 were ignored");
+    if (tok) {
+        char msg[64];
+        snprintf(msg, sizeof(msg), "warning: extra values beyond %d were ignored", g_ndim);
+        out_append(out, msg);
+    }
     const SegEntry *b = NULL; double d = 0.0;
     const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
     int nm = 0;
@@ -598,6 +604,46 @@ static void export_tools_dialog(HWND owner)
 /* ------------------------------------------------------------------ */
 
 static HWND g_dlg = NULL;
+
+/* Fluent translucent backdrop for the main window: Acrylic-style
+ * transient-window backdrop on Windows 11 22H2+ (DWM system backdrop),
+ * blur-behind on Windows 10, nothing on older systems.  On success the
+ * client background becomes black — DWM treats pure-black undrawn areas
+ * as transparent, letting the material show through — and plain STATIC
+ * labels stop painting their own background (WM_CTLCOLORSTATIC returns
+ * NULL_BRUSH).  EDIT fields keep their solid white input surfaces. */
+static int g_backdrop = 0;
+
+static void enable_backdrop(HWND hwnd)
+{
+    /* DWMWA_SYSTEMBACKDROP_TYPE = 38, DWMSBT_TRANSIENTWINDOW = 3
+     * (Acrylic-style: blurred, wall-paper tinted, visibly translucent) */
+    int type = 3;
+    if (SUCCEEDED(DwmSetWindowAttribute(hwnd, 38, &type, sizeof(type)))) {
+        g_backdrop = 1;
+    } else {
+        /* Windows 10 fallback: SetWindowCompositionAttribute blur-behind
+         * (user32, 1607+; resolve at runtime for old-system safety) */
+        typedef BOOL (WINAPI *SWCA_t)(HWND, const void *);
+        SWCA_t swca;
+        *(void **)(&swca) = (void *)GetProcAddress(
+            GetModuleHandleW(L"user32.dll"),
+            "SetWindowCompositionAttribute");
+        if (swca) {
+            struct { int attr; int state, flags, color, anim; } wca;
+            wca.attr = 19;              /* WCA_ACCENT_POLICY */
+            wca.state = 3;              /* ACCENT_ENABLE_BLURBEHIND */
+            wca.flags = 0; wca.color = 0; wca.anim = 0;
+            if (swca(hwnd, &wca)) g_backdrop = 1;
+        }
+    }
+    if (g_backdrop) {
+        SetClassLongPtrW(hwnd, GCLP_HBRBACKGROUND,
+                         (LONG_PTR)GetStockObject(BLACK_BRUSH));
+        MARGINS m = { -1, -1, -1, -1 };   /* extend the whole client area */
+        DwmExtendFrameIntoClientArea(hwnd, &m);
+    }
+}
 
 static LRESULT CALLBACK export_wndproc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
@@ -954,6 +1000,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         }
         break;
     }
+    case WM_CTLCOLORSTATIC:
+        /* no background fill: the label text draws directly over the
+         * window's backdrop (Mica/blur shows through; on the solid
+         * fallback the parent's own background is already painted) */
+        return (LRESULT)GetStockObject(NULL_BRUSH);
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
@@ -1055,6 +1106,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int nCmdShow)
         return 1;
     }
     init_menu(hwnd);
+    enable_backdrop(hwnd);   /* Mica / blur / none, best-effort */
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
 

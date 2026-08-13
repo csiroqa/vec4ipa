@@ -23,7 +23,7 @@
                             <ControlTemplate TargetType="Button">
                                 <Border Background="{TemplateBinding Background}"
                                         CornerRadius="{TemplateBinding CornerRadius}">
-    <Grid>
+                                    <Grid>
                                         <VisualStateManager.VisualStateGroups>
                                             <VisualStateGroup x:Name="CommonStates">
                                                 <VisualState x:Name="Normal"/>
@@ -32,7 +32,7 @@
                                                         <ObjectAnimationUsingKeyFrames Storyboard.TargetName="Fx"
                                                             Storyboard.TargetProperty="Fill">
                                                             <DiscreteObjectKeyFrame KeyTime="0"
-                                                                Value="#33888888"/>
+                                                                Value="{ThemeResource SubtleFillColorSecondaryBrush}"/>
                                                         </ObjectAnimationUsingKeyFrames>
                                                     </Storyboard>
                                                 </VisualState>
@@ -41,14 +41,38 @@
                                                         <ObjectAnimationUsingKeyFrames Storyboard.TargetName="Fx"
                                                             Storyboard.TargetProperty="Fill">
                                                             <DiscreteObjectKeyFrame KeyTime="0"
-                                                                Value="#4D888888"/>
+                                                                Value="{ThemeResource SubtleFillColorTertiaryBrush}"/>
                                                         </ObjectAnimationUsingKeyFrames>
                                                     </Storyboard>
                                                 </VisualState>
                                             </VisualStateGroup>
+                                            <VisualStateGroup x:Name="FocusStates">
+                                                <VisualState x:Name="Focused">
+                                                    <Storyboard>
+                                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="FocusFx"
+                                                            Storyboard.TargetProperty="Opacity">
+                                                            <DiscreteObjectKeyFrame KeyTime="0" Value="1"/>
+                                                        </ObjectAnimationUsingKeyFrames>
+                                                    </Storyboard>
+                                                </VisualState>
+                                                <VisualState x:Name="PointerFocused">
+                                                    <Storyboard>
+                                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="FocusFx"
+                                                            Storyboard.TargetProperty="Opacity">
+                                                            <DiscreteObjectKeyFrame KeyTime="0" Value="1"/>
+                                                        </ObjectAnimationUsingKeyFrames>
+                                                    </Storyboard>
+                                                </VisualState>
+                                                <VisualState x:Name="Unfocused"/>
+                                            </VisualStateGroup>
                                         </VisualStateManager.VisualStateGroups>
                                         <Rectangle x:Name="Fx" Fill="Transparent"
                                                    RadiusX="5" RadiusY="5"/>
+                                        <Rectangle x:Name="FocusFx" Fill="Transparent"
+                                                   Stroke="{ThemeResource ControlStrokeColorDefaultBrush}"
+                                                   StrokeThickness="1" Opacity="0"
+                                                   RadiusX="5" RadiusY="5"
+                                                   Margin="-1"/>
                                         <ContentPresenter HorizontalAlignment="Center"
                                                           VerticalAlignment="Center"/>
                                     </Grid>
@@ -84,7 +108,7 @@
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
                         Margin="12,0,0,0" Spacing="8">
                 <Image x:Name="TitleIcon" Width="16" Height="16"/>
-                <TextBlock Text="vec4ipa Workbench"
+                <TextBlock x:Name="TitleText" Text="vec4ipa Workbench"
                            FontSize="13" VerticalAlignment="Center"/>
             </StackPanel>
             <Button x:Name="PinBtn" Style="{StaticResource WinBtn}"
@@ -132,7 +156,13 @@
                                 <MenuFlyoutItem Text="Click: ǃ̃o (nasal click)" Tag="ǃ̃o" Click="Example_Click"/>
                             </MenuFlyoutSubItem>
                             <MenuFlyoutItem x:Name="MOpen" Text="Open file and convert..." Click="OpenFileConvert_Click"/>
+                            <MenuFlyoutItem x:Name="MSaveOutput" Text="Save output as..." Click="SaveOutput_Click"/>
                             <MenuFlyoutSeparator/>
+                            <MenuFlyoutItem x:Name="MLoadScheme" Text="Load scheme..." Click="LoadScheme_Click"/>
+                            <MenuFlyoutItem x:Name="MLoadMetric" Text="Load metric.json..." Click="LoadMetric_Click"/>
+                            <MenuFlyoutSeparator/>
+                            <MenuFlyoutItem x:Name="MExportCsv" Text="Export table as CSV..." Click="ExportCsv_Click"/>
+                            <MenuFlyoutItem x:Name="MSaveIr" Text="Save IR files (layer1/layer2)..." Click="SaveIr_Click"/>
                             <MenuFlyoutItem x:Name="MExportCmd" Text="Export command lines..." Click="ExportCmd_Click"/>
                             <MenuFlyoutItem x:Name="MExportTools" Text="Export tools (ipa2vec/vec2ipa/vec4ipa)..." Click="ExportTools_Click"/>
                             <MenuFlyoutSeparator/>
@@ -150,19 +180,12 @@
                             <MenuFlyoutSeparator/>
                             <MenuFlyoutItem x:Name="MVectorEditor" Text="Vector editor..." Click="VectorEditor_Click"/>
                             <MenuFlyoutItem x:Name="MHistory" Text="History..." Click="History_Click"/>
-                            <MenuFlyoutItem x:Name="MExportCsv" Text="Export table as CSV..." Click="ExportCsv_Click"/>
-                            <MenuFlyoutItem x:Name="MSaveIr" Text="Save IR files (layer1/layer2)..." Click="SaveIr_Click"/>
-                            <MenuFlyoutItem x:Name="MSaveOutput" Text="Save output as..." Click="SaveOutput_Click"/>
                             <MenuFlyoutSeparator/>
                             <MenuFlyoutItem x:Name="MSettings" Text="Settings..." Click="Settings_Click"/>
                         </MenuFlyout>
                     </Button.Flyout>
                 </Button>
-                <ToggleButton x:Name="ExtToggle" MinHeight="34" Grid.Column="2"
-                              Content="Ext" Padding="10,4"
-                              ToolTipService.ToolTip="Global input: type into the focused window of other apps"
-                              Checked="ExtToggle_Changed" Unchecked="ExtToggle_Changed"/>
-                <Button x:Name="HelpBtn" MinHeight="34" Grid.Column="3" Content="Help" Padding="10,4">
+                <Button x:Name="HelpBtn" MinHeight="34" Grid.Column="2" Content="Help" Padding="10,4">
                     <Button.Flyout>
                         <MenuFlyout>
                             <MenuFlyoutItem x:Name="MDocs" Text="Documentation" Click="Docs_Click"/>
@@ -170,6 +193,10 @@
                         </MenuFlyout>
                     </Button.Flyout>
                 </Button>
+                <ToggleButton x:Name="ExtToggle" MinHeight="34" Grid.Column="3"
+                              Content="Ext" Padding="10,4"
+                              ToolTipService.ToolTip="Global input: type into the focused window of other apps"
+                              Checked="ExtToggle_Changed" Unchecked="ExtToggle_Changed"/>
                 <Button x:Name="LoopBtn" MinHeight="34" Grid.Column="4" Content="Loop" Padding="10,4"
                         Click="Loop_Click"/>
                 <Button x:Name="FmtBtn" Grid.Column="5" Width="76" MinHeight="34"
@@ -225,14 +252,17 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBox x:Name="DistA" Grid.Column="0" FontSize="18"/>
                 <TextBox x:Name="DistB" Grid.Column="1" FontSize="18"/>
                 <Button x:Name="DistBtn" Grid.Column="2" Content="Distance"
                         Click="DistBtn_Click"/>
+                <Button x:Name="AlignBtn" Grid.Column="3" Content="Align"
+                        Click="AlignBtn_Click"/>
             </Grid>
 
-            <Grid Grid.Row="6">
+            <Grid Grid.Row="6" ColumnSpacing="6">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -240,7 +270,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock x:Name="LblOut" Text="Output:" FontSize="15"/>
                 <Button x:Name="CopyBtn" Grid.Column="1" Content="Copy" FontSize="12"
-                        Padding="8,2" Margin="0,0,6,0" Click="CopyOutput_Click"/>
+                        Padding="8,2" Click="CopyOutput_Click"/>
                 <Button x:Name="ClearBtn" Grid.Column="2" Content="Clear" FontSize="12"
                         Padding="8,2" Click="ClearOutput_Click"/>
             </Grid>

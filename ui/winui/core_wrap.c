@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <io.h>
 
 #include "../src/ipa2vec_core.h"
 #include "../src/readme_embed.h"
@@ -82,7 +83,8 @@ EXPORT int ipa2v_forward_tone(const char *str, char *err, size_t errsz,
 EXPORT int ipa2v_reverse(const double *v, int width,
                          char *out /* 512 */, size_t outsz)
 {
-    double vv[NDIM];
+    double vv[MAXDIM];
+    memset(vv, 0, sizeof(vv));   /* scheme may use more dims than NDIM */
     for (int i = 0; i < NDIM; i++) vv[i] = v[i];
 
     /* guard: NaN/Inf would make nearest_base index out of bounds */
@@ -129,7 +131,7 @@ EXPORT int ipa2v_reverse(const double *v, int width,
         const ModRec *cur[IPA2VEC_FIT_MAX_MODS + 4];
         int nc = 0;
         for (int k = 0; k < nm; k++) cur[nc++] = mods[k];
-        double trial[NDIM];
+        double trial[MAXDIM];
         apply_mod_set(trial, b, cur, nc);
         double d_fit = seg_dist(vv, trial);
         if (afd + 1e-9 < d_fit * 0.85) {
@@ -352,8 +354,8 @@ EXPORT const char *ipa2v_docs(void)
     return EMBEDDED_README;
 }
 
-/* Apply CLI-style settings (school modules, --narrowness) for the GUI.
- * Unknown options are skipped. Returns 0. */
+/* Apply CLI-style settings (school modules, --narrowness, --symbols,
+ * --spacing) for the GUI.  Unknown options are skipped. Returns 0. */
 EXPORT int ipa2v_set_args(int n, const char **argv)
 {
     int i = 0;
@@ -366,9 +368,56 @@ EXPORT int ipa2v_set_args(int n, const char **argv)
                 lev = argv[i + 1][0] - '0', i++;
             set_width_global(lev);
         }
+        /* these consume their value argument themselves (argv[++*i]) */
+        if (opt_charset(argv[i], n, (char **)argv, &i) == 1) { i++; continue; }
+        if (opt_mod_spacing(argv[i], n, (char **)argv, &i) == 1) { i++; continue; }
+        /* -D/--scheme FILE: reconfigures the whole vector space */
+        int sc = opt_scheme(argv[i], n, (char **)argv, &i);
+        if (sc == 1) { i++; continue; }
+        if (sc != 0) { /* malformed or load failed - report, keep going */ }
         i++;
     }
     return 0;
+}
+
+/* sequence (syllable/word) alignment: run_align prints to stdout (and
+ * errors to stderr), so redirect both into a temp file and read the
+ * text back for the GUI.  GUI builds have no console: stdout/stderr
+ * carry no valid descriptor (_fileno == -2), which made _dup fail and
+ * every alignment report as failed with no message — point them at NUL
+ * first so _dup/_dup2 always have a real fd to work with. */
+EXPORT int ipa2v_align(const char *a, const char *b, char *out, size_t outsz)
+{
+    if (out == NULL || outsz == 0) return -1;
+    out[0] = '\0';
+    FILE *tmp = tmpfile();
+    if (tmp == NULL) return -1;
+    if (_fileno(stdout) < 0 && freopen("NUL", "w", stdout) == NULL) {
+        fclose(tmp); return -1;
+    }
+    if (_fileno(stderr) < 0 && freopen("NUL", "w", stderr) == NULL) {
+        fclose(tmp); return -1;
+    }
+    int outfd = _fileno(stdout), errfd = _fileno(stderr);
+    int saved_out = _dup(outfd), saved_err = _dup(errfd);
+    if (saved_out < 0 || saved_err < 0) {
+        if (saved_out >= 0) _close(saved_out);
+        if (saved_err >= 0) _close(saved_err);
+        fclose(tmp);
+        return -1;
+    }
+    _dup2(_fileno(tmp), outfd);
+    _dup2(_fileno(tmp), errfd);
+    int rc = run_align(a, b, "vec4ipa_ui");
+    fflush(stdout);
+    fflush(stderr);
+    _dup2(saved_out, outfd); _close(saved_out);
+    _dup2(saved_err, errfd); _close(saved_err);
+    fseek(tmp, 0, SEEK_SET);
+    size_t n = fread(out, 1, outsz - 1, tmp);
+    out[n] = '\0';
+    fclose(tmp);
+    return rc;
 }
 
 /* school module names, one per line (for the GUI menu) */
@@ -396,20 +445,24 @@ EXPORT int ipa2v_table(char *out, size_t outsz)
         n = snprintf(out + L, outsz - L, "%s\t%s\t%s\t(",
                      SEG_TABLE[i].ipa, NAME_TABLE[i],
                      AIRSTREAM_LABELS[SEG_TABLE[i].airstream]);
-        if (n < 0 || (size_t)n >= outsz - L) break; L += n;
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
         for (int j = 0; j < NDIM; j++) {
             n = snprintf(out + L, outsz - L, "%s%.4f", j ? ", " : "",
                          SEG_TABLE[i].v[j]);
-            if (n < 0 || (size_t)n >= outsz - L) break; L += n;
+            if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
         }
         n = snprintf(out + L, outsz - L, ")\n");
-        if (n < 0 || (size_t)n >= outsz - L) break; L += n;
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
     }
     for (int i = 0; i < N_EXTRA; i++) {
         n = snprintf(out + L, outsz - L, "%s\t%s\t%s\t(\n",
                      EXTRA_BASE[i].ipa, EXTRA_NAMES[i],
                      AIRSTREAM_LABELS[EXTRA_BASE[i].airstream]);
-        if (n < 0 || (size_t)n >= outsz - L) break; L += n;
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
     }
     return (int)L;
 }
@@ -454,7 +507,8 @@ EXPORT int ipa2v_weights_effective(char *out, size_t outsz)
     for (int i = 0; i < NDIM; i++) {
         n = snprintf(out + L, outsz - L, "%2d  %-22s %8.4f\n", i,
                      DIM_NAMES[i], g_metric_w[i]);
-        if (n < 0 || (size_t)n >= outsz - L) break; L += n;
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
     }
     n = snprintf(out + L, outsz - L, "lambda (airstream penalty):  %.2f\n",
                  g_metric_lambda);
@@ -472,12 +526,14 @@ EXPORT int ipa2v_modules_full(char *out, size_t outsz)
                      ALIAS_MODULES[m].name, ALIAS_MODULES[m].n,
                      ALIAS_MODULES[m].school ? "  (school)" : "",
                      ALIAS_MODULES[m].school ? "" : "  (always on)");
-        if (n < 0 || (size_t)n >= outsz - L) break; L += n;
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
         for (int i = 0; i < ALIAS_MODULES[m].n && L < outsz - 64; i++) {
             const Alias *a = &ALIAS_MODULES[m].tab[i];
             n = snprintf(out + L, outsz - L, "    %-8s -> %s%s\n", a->sym,
                          a->repl, a->warn ? "  [deprecated]" : "");
-            if (n < 0 || (size_t)n >= outsz - L) break; L += n;
+            if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
         }
     }
     return (int)L;
@@ -540,7 +596,8 @@ EXPORT int ipa2v_ir(const char *str, char *out, size_t outsz)
         case TK_LIG:
             n = snprintf(out + L, outsz - L, "[tie]"); break;
         }
-        if (n < 0 || (size_t)n >= outsz - L) break; L += n;
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
     }
     n = snprintf(out + L, outsz - L, "\n  layer2 (feature order): ");
     if (n > 0 && (size_t)n < outsz - L) L += n;
@@ -561,7 +618,8 @@ EXPORT int ipa2v_ir(const char *str, char *out, size_t outsz)
         case TK_LIG:
             n = snprintf(out + L, outsz - L, "[tie]"); break;
         }
-        if (n < 0 || (size_t)n >= outsz - L) break; L += n;
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
     }
     n = snprintf(out + L, outsz - L, "\n");
     if (n > 0 && (size_t)n < outsz - L) L += n;
@@ -572,12 +630,14 @@ EXPORT int ipa2v_ir(const char *str, char *out, size_t outsz)
         for (int i = 0; i < NDIM; i++) {
             n = snprintf(out + L, outsz - L, "%s%.4f", i ? ", " : "",
                          po.segs[s].v[i]);
-            if (n < 0 || (size_t)n >= outsz - L) break; L += n;
+            if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
         }
         n = snprintf(out + L, outsz - L, ")  %s%s%s\n",
                      AIRSTREAM_LABELS[po.segs[s].airstream],
                      po.segs[s].note[0] ? "  [" : "", po.segs[s].note);
-        if (n < 0 || (size_t)n >= outsz - L) break; L += n;
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
         const SegEntry *b = NULL; double d = 0.0;
         const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
         int nm = 0;
@@ -586,7 +646,8 @@ EXPORT int ipa2v_ir(const char *str, char *out, size_t outsz)
         char rebuilt[128];
         build_ipa(b, mods, nm, po.segs[s].dotless, rebuilt, sizeof(rebuilt));
         n = snprintf(out + L, outsz - L, "rebuilt[%d]: /%s/\n", s, rebuilt);
-        if (n < 0 || (size_t)n >= outsz - L) break; L += n;
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
     }
     return 0;
 }
@@ -617,11 +678,13 @@ EXPORT int ipa2v_json(const char *str, char *out, size_t outsz)
         for (int i = 0; i < NDIM; i++) {
             n = snprintf(out + L, outsz - L, "%s\"%s\": %.4f",
                          i ? ", " : "", DIM_NAMES[i], po.segs[s].v[i]);
-            if (n < 0 || (size_t)n >= outsz - L) break; L += n;
+            if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
         }
         n = snprintf(out + L, outsz - L, "}, \"airstream\": \"%s\"}",
                      AIRSTREAM_LABELS[po.segs[s].airstream]);
-        if (n < 0 || (size_t)n >= outsz - L) break; L += n;
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
     }
     n = snprintf(out + L, outsz - L, "\n]}\n");
     if (n > 0 && (size_t)n < outsz - L) L += n;
@@ -664,7 +727,7 @@ EXPORT int ipa2v_vowel_positions(char *out, size_t outsz)
     size_t L = 0;
     /* resolve dims by name: the compiled scheme is SPEC-NEXT order
      * (v[2]=lips_closed, v[3]=lips_rounded), not v8 order */
-    int body = dim_of_ok("body", DIM_TONGUE_BODY_POS);
+    int body = dim_of_ok("body", DIM_BODY);
     int area = dim_of_ok("effective_oral_area", DIM_EFFECTIVE_ORAL_AREA);
     for (int i = 0; i < NSEG; i++) {
         const char *nm = NAME_TABLE[i];
@@ -697,7 +760,7 @@ EXPORT int ipa2v_vowel_positions(char *out, size_t outsz)
 EXPORT int ipa2v_kb_cons_pos(char *out, size_t outsz)
 {
     size_t L = 0;
-    int place = dim_of_ok("place", DIM_TONGUE_TIP_POS);
+    int place = dim_of_ok("place", DIM_PLACE);
     double norm(const double v[MAXDIM])
     {
         double p = (v[place] + 0.9) / 1.8;   /* lips -0.9 .. glottis +0.9 -> 0..1 */

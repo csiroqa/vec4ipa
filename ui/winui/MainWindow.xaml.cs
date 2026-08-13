@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace Vec4ipaUI
@@ -81,10 +82,17 @@ namespace Vec4ipaUI
             }
             catch (Exception ex) { LogExt("mica err " + ex.Message); }
             _fmtRows = new[] { FmtRow0, FmtRow1, FmtRow2, FmtRow3 };
-            _fmtItems = new[] { FmtItem0, FmtItem1, FmtItem2, FmtItem3 };
             _fmtChecks = new[] { FmtCheck0, FmtCheck1, FmtCheck2, FmtCheck3 };
             Title = "vec4ipa Workbench";
             SetIcon();
+            /* resizable window needs a sane floor: WinUI 3 has no default
+             * minimum and the layout breaks below ~820x560 */
+            try
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                SetWindowSubclass(hwnd, MinMaxProc, (UIntPtr)1, IntPtr.Zero);
+            }
+            catch (Exception ex) { LogExt("min size err " + ex.Message); }
             RestoreState();
             WireSplitGrip();
             WireCursorMagnet();
@@ -131,7 +139,7 @@ namespace Vec4ipaUI
             BindEnterToButton(VecInput, ReverseBtn, ReverseBtn_Click);
             BindEnterToButton(DistA, DistBtn, DistBtn_Click);
             BindEnterToButton(DistB, DistBtn, DistBtn_Click);
-            SetStatus("Ready - click keyboard buttons or type IPA");
+            SetStatus("Ready - click keyboard buttons or type IPA", "就绪 - 点击键盘按钮或输入 IPA");
             Closed += (s, e) =>
             {
                 UninstallLLHook();
@@ -233,6 +241,47 @@ namespace Vec4ipaUI
         [System.Runtime.InteropServices.DllImport("imm32.dll")]
         private static extern int ImmGetCompositionString(IntPtr hIMC,
             int dwIndex, IntPtr lpBuf, int dwBufLen);
+
+        /* ---- window minimum size (WM_GETMINMAXINFO via subclass) ---- */
+        private const uint WmGetMinMaxInfo = 0x0024;
+        private const int MinWinWidth = 820;
+        private const int MinWinHeight = 560;
+
+        [System.Runtime.InteropServices.DllImport("comctl32.dll")]
+        private static extern bool SetWindowSubclass(IntPtr hwnd,
+            SubclassProc proc, UIntPtr id, IntPtr refData);
+
+        [System.Runtime.InteropServices.DllImport("comctl32.dll")]
+        private static extern IntPtr DefSubclassProc(IntPtr hwnd, uint msg,
+            IntPtr wParam, IntPtr lParam);
+
+        private delegate IntPtr SubclassProc(IntPtr hwnd, uint msg,
+            IntPtr wParam, IntPtr lParam, IntPtr id, IntPtr refData);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MinMaxInfo
+        {
+            public int ReservedX, ReservedY;
+            public int MaxX, MaxY;
+            public int MaxPosX, MaxPosY;
+            public int MinTrackX, MinTrackY;
+            public int MaxTrackX, MaxTrackY;
+        }
+
+        /* keep the delegate alive for the lifetime of the window */
+        private static readonly SubclassProc MinMaxProc = (hwnd, msg,
+            wParam, lParam, id, refData) =>
+        {
+            if (msg == WmGetMinMaxInfo)
+            {
+                var mmi = Marshal.PtrToStructure<MinMaxInfo>(lParam);
+                if (mmi.MinTrackX < MinWinWidth) mmi.MinTrackX = MinWinWidth;
+                if (mmi.MinTrackY < MinWinHeight) mmi.MinTrackY = MinWinHeight;
+                Marshal.StructureToPtr(mmi, lParam, false);
+                return IntPtr.Zero;
+            }
+            return DefSubclassProc(hwnd, msg, wParam, lParam);
+        };
 
         /* pickers need an owner HWND or they fail on WinUI 3 desktop */
         private void InitializePicker(object picker)
@@ -362,7 +411,8 @@ namespace Vec4ipaUI
             _history.Add(("Welcome", welcome));
         }
 
-        private void SetStatus(string text) => StatusText.Text = text;
+        private void SetStatus(string text, string? zh = null) =>
+            StatusText.Text = _zh && zh != null ? zh : text;
 
         /* ---- window state persistence (size / position / splitter) ---- */
         private void SaveState()
@@ -703,7 +753,7 @@ namespace Vec4ipaUI
                 var dlg = new ContentDialog
                 {
                     XamlRoot = Content.XamlRoot,
-                    Title = "vec4ipa Workbench - usage",
+                    Title = _zh ? "vec4ipa 工作台 - 用法" : "vec4ipa Workbench - usage",
                     Content =
                         "vec4ipa_ui [OPTIONS] [IPA-STRING]\n\n" +
                         "  --narrowness 0-4    reverse-fit narrowness (default 3; alias --width)\n" +
@@ -713,7 +763,7 @@ namespace Vec4ipaUI
                         "  -h, --help          this help\n" +
                         "  --school flags      (--americanist, --sinologist, ...)\n" +
                         "IPA-STRING            forward IPA -> vectors on startup",
-                    CloseButtonText = "OK",
+                    CloseButtonText = _zh ? "确定" : "OK",
                 };
                 await dlg.ShowAsync();
             }
@@ -723,12 +773,18 @@ namespace Vec4ipaUI
                 var m = new ContentDialog
                 {
                     XamlRoot = Content.XamlRoot,
-                    Title = "Export tools",
-                    Content = $"Exported {ok} of 3 tools to:\n{exportDir}\n" +
+                    Title = _zh ? "导出工具" : "Export tools",
+                    Content = (_zh
+                        ? $"已导出 {ok}/3 个工具到：\n{exportDir}\n"
+                        : $"Exported {ok} of 3 tools to:\n{exportDir}\n") +
                               (missing > 0
-                                  ? $"{missing} tool(s) not bundled in this build."
-                                  : "All three CLI tools are ready to use."),
-                    CloseButtonText = "OK",
+                                  ? (_zh
+                                      ? $"{missing} 个工具未随本构建捆绑。"
+                                      : $"{missing} tool(s) not bundled in this build.")
+                                  : (_zh
+                                      ? "三个 CLI 工具均已就绪。"
+                                      : "All three CLI tools are ready to use.")),
+                    CloseButtonText = _zh ? "确定" : "OK",
                 };
                 await m.ShowAsync();
             }
@@ -757,6 +813,8 @@ namespace Vec4ipaUI
         /* ---- Settings dialog: theme / language / feature names / modules ---- */
 
         private readonly Dictionary<string, bool> _moduleOn = new();
+        private int _charset;            /* 0 std, 1 extipa, 2 sinologist, 3 all */
+        private int _spacing;            /* 0 binary, 1 ternary, 2 2:1:2, 3 1:2:1 */
         private string _themeName = "System";
         private string[] _startupArgs = Array.Empty<string>();
         private bool _argsPending;
@@ -1171,6 +1229,28 @@ namespace Vec4ipaUI
             langRadio.Items.Add("中文");
             langRadio.SelectedIndex = _zh ? 1 : 0;
 
+            /* reverse output symbols (CLI -S/--symbols) */
+            var symRadio = new RadioButtons
+            {
+                Header = _zh ? "反向输出符号" : "Reverse output symbols",
+            };
+            symRadio.Items.Add(_zh ? "标准 IPA" : "standard");
+            symRadio.Items.Add(_zh ? "扩展 extIPA" : "extipa");
+            symRadio.Items.Add(_zh ? "汉学符号" : "sinologist");
+            symRadio.Items.Add(_zh ? "全部" : "all");
+            symRadio.SelectedIndex = _charset;
+
+            /* modifier spacing (CLI -P/--spacing) */
+            var spacingRadio = new RadioButtons
+            {
+                Header = _zh ? "修饰符间距" : "Modifier spacing",
+            };
+            spacingRadio.Items.Add("binary (i̞ ≡ e̝)");
+            spacingRadio.Items.Add("ternary");
+            spacingRadio.Items.Add("2:1:2");
+            spacingRadio.Items.Add("1:2:1");
+            spacingRadio.SelectedIndex = _spacing;
+
             /* school modules */
             var modsPanel = new StackPanel { Spacing = 2 };
             var modBoxes = new Dictionary<string, CheckBox>();
@@ -1189,15 +1269,10 @@ namespace Vec4ipaUI
 
             var metricText = new TextBlock
             {
-                Text = _zh ? "度量：编译内置默认值（metric16.json v10）"
-                           : "Metric: compiled-in defaults (metric16.json v10)",
+                Text = _zh ? "度量：编译内置默认值（spec_next.scheme 权重）；可用 File → 加载 metric.json... 替换"
+                           : "Metric: compiled-in defaults (spec_next.scheme weights); replace via File > Load metric.json...",
                 FontSize = 13,
                 Margin = new Thickness(0, 4, 0, 0),
-            };
-            var loadMetricBtn = new Button
-            {
-                Content = _zh ? "加载 metric.json..." : "Load metric.json...",
-                HorizontalAlignment = HorizontalAlignment.Left,
             };
 
             var content = new ScrollViewer
@@ -1206,10 +1281,10 @@ namespace Vec4ipaUI
                 Content = new StackPanel { Spacing = 10, Children =
                 {
                     themeRadio, featSwitch, langRadio,
+                    symRadio, spacingRadio,
                     new TextBlock { Text = _zh ? "学校模块" : "School modules", FontWeight =
                         Microsoft.UI.Text.FontWeights.SemiBold },
                     modsPanel,
-                    loadMetricBtn,
                     metricText,
                 } },
             };
@@ -1221,23 +1296,6 @@ namespace Vec4ipaUI
                 Content = content,
                 PrimaryButtonText = _zh ? "确定" : "OK",
                 CloseButtonText = _zh ? "取消" : "Cancel",
-            };
-            loadMetricBtn.Click += async (s2, e2) =>
-            {
-                try
-                {
-                    var file = await PickFileAsync(".json");
-                    if (file == null) return;
-                    string? err = Core.LoadMetric(file.Path);
-                    metricText.Text = err == null
-                        ? "Metric: " + file.Name + " (loaded)"
-                        : "Metric load failed: " + file.Name;
-                }
-                catch (Exception ex)
-                {
-                    LogExt("load metric err " + ex.Message);
-                    metricText.Text = "Metric load failed: " + ex.Message;
-                }
             };
 
             if (await dlg.ShowAsync() != ContentDialogResult.Primary)
@@ -1261,13 +1319,30 @@ namespace Vec4ipaUI
                     if (on)
                     {
                         Core.SetArgs(new[] { "--" + name });
-                        SetStatus("module enabled: " + name);
+                        SetStatus("module enabled: " + name, "已启用模块：" + name);
                     }
                     else
                     {
-                        SetStatus("note: modules cannot be disabled at runtime");
+                        SetStatus("note: modules cannot be disabled at runtime", "提示：模块无法在运行时禁用");
                     }
                 }
+            }
+            /* reverse symbols + modifier spacing */
+            string[] symNames = { "standard", "extipa", "sinologist", "all" };
+            string[] spacingNames = { "binary", "ternary", "2:1:2", "1:2:1" };
+            int newCharset = symRadio.SelectedIndex;
+            int newSpacing = spacingRadio.SelectedIndex;
+            if (newCharset != _charset || newSpacing != _spacing)
+            {
+                _charset = newCharset;
+                _spacing = newSpacing;
+                Core.SetArgs(new[]
+                {
+                    "--symbols", symNames[newCharset],
+                    "--spacing", spacingNames[newSpacing],
+                });
+                SetStatus("symbols/spacing set",
+                    "符号/间距已设置");
             }
             }
             catch (Exception ex)
@@ -1299,6 +1374,7 @@ namespace Vec4ipaUI
             ConvertBtn.Content = zh ? "转换" : "Convert";
             ReverseBtn.Content = zh ? "反向" : "Reverse";
             DistBtn.Content = zh ? "距离" : "Distance";
+            AlignBtn.Content = zh ? "对齐" : "Align";
             FileBtn.Content = zh ? "文件" : "File";
             ViewBtn.Content = zh ? "视图" : "View";
             HelpBtn.Content = zh ? "帮助" : "Help";
@@ -1323,6 +1399,11 @@ namespace Vec4ipaUI
             {
                 (MExamples, zh ? "示例" : "Examples"),
                 (MOpen, zh ? "打开文件并转换..." : "Open file and convert..."),
+                (MSaveOutput, zh ? "输出另存为..." : "Save output as..."),
+                (MLoadScheme, zh ? "加载方案..." : "Load scheme..."),
+                (MLoadMetric, zh ? "加载 metric.json..." : "Load metric.json..."),
+                (MExportCsv, zh ? "导出表格为 CSV..." : "Export table as CSV..."),
+                (MSaveIr, zh ? "保存 IR 文件（layer1/layer2）..." : "Save IR files (layer1/layer2)..."),
                 (MExportCmd, zh ? "导出命令行..." : "Export command lines..."),
                 (MExportTools, zh ? "导出工具（ipa2vec/vec2ipa/vec4ipa）..." : "Export tools (ipa2vec/vec2ipa/vec4ipa)..."),
                 (MExit, zh ? "退出" : "Exit"),
@@ -1332,9 +1413,6 @@ namespace Vec4ipaUI
                 (MWeights, zh ? "度量权重" : "Metric weights"),
                 (MVectorEditor, zh ? "向量编辑器..." : "Vector editor..."),
                 (MHistory, zh ? "历史..." : "History..."),
-                (MExportCsv, zh ? "导出表格为 CSV..." : "Export table as CSV..."),
-                (MSaveIr, zh ? "保存 IR 文件（layer1/layer2）..." : "Save IR files (layer1/layer2)..."),
-                (MSaveOutput, zh ? "输出另存为..." : "Save output as..."),
                 (MSettings, zh ? "设置..." : "Settings..."),
                 (MDocs, zh ? "文档" : "Documentation"),
                 (MAbout, zh ? "关于" : "About"),
@@ -1345,10 +1423,12 @@ namespace Vec4ipaUI
                 else if (ctl is MenuFlyoutSubItem si) si.Text = text;
             }
             FilterBox.PlaceholderText = zh ? "筛选符号（名称或符号）…" : "filter symbols (name or symbol)…";
+            IpaInputRight.PlaceholderText = zh ? "IPA - 软键盘输入" : "IPA - soft keyboard input";
             LblFav.Text = zh ? "收藏" : "Favorites";
             DistA.PlaceholderText = zh ? "符号 A" : "symbol A";
             DistB.PlaceholderText = zh ? "符号 B" : "symbol B";
             Title = zh ? "vec4ipa 工作台" : "vec4ipa Workbench";
+            TitleText.Text = Title;
             FmtBtnLabel.Text = (zh ? FmtNamesZh : FmtNamesEn)[_fmtIndex];
             ToolTipService.SetToolTip(FmtBtn, (zh ? FmtNamesZh : FmtNamesEn)
                 [_fmtIndex] + (zh ? " - 长按选择格式" : " - hold to pick format"));
@@ -1359,37 +1439,37 @@ namespace Vec4ipaUI
         private void ViewTable_Click(object sender, RoutedEventArgs e)
         {
             AppendOutput("=== Base table ===\n" + Core.Table());
-            SetStatus("base table shown");
+            SetStatus("base table shown", "已显示基段表");
         }
 
         private void ViewStats_Click(object sender, RoutedEventArgs e)
         {
             AppendOutput("=== Statistics ===\n" + Core.Stats());
-            SetStatus("statistics shown");
+            SetStatus("statistics shown", "已显示统计");
         }
 
         private void ViewWeights_Click(object sender, RoutedEventArgs e)
         {
             AppendOutput("=== Metric weights (effective) ===\n" + Core.WeightsEffective());
-            SetStatus("effective metric weights shown");
+            SetStatus("effective metric weights shown", "已显示有效度量权重");
         }
 
         private void ViewModules_Click(object sender, RoutedEventArgs e)
         {
             AppendOutput("=== Module details ===\n" + Core.ModulesFull());
-            SetStatus("module details shown");
+            SetStatus("module details shown", "已显示模块详情");
         }
 
         private async void SaveIr_Click(object sender, RoutedEventArgs e)
         {
             if (IpaInputRight.Text.Length == 0)
             {
-                SetStatus("nothing to export - type an IPA string first");
+                SetStatus("nothing to export - type an IPA string first", "无内容可导出 - 请先输入 IPA 字符串");
                 return;
             }
             if (Core.ForwardRaw(IpaInputRight.Text) == null)
             {
-                SetStatus("IR export failed: the input does not parse");
+                SetStatus("IR export failed: the input does not parse", "IR 导出失败：输入无法解析");
                 return;
             }
             var file = await PickSaveFileAsync("ipa-ir", "IR base", ".layer1");
@@ -1400,7 +1480,7 @@ namespace Vec4ipaUI
             if (err != null) SetStatus("IR export failed: " + err);
             else
             {
-                SetStatus("IR written to " + baseName + ".layer1/.layer2");
+                SetStatus("IR written to " + baseName + ".layer1/.layer2", "IR 已写入 " + baseName + ".layer1/.layer2");
                 AppendOutput($"=== IR exported: {baseName}.layer1/.layer2 ===");
             }
         }
@@ -1424,8 +1504,23 @@ namespace Vec4ipaUI
                 sb.AppendLine("  weighted distance: " + Core.Distance(a, b));
             }
             AppendOutput($"=== Compare {a} ~ {b} ===\n" +
-                         sb.ToString().TrimEnd());
-            SetStatus("comparison shown");
+                          sb.ToString().TrimEnd());
+            SetStatus("comparison shown", "已显示对比");
+        }
+
+        /* sequence alignment (CLI -A/--align): the two boxes hold
+         * syllable/word strings; the core prints the alignment + cost */
+        private void AlignBtn_Click(object sender, RoutedEventArgs e)
+        {
+            string a = DistA.Text.Trim(), b = DistB.Text.Trim();
+            if (a.Length == 0 || b.Length == 0)
+            {
+                SetStatus("alignment needs two strings", "对齐需要两个字符串");
+                return;
+            }
+            string text = Core.Align(a, b);
+            AppendOutput($"=== Align {a} ~ {b} ===\n" + text.TrimEnd());
+            SetStatus("alignment done", "对齐完成");
         }
 
         private async void SaveOutput_Click(object sender, RoutedEventArgs e)
@@ -1436,7 +1531,7 @@ namespace Vec4ipaUI
             try
             {
                 await Windows.Storage.FileIO.WriteTextAsync(file, OutputText());
-                SetStatus("output saved: " + file.Path);
+                SetStatus("output saved: " + file.Path, "输出已保存：" + file.Path);
             }
             catch (Exception ex)
             {
@@ -1447,13 +1542,53 @@ namespace Vec4ipaUI
         private void ClearOutput_Click(object sender, RoutedEventArgs e)
         {
             OutputSet("");
-            SetStatus("output cleared");
+            SetStatus("output cleared", "输出已清除");
         }
 
         private void CopyOutput_Click(object sender, RoutedEventArgs e)
         {
             SetStatus(CopyToClipboard(OutputText())
                 ? "output copied to clipboard" : "copy failed");
+        }
+
+        private async void LoadMetric_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var file = await PickFileAsync(".json");
+                if (file == null) return;
+                string? err = Core.LoadMetric(file.Path);
+                SetStatus(err == null
+                        ? "metric loaded: " + file.Name
+                        : "metric load failed: " + file.Name,
+                    err == null
+                        ? "度量已加载：" + file.Name
+                        : "度量加载失败：" + file.Name);
+            }
+            catch (Exception ex)
+            {
+                LogExt("load metric err " + ex.Message);
+                SetStatus("metric load failed: " + ex.Message,
+                    "度量加载失败：" + ex.Message);
+            }
+        }
+
+        private async void LoadScheme_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var file = await PickFileAsync(".scheme");
+                if (file == null) return;
+                Core.SetArgs(new[] { "--scheme", file.Path });
+                SetStatus("scheme loaded: " + file.Name,
+                    "方案已加载：" + file.Name);
+            }
+            catch (Exception ex)
+            {
+                LogExt("load scheme err " + ex.Message);
+                SetStatus("scheme load failed: " + ex.Message,
+                    "方案加载失败：" + ex.Message);
+            }
         }
 
         private async void OpenFileConvert_Click(object sender, RoutedEventArgs e)
@@ -1475,7 +1610,7 @@ namespace Vec4ipaUI
                     sb.AppendLine(r ?? "parse error");
                 }
                 AppendOutput(sb.ToString().TrimEnd());
-                SetStatus("converted " + file.Name);
+                SetStatus("converted " + file.Name, "已转换 " + file.Name);
             }
             catch (Exception ex)
             {
@@ -1551,14 +1686,15 @@ namespace Vec4ipaUI
             var dlg = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot,
-                Title = "Vector editor (live reverse preview)",
+                Title = _zh ? "向量编辑器（实时反向预览）"
+                            : "Vector editor (live reverse preview)",
                 Content = new ScrollViewer
                 {
                     MaxHeight = 480,
                     Content = grid,
                 },
-                PrimaryButtonText = "Use in reverse box",
-                CloseButtonText = "Close",
+                PrimaryButtonText = _zh ? "应用到反向框" : "Use in reverse box",
+                CloseButtonText = _zh ? "关闭" : "Close",
             };
             dlg.PrimaryButtonClick += (s, e2) =>
             {
@@ -1575,7 +1711,7 @@ namespace Vec4ipaUI
         {
             if (_history.Count == 0)
             {
-                SetStatus("no history yet");
+                SetStatus("no history yet", "暂无历史");
                 return;
             }
             var list = new ListView
@@ -1588,10 +1724,10 @@ namespace Vec4ipaUI
             var dlg = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot,
-                Title = "History",
+                Title = _zh ? "历史" : "History",
                 Content = list,
-                PrimaryButtonText = "Show",
-                CloseButtonText = "Close",
+                PrimaryButtonText = _zh ? "显示" : "Show",
+                CloseButtonText = _zh ? "关闭" : "Close",
             };
             dlg.PrimaryButtonClick += (s, e2) =>
             {
@@ -1661,7 +1797,7 @@ namespace Vec4ipaUI
                 root.UpdateLayout();
                 if (_appWindow != null)
                     ApplyTitleBarTheme(_appWindow);
-                SetStatus("theme: " + name.ToLowerInvariant());
+                SetStatus("theme: " + name.ToLowerInvariant(), "主题：" + name.ToLowerInvariant());
             }
             catch (Exception ex) { LogExt("apply theme err " + ex.Message); }
         }
@@ -1695,7 +1831,7 @@ namespace Vec4ipaUI
             }
             AppendOutput("=== IPA -> vector -> IPA (loop) ===\n" +
                          sb.ToString().TrimEnd());
-            SetStatus("loop done");
+            SetStatus("loop done", "回环完成");
         }
 
         private async void ExportCsv_Click(object sender, RoutedEventArgs e)
@@ -1718,7 +1854,7 @@ namespace Vec4ipaUI
                     sb.AppendLine();
                 }
                 await Windows.Storage.FileIO.WriteTextAsync(file, sb.ToString());
-                SetStatus("CSV saved: " + file.Path);
+                SetStatus("CSV saved: " + file.Path, "CSV 已保存：" + file.Path);
             }
             catch (Exception ex)
             {
@@ -2307,22 +2443,23 @@ namespace Vec4ipaUI
                 var canvas = EnsureHoverCanvas();
                 if (canvas == null) return;
                 canvas.Children.Clear();
-                /* follow the actual (effective) theme */
-                bool dark = (Content.XamlRoot.Content as FrameworkElement)
-                    ?.ActualTheme == ElementTheme.Dark;
+                /* in-app acrylic card: the blurred backdrop blends with
+                 * the content behind it naturally, while the blur keeps
+                 * the underlying symbols illegible */
                 var stack = new StackPanel { Spacing = 4 };
                 var border = new Border
                 {
                     MaxWidth = 480,
-                    Padding = new Thickness(10, 6, 10, 6),
-                    CornerRadius = new CornerRadius(6),
-                    Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(
-                        Microsoft.UI.ColorHelper.FromArgb(
-                            245, (byte)(dark ? 40 : 245),
-                            (byte)(dark ? 40 : 245),
-                            (byte)(dark ? 40 : 245))),
+                    Padding = new Thickness(12, 8, 12, 8),
+                    CornerRadius = new CornerRadius(8),
+                    Background = Res("AcrylicInAppFillColorDefaultBrush"),
+                    BorderBrush = Res("ControlStrokeColorDefaultBrush"),
+                    BorderThickness = new Thickness(1),
                     Child = stack,
                 };
+                /* follow the actual (effective) theme for the text */
+                bool dark = (Content.XamlRoot.Content as FrameworkElement)
+                    ?.ActualTheme == ElementTheme.Dark;
                 var fg = new Microsoft.UI.Xaml.Media.SolidColorBrush(
                     Microsoft.UI.ColorHelper.FromArgb(
                         255, (byte)(dark ? 240 : 20),
@@ -2354,6 +2491,20 @@ namespace Vec4ipaUI
                     MaxWidth = 420,
                 });
                 canvas.Children.Add(border);
+
+                /* Fluent motion: the card fades and rises in */
+                border.Opacity = 0;
+                border.RenderTransform =
+                    new Microsoft.UI.Xaml.Media.TranslateTransform { Y = 4 };
+                var ease = new Microsoft.UI.Xaml.Media.Animation.CubicEase
+                { EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut };
+                var anim = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+                anim.Children.Add(Anim(border, "Opacity", 0, 1, 120, ease));
+                anim.Children.Add(Anim(
+                    (Microsoft.UI.Xaml.Media.TranslateTransform)
+                        border.RenderTransform,
+                    "Y", 4, 0, 120, ease));
+                anim.Begin();
 
                 var transform = btn.TransformToVisual(
                     Content.XamlRoot.Content as UIElement);
@@ -2745,7 +2896,7 @@ namespace Vec4ipaUI
             /* combining modifiers (◌...) need a base symbol before them */
             if (target.Text.Length == 0 && IsCombiningModifier(sym))
             {
-                SetStatus("start with a base symbol first (e.g. t, a), then add " + sym);
+                SetStatus("start with a base symbol first (e.g. t, a), then add " + sym, "请先输入基符（如 t、a），再添加 " + sym);
                 return;
             }
             int pos = target.SelectionStart;
@@ -2860,7 +3011,7 @@ namespace Vec4ipaUI
                     break;
             }
             AddHistory("Convert: " + ipa, result);
-            SetStatus("converted " + ipa.Length + " chars");
+            SetStatus("converted " + ipa.Length + " chars", "已转换 " + ipa.Length + " 个字符");
             IpaInputRight.Focus(FocusState.Programmatic);
         }
 
@@ -3192,7 +3343,6 @@ namespace Vec4ipaUI
         private UIElement? _fmtPrevFocus;
         private Microsoft.UI.Xaml.Media.Animation.Storyboard? _fmtAnim;
         private TextBlock[] _fmtRows = Array.Empty<TextBlock>();
-        private Border[] _fmtItems = Array.Empty<Border>();
         private TextBlock[] _fmtChecks = Array.Empty<TextBlock>();
         private int _fmtSelVis = -1;
         private Microsoft.UI.Xaml.Media.Brush? _fmtOnAccent;
@@ -3535,7 +3685,7 @@ namespace Vec4ipaUI
             string result = sb.ToString().TrimEnd();
             AppendOutput($"=== Vector -> IPA (width {width}) ===\n" + result);
             AddHistory("Reverse (width " + width + ")", result);
-            SetStatus("reverse fit done (" + lines.Length + " vector(s))");
+            SetStatus("reverse fit done (" + lines.Length + " vector(s))", "反向拟合完成（" + lines.Length + " 个向量）");
             VecInput.Focus(FocusState.Programmatic);
         }
 
@@ -3659,16 +3809,43 @@ namespace Vec4ipaUI
         {
             var ver = System.Reflection.Assembly.GetExecutingAssembly()
                 .GetName().Version?.ToString(3) ?? "?";
+            var body = new StackPanel { Spacing = 8 };
+            body.Children.Add(new TextBlock
+            {
+                Text = _zh
+                    ? $"vec4ipa 套件 v{Core.Version}（GUI v{ver}）"
+                    : $"vec4ipa suite v{Core.Version} (GUI v{ver})",
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                FontSize = 14,
+            });
+            body.Children.Add(new TextBlock
+            {
+                Text = _zh
+                    ? "核心：ipa2vec_core.dll " + Core.Version
+                    : "Core: ipa2vec_core.dll " + Core.Version,
+                FontSize = 12,
+                Foreground = Res("TextFillColorSecondaryBrush"),
+            });
+            body.Children.Add(new TextBlock
+            {
+                Text = _zh
+                    ? "IPA ↔ 16 维发音特征向量的 WinUI 3 工作台。"
+                    : "WinUI 3 workbench for the vec4ipa tool suite: "
+                      + "IPA <-> 16-D articulatory vectors.",
+                TextWrapping = TextWrapping.Wrap,
+            });
+            body.Children.Add(new TextBlock
+            {
+                Text = "https://github.com/csiroqa/vec4ipa",
+                FontSize = 12,
+                Foreground = Res("AccentTextFillColorPrimaryBrush"),
+            });
             var dlg = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot,
-                Title = "About vec4ipa Workbench",
-                Content = "Version " + ver + "\n"
-                          + "Core: ipa2vec_core.dll " + Core.Version + "\n\n"
-                          + "WinUI 3 workbench for the vec4ipa tool suite:\n"
-                          + "IPA <-> 16-D articulatory vectors.\n"
-                          + "https://github.com/csiroqa/vec4ipa",
-                CloseButtonText = "OK",
+                Title = _zh ? "关于 vec4ipa 工作台" : "About vec4ipa Workbench",
+                Content = body,
+                CloseButtonText = _zh ? "确定" : "OK",
             };
             await dlg.ShowAsync();
         }
@@ -3678,7 +3855,7 @@ namespace Vec4ipaUI
             var dlg = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot,
-                Title = "Documentation",
+                Title = _zh ? "文档" : "Documentation",
                 Content = new ScrollViewer
                 {
                     MaxHeight = 480,
@@ -3690,7 +3867,7 @@ namespace Vec4ipaUI
                         FontSize = 12,
                     },
                 },
-                CloseButtonText = "Close",
+                CloseButtonText = _zh ? "关闭" : "Close",
             };
             await dlg.ShowAsync();
         }
@@ -3717,10 +3894,10 @@ namespace Vec4ipaUI
             var dlg = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot,
-                Title = "Export command lines",
+                Title = _zh ? "导出命令行" : "Export command lines",
                 Content = new StackPanel { Spacing = 8 },
-                PrimaryButtonText = "Copy",
-                CloseButtonText = "Close",
+                PrimaryButtonText = _zh ? "复制" : "Copy",
+                CloseButtonText = _zh ? "关闭" : "Close",
             };
             var box = new TextBox
             {
@@ -3767,12 +3944,18 @@ namespace Vec4ipaUI
             var msg = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot,
-                Title = "Export tools",
-                Content = $"Exported {ok} of 3 tools to:\n{folder.Path}\n" +
+                Title = _zh ? "导出工具" : "Export tools",
+                Content = (_zh
+                    ? $"已导出 {ok}/3 个工具到：\n{folder.Path}\n"
+                    : $"Exported {ok} of 3 tools to:\n{folder.Path}\n") +
                           (missing > 0
-                              ? $"{missing} tool(s) not bundled in this build."
-                              : "All three CLI tools are ready to use."),
-                CloseButtonText = "OK",
+                              ? (_zh
+                                  ? $"{missing} 个工具未随本构建捆绑。"
+                                  : $"{missing} tool(s) not bundled in this build.")
+                              : (_zh
+                                  ? "三个 CLI 工具均已就绪。"
+                                  : "All three CLI tools are ready to use.")),
+                CloseButtonText = _zh ? "确定" : "OK",
             };
             await msg.ShowAsync();
         }

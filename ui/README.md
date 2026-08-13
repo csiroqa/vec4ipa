@@ -15,31 +15,40 @@ ui/
 ├── assets/                 application icon sources (SVG/PNG)
 ├── fonts/                  Gentium Book Plus + NewComputerModern10 (SIL OFL 1.1)
 └── winui/                  the WinUI 3 front-end
-    ├── vec4ipa_ui.csproj   project (unpackaged, self-contained)
+    ├── vec4ipa_ui.csproj   project (unpackaged, self-contained; MSIX via wap/)
+    ├── wap/                Windows Application Packaging project (MSIX)
     ├── App.xaml(.cs)       application entry, startup diagnostics
+    ├── Program.cs          explicit entry point (logs Application.Start
+    │                       failures to %TEMP%\vec4ipa\crash.log)
     ├── MainWindow.xaml(.cs) the whole workbench UI
     ├── Core.cs             P/Invoke bindings to ipa2vec_core.dll
     ├── core_wrap.c         C export layer (compiled into the DLL)
     ├── app.manifest        DPI awareness etc.
+    ├── install_msix.ps1    install the packaged app from wap\AppPackages
     └── build.bat           build script
 ```
 
 ## Features
 
+- **Fluent materials**: **Mica** window backdrop (Windows 11) with
+  theme-driven containers, in-app **acrylic** popovers (narrowness
+  picker, format picker, symbol hover card), accent pills and
+  animated motion throughout
 - **IPA → vectors**: type or click symbols on the soft keyboard;
   output as plain vectors, two-layer IR (with rebuilt IPA) or JSON
 - **Vector → IPA**: 16-D input (multi-line for batch), width 0-4,
   live **vector editor** with reverse preview
 - **Long-press pickers**: the narrowness control and the output
-  format selector pop up as Fluent in-app-acrylic overlays — hold
-  the button to open, slide with a magnetic S-curve cursor (the
-  format list animates its accent selection pill between rows)
+  format selector pop up as acrylic overlays — hold the button to
+  open, slide with a magnetic S-curve cursor (the format list
+  animates its accent selection pill between rows)
 - **Loop**: IPA → vectors → reverse fit with the tone annotation
   (`tone=(…)` groups) round-tripped
 - **IPA soft keyboard**: continuous scroll with grouped sections —
   Consonants (by place), Non-pulmonic (ejectives/implosives/clicks),
   Vowels (trapezium order), Diacritics, Letters, Tones, Recent.
-  Hover shows the symbol's name, double-click opens details
+  Hover shows a Fluent symbol card (acrylic, animated), double-click
+  opens details
 - **Symbol compare**, weighted **distance**, **history**, examples,
   open-file batch convert, convert+reverse **loop**
 - **Views**: base table, module details, statistics, metric weights,
@@ -48,7 +57,8 @@ ui/
   layer1/layer2 files, output saving
 - **Window**: custom title bar, drag-resizable splitter, theme
   (system/light/dark), English/中文 UI, window state persistence,
-  CLI-compatible startup arguments
+  CLI-compatible startup arguments, MSIX packaging via the WAP
+  project (`wap/`)
 
 ## Build
 
@@ -94,7 +104,9 @@ text; the app falls back to system fonts if they are absent.
 
 ## Notes
 
-- Startup diagnostics (`startup.log`, `crash.log`) go to
+- Startup diagnostics (`startup.log`, `crash.log` — including the
+  explicit `Program.cs` entry point, which catches `Application.Start`
+  failures before the App ctor's handler exists) go to
   `%TEMP%\vec4ipa\`, never into the app folder.
 - The window uses the Fluent **Mica** backdrop (Windows 11); the XAML
   containers stay transparent so the material shows through, and the

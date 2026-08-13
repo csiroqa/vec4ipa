@@ -176,6 +176,20 @@ namespace Vec4ipaUI
             return "need exactly one segment per argument";
         }
 
+        [System.Runtime.InteropServices.DllImport(
+            "ipa2vec_core.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+        private static extern int ipa2v_align(string a, string b,
+            System.Text.StringBuilder out_, int outsz);
+
+        /* sequence (syllable/word) alignment distance (CLI -A/--align) */
+        public static string Align(string a, string b)
+        {
+            var sb = new StringBuilder(65536);
+            int rc = ipa2v_align(a, b, sb, 65536);
+            return rc == 0 ? sb.ToString()
+                           : "alignment failed: " + sb.ToString().Trim();
+        }
+
         public static string Ir(string str)
         {
             var sb = new StringBuilder(65536);
@@ -338,9 +352,13 @@ namespace Vec4ipaUI
                 double t0 = tone[s * 9 + g * 3 + 0];
                 double t1 = tone[s * 9 + g * 3 + 1];
                 double t2 = tone[s * 9 + g * 3 + 2];
-                if (double.IsNaN(t0)) continue;
                 if (g == 2)
                 {
+                    /* 3-D group: every component may be set independently
+                     * (upstep, global, class) — show it whenever ANY is
+                     * set, not only when dim 0 is */
+                    if (double.IsNaN(t0) && double.IsNaN(t1) &&
+                        double.IsNaN(t2)) continue;
                     sb.Append('(');
                     sb.Append(double.IsNaN(t0) ? "0" : t0.ToString("0.#"));
                     sb.Append(',');
@@ -350,6 +368,7 @@ namespace Vec4ipaUI
                     sb.Append(')');
                     continue;
                 }
+                if (double.IsNaN(t0)) continue;
                 bool b2 = double.IsNaN(t2);
                 int nvals = b2 ? (Math.Abs(t0 - t1) < 1e-9 ? 1 : 2) : 3;
                 sb.Append('(');
@@ -477,7 +496,7 @@ namespace Vec4ipaUI
             {
                 /* no main vector: echo the tone groups if any */
                 var (echoPre, echoPost, echoWarn) = ToneSymbols(ParseToneSlots(annot));
-                if ((echoPre + echoPost).Length > 0)
+                if ((echoPre + echoPost).Length > 0 || echoWarn.Length > 0)
                     return echoPre + echoPost + (echoWarn.Length > 0
                         ? ToneWarnPrefix + echoWarn + ToneWarnSuffix : "");
                 return "I need 16 comma-separated numbers (I found " +
@@ -496,15 +515,14 @@ namespace Vec4ipaUI
             var (tonePre, tonePost, toneWarn) = ToneSymbols(ParseToneSlots(annot));
             if ((tonePre + tonePost).Length > 0)
             {
-                /* append the tone symbols around the rebuilt IPA:
-                 * preposed upstep/downstep right after the opening
-                 * bracket (ꜛu), the rest before the closing one (u˥)
-                 * — phonetic brackets [..] or narrowest ⟦..⟧ */
-                char open = result.StartsWith("\u27E6") ? '\u27E6' : '[';
-                char close = result.EndsWith("\u27E7")
-                    ? '\u27E7' : ']';
-                int openIdx = result.IndexOf(open);
+                /* the reverse line carries TWO bracket pairs
+                 * ("[a] (name) d=X -> [a˥]") — both tone parts go into
+                 * the FINAL pair only (preposed upstep/class right after
+                 * its opening bracket, the rest before its closing one) */
+                char close = result.EndsWith("\u27E7") ? '\u27E7' : ']';
+                char open = close == '\u27E7' ? '\u27E6' : '[';
                 int closeIdx = result.LastIndexOf(close);
+                int openIdx = result.LastIndexOf(open);
                 if (openIdx >= 0 && closeIdx > openIdx &&
                     result.EndsWith(close.ToString()))
                     result = result[..(openIdx + 1)] + tonePre +
@@ -575,6 +593,20 @@ namespace Vec4ipaUI
             return slots;
         }
 
+        /* a level tone arrives as (v,v) — the terminal doubled point is
+         * the storage form, not a real pitch point (matches the C
+         * tone_dist/tone_rebuild rule); a genuine contour like (3,3,2)
+         * keeps its doubled middle */
+        private static IEnumerable<int> CollapseDoubled(List<int> vals)
+        {
+            for (int i = 0; i < vals.Count; i++)
+            {
+                if (i == vals.Count - 1 && i > 0 && vals[i] == vals[i - 1])
+                    continue;
+                yield return vals[i];
+            }
+        }
+
         /* tone slots (by position) -> (preposed, postposed, warning).
          * Upstep/downstep (3-D slot dim 0) are PREPOSED per IPA
          * convention (they mark the FOLLOWING syllable: ꜛu not uꜛ);
@@ -600,9 +632,9 @@ namespace Vec4ipaUI
             bool neg1 = g1 != null && g1.Any(d => d < -0.5);
             if (neg0 || neg1) warn = NegativeToneWarn;
             List<int>? r0 = neg0 || g0 == null
-                ? null : g0.Select(d => (int)Math.Round(d)).ToList();
+                ? null : g0.Select(d => (int)Math.Floor(d + 0.5)).ToList();
             List<int>? r1 = neg1 || g1 == null
-                ? null : g1.Select(d => (int)Math.Round(d)).ToList();
+                ? null : g1.Select(d => (int)Math.Floor(d + 0.5)).ToList();
             bool sup = (r0 != null && r0.Any(v => v < 1 || v > 5)) ||
                        (r1 != null && r1.Any(v => v < 1 || v > 5));
             if (sup)
@@ -612,7 +644,8 @@ namespace Vec4ipaUI
                         if (v >= 0 && v <= 9) sb.Append(D0[v]);
                 if (r1 != null)
                 {
-                    sb.Append('\u207B');   /* ⁻ joins the two groups */
+                    /* ⁻ joins the two groups — only when slot 0 is shown */
+                    if (r0 != null) sb.Append('\u207B');
                     foreach (var v in r1)
                         if (v >= 0 && v <= 9) sb.Append(D0[v]);
                 }
@@ -620,9 +653,11 @@ namespace Vec4ipaUI
             else
             {
                 if (r0 != null)
-                    foreach (var v in r0) sb.Append(L5[v - 1]);
+                    foreach (var v in CollapseDoubled(r0))
+                        sb.Append(L5[v - 1]);
                 if (r1 != null)
-                    foreach (var v in r1) sb.Append(S5[v - 1]);
+                    foreach (var v in CollapseDoubled(r1))
+                        sb.Append(S5[v - 1]);
             }
 
             /* slot 2: 3-D vector - negative values are legal (upstep,
@@ -641,7 +676,10 @@ namespace Vec4ipaUI
                 }
                 if (slots[2].Length >= 3)
                 {
-                    int c = (int)Math.Round(slots[2][2]);
+                    /* half-up away from zero, mirroring the C parser's
+                     * (int)(v<0 ? v-0.5 : v+0.5) */
+                    int c = (int)Math.Round(slots[2][2],
+                        MidpointRounding.AwayFromZero);
                     /* traditional four-corner placement: 平 (꜀꜁) and
                      * 上 (꜂꜃) classes go BEFORE the syllable; 去 (꜄꜅)
                      * and 入 (꜆꜇) right AFTER the base, ahead of the
