@@ -396,8 +396,8 @@ def align_d(a, b):
     return float(m.group(1)) if m else -1.0, r
 
 d, r = align_d("ai", "\u025b")          # ai vs ɛ
-check_cond("-A /ai/~/ɛ/ close (intermediate)",
-           abs(d - 1.01) <= 0.05 and "\u025b" in r.stdout.splitlines()[1],
+check_cond("-A /ai/~/ɛ/ pays the mora (short monophthong)",
+           abs(d - 1.26) <= 0.05 and "\u025b" in r.stdout.splitlines()[1],
            f"d={d}")
 d, r = align_d("ai", "\u025be")          # ai vs ɛe: sub-glide of ai
 check_cond("-A /ai/~/ɛe/ ≤ /ai/~/ɛ/ (containment)",
@@ -419,8 +419,8 @@ check_cond("-A /ka\u014b/~/k\u00e3/ coda absorbed",
 d, _ = align_d("t\u02b0", "th")          # aspirated stop ~ C+h
 check_cond("-A /t\u02b0/~/t+h/ absorbed", abs(d - 0.52) <= 0.05, f"d={d}")
 d, _ = align_d("pa", "a")                # onset deletion = the consonant's
-check_cond("-A /pa/~/a/ absorbed onset (d(p, a) on p's dims)",
-           abs(d - 5.00) <= 0.05, f"d={d}")
+check_cond("-A /pa/~/a/ onset removal = indel(p)",
+           abs(d - 6.15) <= 0.05, f"d={d}")
 d, _ = align_d("na", "an")               # reversal: two vowel indels
 check_cond("-A /na/~/an/ cheap vowel indels (null = neutral vowel)",
            abs(d - 3.71) <= 0.05, f"d={d}")

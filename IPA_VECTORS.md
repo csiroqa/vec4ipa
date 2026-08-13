@@ -1,5 +1,13 @@
 # IPA Segment Vector Table
 
+> **Legacy document (v8 scheme).** The current scheme is SPEC-NEXT:
+> 16 dimensions `place, body, lips_closed, lips_rounded, tip_shape,
+> tongue_root, vel_open, lateral_ratio, voiced, glottal_aperture,
+> glottal_tension, larynx_height, duration, jet_focus,
+> effective_oral_area, airflow_direction` — see
+> [`docs/SPEC-NEXT.md`](docs/SPEC-NEXT.md) and the generated
+> `src/vectors.h`. This page keeps the historical v8 table (old
+> dimension names and anchor values) for reference only.
 Complete 16‑dimensional vector table for the IPA inventory. Format per segment: `(lips_closed, lips_rounded, tongue_tip_pos, tongue_tip_height, tongue_body_pos, tongue_root, vel_open, lateral_ratio, voiced, constricted_glottis, spread_glottis, laryngeal_tension, duration, jet_focus, effective_oral_area, airflow_direction)` followed by the airstream label. Dimensions and semantics are defined in [README.md](README.md); the empirical basis of all anchor values is documented in README §9.
 
 **Default conventions** (used throughout unless overridden):

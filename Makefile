@@ -47,7 +47,7 @@ vec4ipa$(EXE_SUFFIX): $(SRC)/vec4ipa_main.c $(SRC)/readme_embed.h $(VECTORS_H) $
 # Win32 GUI wrapper (Windows only) — lives in ui/
 ui/vec4ipa_ui$(EXE_SUFFIX): ui/vec4ipa_ui.c ui/app.res $(SRC)/ipa2vec_core.h $(SRC)/readme_embed.h
 	$(CC) $(CFLAGS) -mwindows -municode -o $@ ui/vec4ipa_ui.c ui/app.res \
-	    -lcomctl32 -lcomdlg32 -lshell32 -lole32
+	    -lcomctl32 -lcomdlg32 -lshell32 -lole32 -ldwmapi
 
 ui/app.res: ui/app.rc ui/vec_ipa.ico ipa2vec$(EXE_SUFFIX) vec2ipa$(EXE_SUFFIX) vec4ipa$(EXE_SUFFIX)
 	@if ! command -v windres >/dev/null 2>&1; then \
@@ -64,6 +64,20 @@ $(VECTORS_H): tools/gen_vectors_h.py src/names.tsv $(SCHEME)
 
 gen: $(VECTORS_H) $(SRC)/readme_embed.h
 
+# build everything, then run every test suite (fuzz excluded: slow, optional).
+# Each suite is its own recipe line: a failure stops make, and no shell
+# loop syntax is used, so this works under cmd.exe as well as sh.
+TEST_TOOLS := test_suite.py test_metric_space.py test_alignment.py \
+              test_spec_next.py test_standard_chinese.py verify_modifiers.py
+
+test: all
+	$(PYTHON) tools/test_suite.py
+	$(PYTHON) tools/test_metric_space.py
+	$(PYTHON) tools/test_alignment.py
+	$(PYTHON) tools/test_spec_next.py
+	$(PYTHON) tools/test_standard_chinese.py
+	$(PYTHON) tools/verify_modifiers.py
+
 ifeq ($(OS),Windows_NT)
 DEL_CMD = cmd /c del /Q /F
 DEL_TARGETS = $(subst /,\,$(TARGETS))
@@ -75,4 +89,4 @@ endif
 clean:
 	-$(DEL_CMD) $(DEL_TARGETS)
 
-.PHONY: all clean gen
+.PHONY: all clean gen test

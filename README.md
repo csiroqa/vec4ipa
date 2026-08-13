@@ -4,8 +4,9 @@
 extIPA strings (including complex combining marks, ligatures, tone letters,
 Chinese tone classes, and clinical-phonetics symbols) and the
 16‑dimensional articulatory vectors defined in this repository
-([`docs/SPEC.md`](docs/SPEC.md), [`IPA_VECTORS.md`](IPA_VECTORS.md),
-[`metric.json`](metric.json)).
+([`docs/SPEC-NEXT.md`](docs/SPEC-NEXT.md) — the current scheme;
+[`docs/SPEC.md`](docs/SPEC.md) and [`IPA_VECTORS.md`](IPA_VECTORS.md)
+document the legacy v8 scheme, kept for reference).
 
 All three tools share one core (`src/ipa2vec_core.h`):
 
@@ -40,7 +41,9 @@ The binaries embed the full table; they do not read any file at runtime.
 
 The modern front-end is the **WinUI 3 workbench** (`ui/winui/` →
 `vec4ipa_ui.exe`, built by `ui/winui/build.bat`; the output is a
-self-contained `dist\` folder — see [`ui/README.md`](ui/README.md)):
+self-contained `dist\` folder — see [`ui/README.md`](ui/README.md)).
+The UI is Fluent-designed: a **Mica** window backdrop, in-app acrylic
+popovers and pickers, theme-aware surfaces:
 
 - **IPA → vectors** — type IPA or click the grouped soft keyboard
   (Consonants, Non-pulmonic, Vowels, Diacritics, Letters, Tones,
@@ -60,7 +63,9 @@ A legacy Win32 wrapper (`ui/vec4ipa_ui.c`, built by
 `make ui/vec4ipa_ui.exe`) is kept for reference: it embeds the three
 CLI tools as resources and can export them to a folder of your choice
 (File > Export tools…), so a single shipped exe carries the whole
-tool suite.
+tool suite.  It uses an Acrylic-style translucent backdrop
+(`DWMSBT_TRANSIENTWINDOW`, blur-behind on Windows 10, none on older
+systems).
 
 ### Fonts
 
@@ -411,15 +416,19 @@ Every inference the parser makes is reported to **stderr**:
 Run the full suite:
 
 ```sh
-python3 tools/test_suite.py       # 211 checks: parsing, tone, regional,
+python3 tools/test_suite.py       # 217 checks: parsing, tone, regional,
                                   # inference, warnings, round-trip
 ```
 
 Additional suites (all against the built binaries unless noted):
 
 ```sh
-python3 tools/test_metric_space.py      # 635 checks: nearest-base anchors,
+python3 tools/test_metric_space.py      # 681 checks: nearest-base anchors,
                                         # metric-space round-trip (needs ipa2vec+vec2ipa)
+python3 tools/test_alignment.py         # 57 checks: curve-distance alignment
+                                        # (absorption, vowel blocks, tone; needs ipa2vec)
+python3 tools/validate_alignment.py     # axiom fuzz: symmetry, identity,
+                                        # absorption licensing (needs vec4ipa)
 python3 tools/test_standard_chinese.py  # 448 checks: Mandarin initials/finals/tone
 python3 tools/test_spec_next.py         # 121 checks: 16-dim table + metric JSON
                                         # (no binaries needed)
@@ -462,9 +471,13 @@ precomposed accented vowels, labiodental plosives (ȹ ȸ), alveolo-palatal
 | `src/readme_embed.h` | generated: this README embedded for `vec4ipa -h` |
 | `tools/gen_vectors_h.py` | regenerates `src/vectors.h` |
 | `tools/gen_readme_embed.py` | regenerates `src/readme_embed.h` |
-| `tools/test_suite.py` | 211-check regression suite (incl. the stress string) |
+| `tools/test_suite.py` | 217-check regression suite (incl. the stress string) |
+| `tools/test_alignment.py` | 57-check curve-distance alignment suite |
+| `tools/validate_alignment.py` | property-based axiom fuzz (symmetry, identity, absorption licensing) |
 | `docs/SPEC-NEXT.md` | the current 16-D vector specification |
+| `docs/ALIGNMENT.md` | the `-A` sequence-alignment design: absorption gates, vowel blocks, the unified mora axiom |
 | `docs/SPEC.md` | the legacy v8 16-D vector specification (historical) |
+| `IPA_VECTORS.md` | legacy v8 vector table (historical; the current table is `tools/data/spec_next.scheme` → `src/vectors.h`) |
 | `tools/data/spec_next.scheme` | the 133-segment vector table (data for the generator) |
 | `METRIC.md` | metric derivation (weights, λ) |
 | `metric.json` | machine-readable weights + λ (v9) |

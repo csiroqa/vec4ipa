@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate vectors.h (C static table) from IPA_VECTORS.md + metric.json.
+"""Generate vectors.h (C static table) from a scheme file.
 
 Output: a C header defining
   typedef struct { const char *ipa; double v[16]; } SegEntry;
@@ -7,13 +7,14 @@ Output: a C header defining
   static const double METRIC_W[16];  and  METRIC_LAMBDA;
   static const char *AIRSTREAM_LABELS[5];
 
-With --scheme FILE, the table is generated from a custom scheme file
-(ndim/dim/weight/lambda/seg lines, tools/data/spec_next.scheme format)
-instead of IPA_VECTORS.md + metric.json.  This is how a custom dimension
-scheme AND its ipa->vec table are imported into the C binaries.
+The table is generated from a scheme file
+(ndim/dim/weight/lambda/seg lines, tools/data/spec_next.scheme format).
+This is how the SPEC-NEXT 16-D scheme AND its ipa->vec table are
+imported into the C binaries (the Makefile default).  The legacy
+IPA_VECTORS.md + metric.json path is still supported for historical
+schemes.
 
 Usage:
-  python tools/gen_vectors_h.py            # v8 (default)
   python tools/gen_vectors_h.py --scheme tools/data/spec_next.scheme
 """
 

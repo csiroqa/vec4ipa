@@ -267,10 +267,10 @@ larynx_height, duration, jet_focus, effective_oral_area, airflow_direction)`，
 
 | # | 检查 | 标准 | 工具 |
 |---|------|------|------|
-| 1 | 部位链 12 步等距 | 拟合后步距 CV ≤ 15% | `tools/check_place_chain.py` |
+| 1 | 部位链 12 步等距 | 拟合后步距 CV ≤ 15% | `tools/audit_anchors.py` |
 | 2 | 全表最近邻下限 | min NN ≥ 0.35（v8 为 0.215） | 同上 |
 | 3 | 方式链步距 | 以 d 为基准的 9 种方式步距 CV ≤ 30% | 同上 |
-| 4 | 混淆拟合 | LOCO held-out NLL ≤ v8 22,316 × 1.05 | `tools/fit_metric.py`（改造 16 维） |
+| 4 | 混淆拟合 | LOCO held-out NLL ≤ v8 22,316 × 1.05 | `tools/fit_metric16.py`（已实施，输出 `tools/data/metric16.json`） |
 | 5 | 133 段往返重建 | 每维误差 ≤ 0.02（现状水平） | `tools/test_suite.py` |
 | 6 | 修饰符重建 | 全修饰符测试通过（现状水平） | `tools/test_suite.py` |
 | 7 | 韩语 k/kʰ/k͈/k͉ 四向 | 四者两两距离 ≥ 0.35 | `tools/fit_distribution.py` 扩展 |
@@ -291,7 +291,7 @@ larynx_height, duration, jet_focus, effective_oral_area, airflow_direction)`，
 | `src/vectors.h` | 结构不变（`double v[NDIM]`，NDIM=13） |
 | `tools/gen_vectors_h.py` | NDIM 13、校验 13 元组 |
 | `metric.json` | 13 权重 + 重拟合（version 10） |
-| `tools/fit_metric.py` | 维度列表、TIER_INIT、FIXED_DIMS、postprocess 改 13 维 |
+| `tools/fit_metric16.py` | 16 维 Shepard-softmax 拟合器（v8 的 `fit_metric.py` 为 16 维前身，保留参考） |
 | `tools/_common.py`、`test_suite.py`、`test_metric_space.py` | 维度数与断言更新 |
 | `ui/` | 向量编辑/显示 16 → 13 列 |
 | `METRIC.md`、`README.md`、`src/readme_embed.h` | 文档同步 |
