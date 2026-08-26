@@ -5520,6 +5520,59 @@ static IPA2VEC_MAYBE_UNUSED int opt_scheme(const char *arg, int argc, char **arg
 }
 
 /* ------------------------------------------------------------------ */
+/* Common-option dispatcher — the per-tool mains (ipa2vec, vec2ipa,    */
+/* vec4ipa) pasted the same six-option block into their argument       */
+/* loops; this single helper reproduces that exact sequence so the     */
+/* three tools cannot drift apart on option semantics.  Order matters  */
+/* (identical to the historical inline blocks):                         */
+/*   school modules -> narrowness -> metric -> scheme -> charset ->    */
+/*   modifier spacing.  Each opt_* keeps its own argument consumption. */
+/*                                                                     */
+/* Returns: 1 = matched & applied (caller must continue),              */
+/*         -1 = malformed value (message printed, caller returns 1),   */
+/*         -2 = metric/scheme load error (already reported, return 1), */
+/*          0 = not a common option (caller keeps parsing).            */
+static IPA2VEC_MAYBE_UNUSED int opt_common(const char *arg,
+                                           int argc, char **argv, int *i,
+                                           const char *tool)
+{
+    if (opt_school(arg)) return 1;
+    int w = opt_width(arg, argc, argv, i);
+    if (w == 1) return 1;
+    if (w == -1) {
+        fprintf(stderr, "%s: --narrowness needs broadest|broad|medium|narrow|narrowest|0-4\n", tool);
+        return -1;
+    }
+    int m = opt_metric(arg, argc, argv, i);
+    if (m == 1) return 1;
+    if (m == -1) {
+        fprintf(stderr, "%s: --metric needs a file\n", tool);
+        return -1;
+    }
+    if (m == -2) return -2;
+    int sc = opt_scheme(arg, argc, argv, i);
+    if (sc == 1) return 1;
+    if (sc == -1) {
+        fprintf(stderr, "%s: --scheme needs a file\n", tool);
+        return -1;
+    }
+    if (sc == -2) return -2;
+    int cs = opt_charset(arg, argc, argv, i);
+    if (cs == 1) return 1;
+    if (cs == -1) {
+        fprintf(stderr, "%s: --symbols needs standard|extipa|sinologist|all\n", tool);
+        return -1;
+    }
+    int ms = opt_mod_spacing(arg, argc, argv, i);
+    if (ms == 1) return 1;
+    if (ms == -1) {
+        fprintf(stderr, "%s: --spacing needs binary|ternary|2:1:2|1:x:1|0-10\n", tool);
+        return -1;
+    }
+    return 0;
+}
+
+/* ------------------------------------------------------------------ */
 /* I/O helpers shared by all three tools                               */
 /* ------------------------------------------------------------------ */
 
