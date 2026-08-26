@@ -44,8 +44,11 @@ for _line in open(os.path.join(ROOT, 'IPA_VECTORS.md'), encoding='utf-8'):
         BASE[_m.group(1)] = np.array(
             [float(x.strip()) for x in _m.group(2).replace('+', '').split(',')])
 
-# vowel 3-D anchors (vowel_3d_anchors.json was computed on the OLD scale;
-# remap place to the coarticulation-margin domain [0.08, 0.92])
+# vowel 3-D anchors (vowel_3d_anchors.json was computed on the OLD
+# compressed scale [0.08, 0.92] and is remapped to the runtime place
+# domain [-0.9, +0.9] -- kept here as research provenance; the committed
+# runtime table (spec_next.scheme) encodes vowel frontness on BODY, not
+# place, so this script's vowel place projection is a historical view.)
 _V3 = json.load(open(VOWEL3D, encoding='utf-8'))
 VOWEL_AREA = _V3['area']
 VOWEL_PLACE = {v: round(remap(p), 3) for v, p in _V3['place'].items()}

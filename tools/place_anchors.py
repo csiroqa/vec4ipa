@@ -43,5 +43,11 @@ PLACE = {
 # vowel place classes (same span-2 domain): front +0.15..+0.35,
 # central 0.0, back +0.30..+0.45 -- derived per-vowel anchors in
 # vowel_3d_anchors.json are on the OLD compressed scale; remap:
+#
+# NOTE: vowels and glides are NOT in the PLACE table -- they have no tip
+# gesture, so spec_next.scheme gives them place 0.0 and encodes frontness
+# on the BODY axis (front +0.40 .. central 0.0 .. back -0.40; see
+# VOWEL_COL in gen_vec_table.py).  The PLACE anchors above are for
+# consonants only.
 def remap(old):
     return -0.9 + 1.8 * (old - 0.08) / 0.84
