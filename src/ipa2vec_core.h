@@ -6236,9 +6236,9 @@ static IPA2VEC_MAYBE_UNUSED int run_reverse(const char *vecstr, int nearest_only
          * (d=0) must not lose to a spurious affricate that happens to
          * reproduce the same vector (ɖ͡ɻ for syllabic ɻ̩) */
         if (afd + 1e-9 < d_fit * 0.85) {
-            char rel[128];
+            char rel[256];
             build_ipa(afr, afrm, afnm, 0, rel, sizeof(rel));
-            char afipa[192];
+            char afipa[260];
             snprintf(afipa, sizeof(afipa), "%s\xCD\xA1%s", afc->ipa, rel);
             /* the affricate spelling must carry the segment's tone too */
             char tpre[16], tb[48];
@@ -6251,7 +6251,7 @@ static IPA2VEC_MAYBE_UNUSED int run_reverse(const char *vecstr, int nearest_only
     }
     }
     order_mods(mods, nm);   /* canonical order — same as the rebuilt IPA */
-    char ipa[128];
+    char ipa[260];
     build_ipa(b, mods, nm, sv.dotless, ipa, sizeof(ipa));
     char tpre[16], tb[48];
     tone_rebuild(&sv, tpre, sizeof(tpre), tb, sizeof(tb));
