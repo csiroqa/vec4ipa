@@ -6090,8 +6090,13 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
 
     /* trace back, print from the end of the alignment */
     int i = na, j = nb;
-    char a1[128], b1[128], a2[128], b2[128];
-    char lines[256][160];
+    /* label/trace buffers: 256/260 with headroom — seg_label() takes a
+     * runtime size so GCC's -Wformat-truncation analysis assumes worst
+     * case and would warn on any smaller bound; snprintf keeps every
+     * write bounded, truncation is output omission, never overflow.
+     * (Suppressed in the Makefile with -Wno-format-truncation.) */
+    char a1[256], b1[256], a2[256], b2[256];
+    char lines[256][260];
     int nl = 0;
     while (i > 0 || j > 0) {
         unsigned char k = bk[(size_t)i * w + (size_t)j];
@@ -6134,7 +6139,7 @@ static IPA2VEC_MAYBE_UNUSED int run_align(const char *seq_a, const char *seq_b,
         } else if (k >= 5) {   /* vowel block (k1, m1): A[i-k1..i-1] ~ B[j-m1..j-1] */
             int k1 = (k - 5) / 8 + 1, m1 = (k - 5) % 8 + 1;
             if (i >= k1 && j >= m1) {
-                char line[160];
+                char line[260];
                 int pos = 0;
                 pos += snprintf(line + pos, sizeof(line) - pos, "  ");
                 for (int t = 0; t < k1 && pos < (int)sizeof(line) - 40; t++) {
@@ -6318,7 +6323,7 @@ static IPA2VEC_MAYBE_UNUSED int run_forward(const char *str, int ir, int json,
             const ModRec *mods[IPA2VEC_FIT_MAX_MODS] = {0};
             int nm = 0;
             b = fit_best_base(po.segs[s].v, NULL, mods, &nm);
-            char rebuilt[128];
+            char rebuilt[260];
             /* tie-spelled input: rebuild verbatim from layer1, so the
              * release keeps its own modifiers (tɹ̝̊ -> t͡ɹ̝̊, ʡʢ -> ʡ͡ʢ) */
             int tie_spelled = 0;
@@ -6374,7 +6379,7 @@ static IPA2VEC_MAYBE_UNUSED int run_forward(const char *str, int ir, int json,
                     }
                 }
                 if (cl && got && relb) {
-                    char rel[128];
+                    char rel[256];
                     build_ipa(relb, relm, nrelm, 0, rel, sizeof(rel));
                     snprintf(rebuilt, sizeof(rebuilt), "%s\xCD\xA1%s", cl, rel);
                 } else {
@@ -6397,7 +6402,7 @@ static IPA2VEC_MAYBE_UNUSED int run_forward(const char *str, int ir, int json,
                     double trial[MAXDIM];
                     apply_mod_set(trial, b, mods, nm);
                     if (afd < seg_dist(po.segs[s].v, trial) * 0.85 - 1e-9) {
-                        char rel[128];
+                        char rel[256];
                         build_ipa(afr, afrm, afnm, 0, rel, sizeof(rel));
                         snprintf(rebuilt, sizeof(rebuilt), "%s\xCD\xA1%s",
                                  afc->ipa, rel);

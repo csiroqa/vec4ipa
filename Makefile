@@ -1,5 +1,11 @@
 CC      ?= gcc
-CFLAGS  ?= -O2 -Wall -Wextra -std=c11 -Wno-unused-function -Wno-unused-variable
+CFLAGS  ?= -O2 -Wall -Wextra -std=c11 -Wno-unused-function -Wno-unused-variable \
+          -Wno-format-truncation
+# -Wno-format-truncation: alignment/rebuild trace buffers (lines[][260],
+# rebuilt[260]) are sized with generous headroom; snprintf truncation is
+# bounded-and-safe (output omission, never overflow).  GCC's static
+# analysis cannot prove seg_label()'s output stays small because its
+# buffer size is a runtime parameter, so it warns conservatively.
 # Windows: many setups only have the Python launcher 'py' on PATH; prefer
 # it (Python 3) when it works, else fall back to 'python'.
 ifeq ($(OS),Windows_NT)
