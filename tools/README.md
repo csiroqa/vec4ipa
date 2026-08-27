@@ -114,7 +114,7 @@ explore_ml -> explore_dims
 ### 测试套件（test_*）
 | 脚本 | 依赖二进制 | 断言数 | 运行 |
 |------|-----------|--------|------|
-| `test_suite.py` | ipa2vec/vec2ipa/vec4ipa | 217 | `make test` |
+| `test_suite.py` | ipa2vec/vec2ipa/vec4ipa | 271 | `make test` |
 | `test_metric_space.py` | ipa2vec/vec2ipa | 681 | `make test` |
 | `test_alignment.py` | ipa2vec | 57 | `make test` |
 | `test_standard_chinese.py` | ipa2vec | 448 | `make test` |

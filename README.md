@@ -156,7 +156,7 @@ $ ipa2vec -L "ã"           # precomposed char decomposed like a + ◌̃
   layer1 (char order) : [a:front.opn.unr.vwl] → [◌̃:nas/nasal]
   layer2 (feature order): [a:front.opn.unr.vwl] → [◌̃:nas/nasal]
 vector[0]: (... vel_open 0.6000 ...)  pulmonic  [nas
-rebuilt[0]: /ã/
+rebuilt[0]: [ã]
 
 $ vec2ipa "-0.45,0,0,0,1,0,0,0,0,0.4,0,0,0,0,0,1"
 [t]  (vl.alv.pls)  d=0.0000  ->  [t]
@@ -416,7 +416,7 @@ Every inference the parser makes is reported to **stderr**:
 Run the full suite:
 
 ```sh
-python3 tools/test_suite.py       # 217 checks: parsing, tone, regional,
+python3 tools/test_suite.py       # 271 checks: parsing, tone, regional,
                                   # inference, warnings, round-trip
 ```
 
@@ -430,8 +430,9 @@ python3 tools/test_alignment.py         # 57 checks: curve-distance alignment
 python3 tools/validate_alignment.py     # axiom fuzz: symmetry, identity,
                                         # absorption licensing (needs vec4ipa)
 python3 tools/test_standard_chinese.py  # 448 checks: Mandarin initials/finals/tone
-python3 tools/test_spec_next.py         # 121 checks: 16-dim table + metric JSON
-                                        # (no binaries needed)
+python3 tools/test_spec_next.py         # 124 checks: 16-dim table + metric JSON
+                                        # (no binaries needed; incl. the
+                                        # scheme<->JSON sync check)
 python3 tools/verify_modifiers.py       # modifier model sanity (design model,
                                         # no binaries needed)
 python3 tools/fuzz_metric_space.py      # random-vector fuzz over the metric
@@ -471,7 +472,7 @@ precomposed accented vowels, labiodental plosives (ȹ ȸ), alveolo-palatal
 | `src/readme_embed.h` | generated: this README embedded for `vec4ipa -h` |
 | `tools/gen_vectors_h.py` | regenerates `src/vectors.h` |
 | `tools/gen_readme_embed.py` | regenerates `src/readme_embed.h` |
-| `tools/test_suite.py` | 217-check regression suite (incl. the stress string) |
+| `tools/test_suite.py` | 271-check regression suite (incl. the stress string) |
 | `tools/test_alignment.py` | 57-check curve-distance alignment suite |
 | `tools/validate_alignment.py` | property-based axiom fuzz (symmetry, identity, absorption licensing) |
 | `docs/SPEC-NEXT.md` | the current 16-D vector specification |

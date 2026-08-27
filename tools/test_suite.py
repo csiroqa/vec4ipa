@@ -525,6 +525,46 @@ check_cond("--mode alias", run(EXE, ["--mode", "ternary", "i\u031e"]).stdout
 check_cond("-P binary default differs from ternary", "0.4667" not in
            run(EXE, ["-P", "binary", "i\u031e"]).stdout)
 
+# the remaining long-form aliases claimed in README Usage: every short
+# option has a working long twin on the tool that documents it
+_alias_pairs = [
+    (VEC4IPA, "-t", "--table"), (VEC4IPA, "-m", "--modules"),
+    (VEC4IPA, "-s", "--stats"),
+    (VEC4IPA, "-w", "--weights"), (VEC4IPA, "-i", "--information"),
+    (VEC4IPA, "-R", "--readme"), (VEC4IPA, "-h", "--help"),
+    (VEC4IPA, "-v", "--version"), (EXE, "-i", "--information"),
+    (EXE, "-v", "--version"), (EXE, "-h", "--help"),
+]
+for _tool, _s, _l in _alias_pairs:
+    _as = run(_tool, [_s]).stdout
+    _al = run(_tool, [_l]).stdout
+    check_cond(f'{Path(_tool).name} {_s}=={_l}',
+               _as == _al and run(_tool, [_l]).returncode == 0,
+               f'len {len(_as)} vs {len(_al)}')
+
+# aliases that take an argument (same output for short and long form)
+_vec_t = "-0.45,0,0,0,1,0,0,0,0,0.4,0,0,0,0,0,1"
+_alias_arg_pairs = [
+    (VEC2IPA, "-r", "--reverse", [_vec_t]),
+    (VEC2IPA, "-n", "--nearest", [_vec_t]),
+    (VEC2IPA, "-d", "--distance", ["p", "t"]),
+    (VEC4IPA, "-r", "--reverse", [_vec_t]),
+    (VEC4IPA, "-n", "--nearest", [_vec_t]),
+    (VEC4IPA, "-d", "--distance", ["p", "t"]),
+    (VEC4IPA, "-q", "--query", ["p"]),
+    (VEC4IPA, "-j", "--json", ["t"]),
+    (VEC4IPA, "-L", "--layers", ["a"]),
+    (EXE, "-j", "--json", ["t"]),
+    (EXE, "-e", "--ir", ["a"]),            # legacy short for --layers
+    (EXE, "-X", "--layers-out", [os.path.join(_tmp, "al"), "-L", "a"]),
+]
+for _tool, _s, _l, _args in _alias_arg_pairs:
+    _as = run(_tool, [_s] + _args).stdout
+    _al = run(_tool, [_l] + _args).stdout
+    check_cond(f'{Path(_tool).name} {_s}=={_l}(args)',
+               _as == _al and run(_tool, [_l] + _args).returncode == 0,
+               f'len {len(_as)} vs {len(_al)}')
+
 import shutil
 shutil.rmtree(_tmp, ignore_errors=True)
 
