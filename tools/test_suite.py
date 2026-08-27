@@ -428,5 +428,106 @@ d, _ = align_d("ai", "ia")               # reversal must not collapse
 check_cond("-A /ai/~/ia/ > 2.5 (order kept)", d > 2.5, f"d={d}")
 
 # ------------------------------------------------------------------
+# 13. options not covered elsewhere: -j/-o/-x, inventory commands,
+#     meta commands, -D scheme, -P spacing, alias equivalence
+# ------------------------------------------------------------------
+# -j/--json: JSON output is valid JSON with the expected segment count
+_j = _json.loads(run(EXE, ["-j", "t\u02b0a"]).stdout)
+check_cond("--json parses", isinstance(_j, dict) and "segments" in _j)
+check_cond("--json 2 segments", len(_j["segments"]) == 2,
+           f'got {len(_j["segments"])}')
+check_cond("--json shortcut -j identical", run(EXE, ["-j", "t"]).stdout
+           == run(EXE, ["--json", "t"]).stdout)
+check_cond("-j equals -L order (alias -e)", run(VEC4IPA, ["-j", "t"]).stdout
+           == run(EXE, ["-j", "t"]).stdout)
+
+# -o/--output FILE redirects stdout to the file (stderr stays terminal)
+_tmp = tempfile.mkdtemp(prefix="ipa2vec_opt_")
+_out = os.path.join(_tmp, "out.txt")
+_r = run(EXE, ["-o", _out, "t"])
+_oc = open(_out, encoding="utf-8").read()
+check_cond("-o writes the vector to the file", "[0]" in _oc and
+           "pulmonic" in _oc, _oc[:60])
+check_cond("-o command exits 0", _r.returncode == 0)
+check_cond("--output alias opens", (run(EXE, ["--output", _out, "a"]),
+           open(_out, encoding="utf-8").read())[1] != "")
+os.remove(_out)
+
+# -x/--layers-out BASE exports .layer1/.layer2; alias --ir-out/-X
+_base = os.path.join(_tmp, "b")
+run(EXE, ["-x", _base, "-L", "t\u02b0a\u0303"])
+_l1 = open(_base + ".layer1", encoding="utf-8").read()
+_l2 = open(_base + ".layer2", encoding="utf-8").read()
+check_cond("-x writes .layer1", "BASE\tt" in _l1 and "MOD\t\u02b0" in _l1,
+           _l1[:60])
+check_cond("-x writes .layer2 with the tier column",
+           "BASE\tt" in _l2 and "MOD\t\u02b0\tasp\tlaryngeal" in _l2,
+           _l2[:60])
+check_cond("--layers-out + --ir-out aliases agree",
+           run(EXE, ["--layers-out", _base, "-e", "a"]).returncode == 0
+           and run(EXE, ["--ir-out", _base, "-L", "a"]).returncode == 0)
+
+# inventory/meta commands (vec4ipa)
+_v4s = run(VEC4IPA, ["-s"]).stdout
+check_cond("vec4ipa -s stats", "base segments" in _v4s
+           and "modifiers" in _v4s, _v4s[:60])
+_v4t = run(VEC4IPA, ["-t"]).stdout
+check_cond("vec4ipa -t table starts with header", _v4t.startswith("# ipa"),
+           _v4t[:40])
+_v4q = run(VEC4IPA, ["-q", "p"]).stdout
+check_cond("vec4ipa -q query", "/p/" in _v4q, _v4q[:60])
+_v4m = run(VEC4IPA, ["-m"]).stdout
+check_cond("vec4ipa -m modules", "modules" in _v4m or "regional" in _v4m,
+           _v4m[:60])
+_v4w = run(VEC4IPA, ["-w"]).stdout
+check_cond("vec4ipa -w weights has 16 rows", len(_v4w.splitlines()) >= 16,
+           f'rows={len(_v4w.splitlines())}')
+check_cond("--table/--stats/--weights aliases",
+           run(VEC4IPA, ["--table"]).stdout == _v4t
+           and run(VEC4IPA, ["--weights"]).stdout == _v4w)
+
+# meta commands
+_i = run(EXE, ["-i"]).stdout
+check_cond("ipa2vec -i information", "ipa2vec" in _i
+           and "16-D" in _i, _i[:60])
+check_cond("--information alias", run(EXE, ["--information"]).stdout == _i)
+check_cond("-R readme has heading", "# vec4ipa" in run(EXE, ["-R"]).stdout
+           or "IPA/extIPA" in run(EXE, ["-R"]).stdout)
+check_cond("--readme alias", run(EXE, ["--readme"]).stdout
+           == run(EXE, ["-R"]).stdout)
+check_cond("-v version format", "3.1.0" in run(EXE, ["-v"]).stdout,
+           run(EXE, ["-v"]).stdout.strip())
+check_cond("--version alias", run(EXE, ["--version"]).stdout
+           == run(EXE, ["-v"]).stdout)
+check_cond("-h help exits 0", run(EXE, ["-h"]).returncode == 0
+           and "usage" in run(EXE, ["-h"]).stdout.lower())
+check_cond("--help alias", run(EXE, ["--help"]).stdout
+           == run(EXE, ["-h"]).stdout)
+
+# -D/--scheme FILE reloads the vector table (the committed scheme)
+_rs = run(VEC4IPA, ["-D", str(ROOT / "tools" / "data" / "spec_next.scheme"),
+                    "-s"]).stdout
+check_cond("-D scheme loads 133", "133" in _rs, _rs[:60])
+check_cond("--scheme alias", run(VEC4IPA, ["--scheme",
+           str(ROOT / "tools" / "data" / "spec_next.scheme"), "-s"]).stdout
+           == _rs)
+_bad = run(VEC4IPA, ["-D", os.path.join(_tmp, "nope.scheme"), "-s"])
+check_cond("-D missing file reports error", _bad.returncode == 1 or
+           "cannot open" in _bad.stderr, _bad.stderr[:60])
+
+# -P/--spacing NAME (alias --mode): ternary shifts i̞ to 0.4667
+_sp = run(EXE, ["-P", "ternary", "i\u031e"]).stdout
+check_cond("-P ternary spacing", "0.4667" in _sp, _sp[60:120])
+check_cond("--spacing alias", run(EXE, ["--spacing", "ternary",
+           "i\u031e"]).stdout == _sp)
+check_cond("--mode alias", run(EXE, ["--mode", "ternary", "i\u031e"]).stdout
+           == _sp)
+check_cond("-P binary default differs from ternary", "0.4667" not in
+           run(EXE, ["-P", "binary", "i\u031e"]).stdout)
+
+import shutil
+shutil.rmtree(_tmp, ignore_errors=True)
+
+# ------------------------------------------------------------------
 print(f"\n{_common.total - _common.fails}/{_common.total} checks passed")
 sys.exit(1 if _common.fails else 0)

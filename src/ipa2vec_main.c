@@ -84,6 +84,9 @@ int main(int argc, char **argv)
         r = opt_match_val(argv[i], "-x", "--ir-out", &val, argc, argv, &i);
         if (r == 1) { irbase = val; continue; }
         if (r == -1) { fprintf(stderr, "ipa2vec: %s needs a base name\n", argv[i]); return 1; }
+        r = opt_match_val(argv[i], "-X", "--layers-out", &val, argc, argv, &i);
+        if (r == 1) { irbase = val; continue; }
+        if (r == -1) { fprintf(stderr, "ipa2vec: %s needs a base name\n", argv[i]); return 1; }
         if ((no_more_opts || argv[i][0] != '-') && !str) { str = argv[i]; continue; }
         if (strcmp(argv[i], "-") == 0 && !str) { str = "-"; continue; }
         fprintf(stderr, "ipa2vec: unknown option: %s\n", argv[i]);
