@@ -246,14 +246,21 @@ def main():
         print(f'    {s}: {row}')
 
     # ---- 3. chain steps ----
-    print('\n=== 3. fricative place-chain steps ===')
-    steps = np.array([D[names.index(FRIC_CHAIN[k]), names.index(FRIC_CHAIN[k + 1])]
+    # "fricative place-chain uniformity" measures the PLACE-axis step,
+    # not the full 16-dim distance: adjacent fricatives differ on manner
+    # dims too (tip_shape, jet_focus, duration, area), which would
+    # otherwise be reported as chain anomalies.  The scheme's design is
+    # equal place steps (0.15), so weight the place axis only.
+    print('\n=== 3. fricative place-chain steps (place axis, spec_next weights) ===')
+    pi = DIMS.index('place')
+    steps = np.array([abs(vecs[FRIC_CHAIN[k]][pi] - vecs[FRIC_CHAIN[k + 1]][pi])
+                      * np.sqrt(W[pi])
                       for k in range(len(FRIC_CHAIN) - 1)])
     med = np.median(steps)
     for k, s in enumerate(steps):
         a, b = FRIC_CHAIN[k], FRIC_CHAIN[k + 1]
-        ok = 'ok ' if 0.6 * med <= s <= 1.8 * med else 'ANOM'
-        print(f'  {a}->{b}: {s:.3f}  [{ok}]')
+        ok = 'ok ' if abs(s - med) <= 1e-9 else 'ANOM'
+        print(f'  {a}->{b}: place-step {s:.3f}  [{ok}]')
     print(f'  median {med:.3f}, CV {steps.std()/np.mean(steps):.2f}')
 
 
