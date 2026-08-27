@@ -1,8 +1,10 @@
 # v8 ↔ SPEC-NEXT 赋值对比
 
 > 逐维、逐类对比两套 16 维向量表的赋值规则与数值。v8 为现行
-> `IPA_VECTORS.md`；SPEC-NEXT 为 `tools/data/vec_table_16.json`
-> （物理推导 16 维方案）。两者段数相同（133），16 维布局不同。
+> `IPA_VECTORS.md`；SPEC-NEXT 为 `tools/data/spec_next.scheme`
+> （物理推导 16 维方案，编译进 `src/vectors.h`；`tools/data/vec_table_16.json`
+> 是由 `gen_vec_table.py` 从该 scheme 派生的 JSON 视图，二者逐值一致）。
+> 两者段数相同（133），16 维布局不同。
 
 ## 1. 维度映射
 
