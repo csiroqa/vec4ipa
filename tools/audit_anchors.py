@@ -39,8 +39,8 @@ DIMS = ['place', 'body', 'lips_closed', 'lips_rounded', 'tip_shape',
         'tongue_root', 'vel_open', 'lateral_ratio', 'voiced',
         'glottal_aperture', 'glottal_tension', 'larynx_height', 'duration',
         'jet_focus', 'effective_oral_area', 'airflow_direction']
-W = np.array([30.0, 1.0, 0.5, 8.0, 5.0, 2.0, 6.7, 1.0, 2.0, 1.1,
-              1.0, 1.0, 25.0, 8.0, 16.0, 1.0])
+W = np.array([30.0, 15.0, 0.5, 8.0, 4.0, 2.0, 6.7, 1.0, 2.0, 1.1,
+              1.0, 6.0, 5.0, 8.0, 16.0, 1.0])
 
 FRIC_CHAIN = 'ɸ f θ s ʃ ɕ ʂ ç x χ ħ ʜ h'.split()
 
@@ -48,20 +48,23 @@ FRIC_CHAIN = 'ɸ f θ s ʃ ɕ ʂ ç x χ ħ ʜ h'.split()
 # Order: place, body, lips_closed, lips_rounded, tip_shape, tongue_root,
 # vel_open, lateral_ratio, voiced, glottal_aperture, glottal_tension,
 # larynx_height, duration, jet_focus, effective_oral_area, airflow_direction.
+# Kept in sync with the EXTRA_BASE table in src/ipa2vec_core.h.
 EXTRA = {
-    'ᴇ':  [0.15, 0.0, 0.0, 0.0, 0.25, -0.2, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0],
-    'ɚ':  [0.0, 0.0, 0.0, 0.0, 0.45, 0.0, 0.0, 0.0, 1.0, 0.0, 0.3, 0.0, 1.0, 0.0, 0.65, 1.0],
+    'ᴇ':  [0.0, 0.35, 0.0, 0.0, 0.25, -0.2, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.7, 1.0],
+    'ɚ':  [0.0, 0.0, 0.0, 0.5, 0.45, 0.0, 0.0, 0.0, 1.0, 0.0, 0.3, 0.0, 1.0, 0.0, 0.65, 1.0],
     'ɞ':  [0.0, 0.0, 0.0, 1.0, 0.25, 0.1, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.8, 1.0],
     'ɝ':  [0.0, 0.0, 0.0, 0.0, 0.35, 0.1, 0.0, 0.0, 1.0, 0.0, 0.5, 0.0, 1.0, 0.0, 0.8, 1.0],
     'ʬ':  [-0.9, 0.0, 1.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0],
     'ʭ':  [-0.6, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0],
-    'ʩ':  [0.3, -0.5, 0.0, 0.0, 0.25, 0.0, 1.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.6, 0.0, 0.09, 1.0],
+    'ʩ':  [0.3, 0.0, 0.0, 0.0, 0.25, 0.0, 1.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.6, 0.0, 0.09, 1.0],
     'ꞎ':  [0.0, 0.0, 0.0, 0.0, 0.8, 0.0, 0.0, 1.0, 0.0, 0.4, 0.0, 0.0, 0.9, 0.5, 0.08, 1.0],
     'ᶑ':  [0.0, 0.0, 0.0, 0.0, 0.9, 0.0, 0.0, 0.0, 1.0, -0.55, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0],
-    'ȶ':  [-0.40, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-    'ȡ':  [-0.40, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-    'ȵ':  [-0.40, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
-    'ȴ':  [-0.40, 0.0, 0.0, 0.0, 0.7, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.5, 1.0],
+    'ȶ':  [0.0, 0.4, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    'ȡ':  [0.0, 0.4, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    'ȵ':  [0.0, 0.4, 0.0, 0.0, 0.25, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0],
+    'ȴ':  [0.0, 0.4, 0.0, 0.0, 0.25, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.5, 1.0],
+    'ʞ':  [0.3, -0.2, 0.0, 0.0, 0.25, 0.0, 1.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0],
+    '𝼊':  [0.0, -0.2, 0.0, 0.0, 0.8, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0],
 }
 
 
@@ -73,6 +76,48 @@ def _parse_vectors_h():
         if m:
             rows[m.group(1)] = [float(x) for x in m.group(2).split(',')]
     return rows
+
+
+def _core_extra():
+    """EXTRA_BASE vectors parsed straight from src/ipa2vec_core.h so the
+    EXTRA table above can be verified against the compiled source (this is
+    the single place that must never drift)."""
+    src = open(os.path.join(ROOT, 'src', 'ipa2vec_core.h'),
+               encoding='utf-8').read()
+    block = src[src.index('EXTRA_BASE'):src.index('#define N_EXTRA')]
+    pat = re.compile(r'\{\s*"[^"]*",\s*\{\s*([-0-9.,\s]+?)\s*\},\s*(\d+)\s*\}',
+                     re.S)
+    out = {}
+    for m in pat.finditer(block):
+        try:
+            vec = [float(x) for x in m.group(1).replace('\n', ' ').split(',')]
+        except ValueError:
+            continue
+        if len(vec) != 16:
+            continue
+        # airstream code -> name via AIRSTREAM_LABELS order (vectors.h)
+        out[len(out)] = vec
+    return out
+
+
+def _check_extra_sync():
+    """Verify the EXTRA table equals the compiled EXTRA_BASE (name order:
+    the core lists ᴇ ɚ ɝ ʬ ʭ ʩ ꞎ ᶑ ȶ ȡ ȵ ȴ ʞ 𝼊; ɞ lives in the scheme main
+    table, not in EXTRA_BASE).  Reports mismatches without failing."""
+    core = _core_extra()
+    names_order = ['ᴇ', 'ɚ', 'ɝ', 'ʬ', 'ʭ', 'ʩ', 'ꞎ', 'ᶑ', 'ȶ', 'ȡ', 'ȵ', 'ȴ', 'ʞ', '𝼊']
+    if len(core) != len(names_order):
+        print(f'  [sync] core EXTRA_BASE count {len(core)} != '
+              f'expected {len(names_order)}')
+        return
+    for i, nm in enumerate(names_order):
+        cv = core[i]
+        av = EXTRA.get(nm)
+        if av is None:
+            print(f'  [sync] EXTRA missing {nm} (core {cv})')
+        elif not np.allclose(cv, av, atol=1e-9):
+            print(f'  [sync] EXTRA[{nm}] drifts from core:\n'
+                  f'    core  {cv}\n    audit {av}')
 
 
 def _derived(rows):
@@ -96,6 +141,7 @@ def rebuild():
 
 
 def main():
+    _check_extra_sync()
     vecs = rebuild()
     names = list(vecs)
     X = np.array([vecs[n] for n in names])

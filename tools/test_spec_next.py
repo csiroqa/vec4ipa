@@ -18,11 +18,16 @@ Checks:
   5. AFFRICATE rule: duration == 0.5 + homorganic fricative duration,
      rounding inherited.
   6. GLIDE rule: j/ɥ/w/ɰ inherit vowel partner's root & lips.
-  7. VOWEL GRID: three columns (front/central/back) on place, height
-     cells monotone, rounding pairs share (place, area).
+  7. VOWEL GRID: three columns (front/central/back) on BODY (vowels have
+     no tip gesture; place is 0), height cells monotone, rounding pairs
+     share (body, area).
   8. MASK: only active dims contribute; k~k͡p separated by lips_closed.
-  9. ROUND-TRIP consistency: gen_vec_table.py output is reproducible.
- 10. EJECTIVE/IMPLOSIVE: larynx_height +1/-1, aperture values.
+  9. SCHEME SYNC: vec_table_16.json == spec_next.scheme, value for
+     value, on every seg (the scheme is the hand-tuned runtime
+     authority compiled into src/vectors.h; the JSON is derived from it
+     by gen_vec_table.py and must not drift).
+ 10. ROUND-TRIP consistency: gen_vec_table.py output is reproducible.
+ 11. EJECTIVE/IMPLOSIVE: larynx_height +1/-1, aperture values.
 
 Run:  python tools/test_spec_next.py
 """
@@ -197,23 +202,50 @@ def main():
         dk = dd('k', 'k͡p')
         check('k-k͡p > 0.4', dk > 0.4, f'd={dk:.3f}')
 
-    # ---- 9. reproducible generation ----
-    print('\n== 9. gen_vec_table reproducibility ==')
-    import subprocess
-    r = subprocess.run([sys.executable, os.path.join(ROOT, 'tools',
-                                                     'gen_vec_table.py')],
-                       capture_output=True, text=True, encoding='utf-8')
-    if r.returncode == 0:
-        tbl2 = json.load(open(VEC, encoding='utf-8'))['table']
-        same = all(np.allclose([float(x) for x in tbl[n]],
-                               [float(x) for x in tbl2[n]], atol=1e-6)
-                    for n in names)
-        check('reproducible', same)
-    else:
-        check('reproducible', False, r.stderr[:200])
+    # ---- 9. scheme/JSON sync (runtime authority) ----
+    # spec_next.scheme is the hand-tuned table compiled into src/vectors.h.
+    # vec_table_16.json is generated from it; the two must agree value for
+    # value on every seg or the C binaries and this design test drift apart.
+    print('\n== 9. scheme sync (vec_table_16.json == spec_next.scheme) ==')
+    scheme_rows = {}
+    for ln in open(os.path.join(DATA, 'spec_next.scheme'), encoding='utf-8'):
+        p = ln.split()
+        if p and p[0] == 'seg':
+            scheme_rows[p[1]] = [float(x) for x in p[2:18]]
+    scheme_missing = sorted(set(names) - set(scheme_rows))
+    json_only = sorted(set(scheme_rows) - set(names))
+    check('scheme has all JSON segs', not scheme_missing,
+          f'JSON-only in scheme: {scheme_missing}')
+    check('JSON has all scheme segs', not json_only,
+          f'scheme-only in JSON: {json_only}')
+    val_diff = []
+    for n in names:
+        if n in scheme_rows and len(scheme_rows[n]) == 16:
+            if not np.allclose(tbl[n], scheme_rows[n], atol=1e-9):
+                val_diff.append(n)
+    check('scheme == JSON on every seg',
+          not val_diff, f'value diffs: {val_diff[:20]} ...')
+    if val_diff:
+        n = val_diff[0]
+        check('first diff detailed', False,
+              f'{n}: JSON {tbl[n]} vs scheme {scheme_rows.get(n)}')
 
-    # ---- 10. ejective/implosive ----
-    print('\n== 10. laryngeal state ==')
+    # ---- 10. reproducible generation ----
+    # call gen_vec_table.build() directly (pure function, no subprocess:
+    # robust in sandboxed environments that forbid child-process pipes)
+    print('\n== 10. gen_vec_table reproducibility ==')
+    try:
+        sys.path.insert(0, os.path.join(ROOT, 'tools'))
+        import gen_vec_table as gvt
+        tbl2 = gvt.build()
+        same = set(tbl2) == set(names) and all(
+            np.allclose(tbl[n], tbl2[n], atol=1e-6) for n in names)
+        check('reproducible', same)
+    except Exception as e:
+        check('reproducible', False, repr(e))
+
+    # ---- 11. ejective/implosive ----
+    print('\n== 11. laryngeal state ==')
     for e in ['pʼ', 'tʼ', 'kʼ', 'qʼ']:
         if e in tbl:
             check(f'{e} larynx +1', tbl[e][11] == 1.0, f'{tbl[e][11]}')

@@ -60,11 +60,32 @@ def main():
     w = m['weights']
     lam = m['lambda']
 
+    # The committed scheme carries HAND-TUNED runtime weights (tip_shape 4,
+    # duration 5) that differ from the fitted metric16 weights (tip_shape
+    # 5, duration 25) ON PURPOSE -- see the module docstring.  Overwriting
+    # the weight line on every export silently destroys that hand-tuning
+    # and changes the compiled binaries' nearest-neighbour behaviour.
+    # Preserve an existing weight line; only export the metric's weights
+    # when writing a fresh scheme.
+    import os
+    have_weight = False
+    if os.path.exists(OUT):
+        for ln in open(OUT, encoding='utf-8'):
+            if ln.startswith('weight '):
+                have_weight = True
+                break
+
     lines = [f'ndim {len(dims)}']
     for d in dims:
         lines.append(f'dim {d}')
-    lines.append('weight ' + ' '.join(f'{x:.6g}' for x in w))
-    lines.append(f'lambda {lam:.6g}')
+    if have_weight:
+        keep = [ln.rstrip('\n') for ln in open(OUT, encoding='utf-8')
+                if ln.startswith('weight ')]
+        lines.append(keep[0])
+        lines.append(f'lambda {lam:.6g}')
+    else:
+        lines.append('weight ' + ' '.join(f'{x:.6g}' for x in w))
+        lines.append(f'lambda {lam:.6g}')
     for seg in sorted(tbl):
         v = tbl[seg]
         air = airstream_of(v)
@@ -73,7 +94,8 @@ def main():
     # newline='\n': byte-identical regeneration on Windows and Unix
     with open(OUT, 'w', encoding='utf-8', newline='\n') as f:
         f.write('\n'.join(lines) + '\n')
-    print(f'wrote {OUT}: {len(dims)} dims, {len(tbl)} segments')
+    print(f'wrote {OUT}: {len(dims)} dims, {len(tbl)} segments '
+          f'({"kept" if have_weight else "exported"} weight line)')
 
 
 if __name__ == '__main__':

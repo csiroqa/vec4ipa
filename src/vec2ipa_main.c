@@ -66,24 +66,9 @@ int main(int argc, char **argv)
         if (opt_match(argv[i], "-h", "--help")) { usage(); return 0; }
         if (opt_match(argv[i], "-i", "--information")) { print_info("vec2ipa"); return 0; }
         if (opt_match(argv[i], "-R", "--readme")) { printf("%s", EMBEDDED_README); return 0; }
-        if (opt_school(argv[i])) continue;
-        int w = opt_width(argv[i], argc, argv, &i);
-        if (w == 1) continue;
-        if (w == -1) { fprintf(stderr, "vec2ipa: --narrowness needs broadest|broad|medium|narrow|narrowest|0-4\n"); return 1; }
-        int m = opt_metric(argv[i], argc, argv, &i);
-        if (m == 1) continue;
-        if (m == -1) { fprintf(stderr, "vec2ipa: --metric needs a file\n"); return 1; }
-        if (m == -2) return 1;
-        int sc = opt_scheme(argv[i], argc, argv, &i);
-        if (sc == 1) continue;
-        if (sc == -1) { fprintf(stderr, "vec2ipa: --scheme needs a file\n"); return 1; }
-        if (sc == -2) return 1;
-        int cs = opt_charset(argv[i], argc, argv, &i);
-        if (cs == 1) continue;
-        if (cs == -1) { fprintf(stderr, "vec2ipa: --symbols needs standard|extipa|sinologist|all\n"); return 1; }
-        int ms = opt_mod_spacing(argv[i], argc, argv, &i);
-        if (ms == 1) continue;
-        if (ms == -1) { fprintf(stderr, "vec2ipa: --spacing needs binary|ternary|2:1:2|1:x:1|0-10\n"); return 1; }
+        int oc = opt_common(argv[i], argc, argv, &i, "vec2ipa");
+        if (oc == 1) continue;
+        if (oc == -1 || oc == -2) return 1;
         if (opt_match(argv[i], "-v", "--version")) {
             printf("vec2ipa %s (16-D vectors, %d base segments, lambda=%.2f)\n",
                    IPA2VEC_VERSION, NSEG, METRIC_LAMBDA);

@@ -3,24 +3,32 @@
 
 Every value has an explicit origin (no hand-picking):
   INHERIT  -- same physical quantity as v8, value copied from v8 table
-              (lips_closed[chain-fixed], lips_rounded[vowels], tip_shape,
-              tongue_root, vel_open, lateral_ratio, voiced, duration,
-              jet_focus, effective_oral_area, airflow_direction,
+              (lips_rounded[vowels], tip_shape, tongue_root, vel_open,
+              lateral_ratio, voiced, duration, jet_focus,
+              effective_oral_area, airflow_direction,
               glottal_tension = v8 laryngeal_tension)
   RULE     -- reconstructed axis:
-              place            <- PLACE anchor table (place_anchors.py)
+              place            <- PLACE anchor table (place_anchors.py,
+                                   span [-0.9, +0.9], step 0.15; vowels/
+                                   glides have NO tip gesture -> place 0)
               glottal_aperture <- cg/sg lookup (SPEC-NEXT §4)
-              body             <- secondary-constriction rule (0 default;
-                                   ʲ +0.4, ˠ -0.3, ɧ +0.4, clicks -0.4)
+              body             <- secondary-constriction rule, 0 default
+                                   (palatal series +0.4, velar -0.2,
+                                   uvular -0.29, phar -0.39, epl -0.48,
+                                   ɧ -0.4, clicks -0.2; see body_of)
               larynx_height    <- ejective +1.0 / implosive -1.0 / else 0
-  DATA     -- vowel place/area from acoustic measurements
-              (vowel_3d_anchors.json: L&M 1996 + phonTools 9 corpora,
-              remapped to [0.08, 0.92]); vowel lips_rounded inherited from v8.
+  DATA     -- vowel body/area from acoustic measurements, then
+              HAND-TUNED into the committed runtime authority
+              (spec_next.scheme -> src/vectors.h): frontness lives on
+              the BODY axis (front +0.40 .. 0.00 .. back -0.40), vowels
+              get place 0.0 (no tip gesture); the values in VOWEL_COL
+              below MUST stay in sync with spec_next.scheme.
 
-Chain-neutralisation (SPEC-NEXT §3): labiodental f/v/p̪/ɱ/ⱱ get
-lips_closed = 0 (v8 used it to force bilabial-vs-labiodental); sibilant
-rounding removed (v8 encoded s-vs-ʃ via /ʃ/ rounding -- place axis owns it
-now); vowel rounding kept (core vowel feature).
+Chain-neutralisation (SPEC-NEXT §3): labiodental f/v/p̪/ɱ/ⱱ/fʼ get a
+partial lips_closed 0.3 (lower lip at the teeth), NOT 1.0 (v8 used it to
+force bilabial-vs-labiodental; bilabials keep 1.0); sibilant rounding
+removed (v8 encoded s-vs-ʃ via /ʃ/ rounding -- place owns it now); vowel
+rounding kept (core vowel feature).
 
 Output: tools/data/vec_table_16.json (+ printed table).
 Run: python tools/gen_vec_table.py
@@ -54,31 +62,31 @@ for _line in open(V8_MD, encoding='utf-8'):
         V8[_m.group(1)] = [float(x.strip())
                            for x in _m.group(2).replace('+', '').split(',')]
 
-# vowel 3-D anchors from acoustic data: place columns by PERCEIVED
-# frontness (Bark2 of phonTools F1/F2/F3 means, vowel_bark_anchors.json):
-#   front  +0.15  (Bark2 >= 13.0): i e ɪ y ɛ æ
-#   central 0.00  (11.0-13.0):     ø ʉ ɨ ɝ œ a     <- a/ø/œ centralised in
-#                                     real speech (Bark2 evidence)
-#   back   +0.30  (< 11.0):        ʌ ɑ ʊ u ɔ o
-# (vowels missing from the 9 corpora keep the IPA-chart column)
+# vowel 3-D anchors: FRONTNESS lives on the body axis (tongue-body
+# position, v8 semantics: front +, central 0, back -).  The committed
+# values below are the HAND-TUNED runtime authority
+# (tools/data/spec_next.scheme -> src/vectors.h), symmetric around 0:
+# front +0.40 (i y) .. +0.20 (æ ɶ), central 0.00, back -0.40 (u ɯ) ..
+# -0.25 (ɔ ʌ) -- PERCEIVED frontness (Bark2 of phonTools F1/F2/F3 means,
+# vowel_bark_anchors.json) explains the within-column placement: e/ɪ/ʏ
+# 0.35, ɛ/ø/œ 0.25/0.20, and the a-class at 0.00.
 # height 7 uniform cells: 0.40 0.50 0.60 0.70 0.80 0.90 1.00
 # (adjacent differ 0.10; central: ɨ 0.40, ᵻ(=ɨ̞) 0.50, ɘ/ɵ 0.60, ə 0.70,
 #  ɜ/ɞ 0.80, ɐ 0.90, ᴀ(=ä) 1.00)
 VOWEL_COL = {  # vowel -> (body, area); body = tongue-body position
-    # (v8 semantics: front +, central 0, back -; uniform v8 scale x0.4,
-    #  anchor i=1.0 -> 0.40: front i/e = 1.0, back u = -0.5 -> -0.20;
-    #  vowel HEIGHT lives on area only, as in v8 -- body has no height
-    #  gradient within a column)
-    'i': (0.40, 0.40), 'y': (0.40, 0.40), 'ɪ': (0.36, 0.50), 'ʏ': (0.36, 0.50),
-    'e': (0.40, 0.60), 'ɛ': (0.32, 0.80), 'æ': (0.24, 0.90),
-    'ɶ': (0.16, 0.90),
-    'ø': (0.40, 0.60), 'œ': (0.32, 0.80), 'a': (0.00, 1.00),
+    # (front + / central 0 / back -, symmetric; vowel HEIGHT lives on
+    #  area only, as in v8 -- body has no height gradient within a
+    #  column.  Sync the body values here with spec_next.scheme.)
+    'i': (0.40, 0.40), 'y': (0.40, 0.40), 'ɪ': (0.35, 0.50), 'ʏ': (0.35, 0.50),
+    'e': (0.35, 0.60), 'ɛ': (0.25, 0.80), 'æ': (0.20, 0.90),
+    'ɶ': (0.20, 0.90),
+    'ø': (0.25, 0.60), 'œ': (0.20, 0.80), 'a': (0.00, 1.00),
     'ɨ': (0.00, 0.40), 'ʉ': (0.00, 0.40), 'ɘ': (0.00, 0.60), 'ɵ': (0.00, 0.60),
     'ə': (0.00, 0.70), 'ɜ': (0.00, 0.80), 'ɞ': (0.00, 0.80), 'ɐ': (0.00, 0.90),
-    'ɯ': (-0.20, 0.40), 'u': (-0.20, 0.40), 'ʊ': (-0.18, 0.50),
-    'ɤ': (-0.20, 0.60),
-    'o': (-0.20, 0.60), 'ʌ': (-0.20, 0.80), 'ɔ': (-0.20, 0.80),
-    'ɑ': (-0.20, 1.00), 'ɒ': (-0.20, 1.00),
+    'ɯ': (-0.40, 0.40), 'u': (-0.40, 0.40), 'ʊ': (-0.35, 0.50),
+    'ɤ': (-0.35, 0.60),
+    'o': (-0.35, 0.60), 'ʌ': (-0.25, 0.80), 'ɔ': (-0.25, 0.80),
+    'ɑ': (-0.30, 1.00), 'ɒ': (-0.30, 1.00),
 }
 
 # labiodentals: lip closure removed (chain-neutral)
@@ -263,6 +271,10 @@ def build():
             x[5] = pv[5]                    # tongue_root (ATR)
             x[3] = pv[3]                    # lip shape
             x[1] = pv[1]                    # tongue-body position (front/back)
+            # ʍ (voiceless w) does NOT inherit the voiced vowel partner's
+            # ATR -- spec_next.scheme keeps its root at 0.0 (hand-tuned)
+            if seg == 'ʍ':
+                x[5] = 0.0
             # velar glide ɰ is wider than the others (v8 0.45): keep its
             # extra openness rather than the uniform -0.10
             x[14] = 0.35 if seg == 'ɰ' else pv[14] - 0.10
@@ -285,8 +297,8 @@ def main():
     def d(a, b):
         return np.sqrt(np.sum((np.array(table[a]) - np.array(table[b])) ** 2))
     print('== raw unit-weight separations ==')
-    print(f'  ʃ-ɕ   = {d("ʃ","ɕ"):.3f}  (place 0.360 vs 0.430: diff 0.07)')
-    print(f'  k-q   = {d("k","q"):.3f}  (place 0.640 vs 0.710: diff 0.07)')
+    print(f'  ʃ-ɕ   = {d("ʃ","ɕ"):.3f}  (place -0.30 vs -0.15: diff 0.15)')
+    print(f'  k-q   = {d("k","q"):.3f}  (place 0.30 vs 0.45: diff 0.15)')
     print(f'  ʃ-ɧ   = {d("ʃ","ɧ"):.3f}  (v8 0.159; body +0.4 separates)')
     print(f'  ɧ-ç   = {d("ɧ","ç"):.3f}')
     print(f'  i-y   = {d("i","y"):.3f}  (only lips_rounded differs: '

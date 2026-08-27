@@ -32,7 +32,11 @@ DIMS = ['place', 'body', 'lips_closed', 'lips_rounded', 'tip_shape',
         'jet_focus', 'effective_oral_area', 'airflow_direction']
 I = {d: k for k, d in enumerate(DIMS)}
 
-# SPEC-NEXT §5 modifier rules (16-dim targets)
+# SPEC-NEXT §5 modifier rules (16-dim targets) -- SYNCHRONISED with the
+# C runtime (src/ipa2vec_core.h MODS apply functions) and the span-2
+# place domain [-0.9, +0.9].  Keeping these two authorities consistent is
+# checked implicitly: variant behaviour is covered by
+# tools/test_suite.py / tools/test_metric_space.py.
 MODS = {
     'nasal':       lambda v: setv(v, vel_open=0.6),
     'long':        lambda v: setv(v, duration=2.0),
@@ -45,65 +49,78 @@ MODS = {
     'breathy':     lambda v: setv(v, glottal_aperture=0.55, glottal_tension=-0.6),
     'voiceless':   lambda v: setv(v, voiced=0.0, glottal_aperture=0.4),
     'voiced':      lambda v: setv(v, voiced=1.0, glottal_aperture=0.0),
-    'fortis':      lambda v: setv(v, glottal_tension=1.0),
-    'lenis':       lambda v: setv(v, glottal_tension=-0.5),
-    'dental':      lambda v: setv(v, place=0.220),
-    'linguolabial':lambda v: setv(v, place=0.115),
-    'laminal':     lambda v: setv(v, tip_shape=0.6),
-    'apical':      lambda v: setv(v, tip_shape=0.8),
-    'advanced':    lambda v: setv(v, place=max(v[I['place']] - 0.04, 0.02)),
-    'retracted':   lambda v: setv(v, place=min(v[I['place']] + 0.04, 0.98)),
-    'centralized': lambda v: setv(v, place=0.500),
-    'midcent':     lambda v: setv(v, place=0.500,
-                                  effective_oral_area=v[I['effective_oral_area']] + 0.1),
-    'raised':      lambda v: setv(v, effective_oral_area=v[I['effective_oral_area']] - 0.1),
-    'lowered':     lambda v: setv(v, effective_oral_area=v[I['effective_oral_area']] + 0.1),
-    'rnd_more':    lambda v: setv(v, lips_rounded=v[I['lips_rounded']] + 0.3),
-    'rnd_less':    lambda v: setv(v, lips_rounded=v[I['lips_rounded']] - 0.3),
-    'labialized':  lambda v: setv(v, lips_rounded=max(v[I['lips_rounded']], 0.5)),
-    'palatalized': lambda v: setv(v, body=v[I['body']] + 0.4),
-    'velarized':   lambda v: setv(v, body=v[I['body']] - 0.3),
-    'pharyngeal':  lambda v: setv(v, tongue_root=0.7),
-    'atr':         lambda v: setv(v, tongue_root=-0.5),
-    'rtr':         lambda v: setv(v, tongue_root=0.5),
-    'rhot':        lambda v: setv(v, tip_shape=max(v[I['tip_shape']], 0.7),
-                                  duration=v[I['duration']] + 0.3),
+    'fortis':      lambda v: setv(v, glottal_tension=v[I['glottal_tension']] + 0.3),
+    'lenis':       lambda v: setv(v, glottal_tension=v[I['glottal_tension']] - 0.3),
+    'dental':      lambda v: (setv(v, place=-0.6, tip_shape=1.0)
+                              if v[I['lips_closed']] <= 0.5
+                              else setv(v, place=-0.75, lips_closed=0.3)),
+    'linguolabial':lambda v: setv(v, place=-0.9, tip_shape=0.6,
+                                  lips_closed=0.5),
+    'laminal':     lambda v: setv(v, tip_shape=max(v[I['tip_shape']], 0.6)),
+    'apical':      lambda v: setv(v, tip_shape=max(v[I['tip_shape']], 0.65)),
+    'advanced':    lambda v: (setv(v, place=max(v[I['place']] - 0.15, -0.9))
+                              if v[I['place']] != 0.0 or v[I['tip_shape']] >= 0.5
+                              else setv(v, body=v[I['body']] + 0.15)),
+    'retracted':   lambda v: (setv(v, place=min(v[I['place']] + 0.15, 0.9))
+                              if v[I['place']] != 0.0 or v[I['tip_shape']] >= 0.5
+                              else setv(v, body=v[I['body']] - 0.15)),
+    'centralized': lambda v: setv(v, body=v[I['body']] * 0.5),
+    'midcent':     lambda v: setv(v, tip_shape=0.5),
+    'raised':      lambda v: setv(v, effective_oral_area=max(v[I['effective_oral_area']] - 0.1, 0.0)),
+    'lowered':     lambda v: setv(v, effective_oral_area=min(v[I['effective_oral_area']] + 0.1, 1.0)),
+    'rnd_more':    lambda v: (setv(v, lips_rounded=0.95)
+                              if 0.3 < v[I['lips_rounded']] < 0.7
+                              else setv(v, lips_rounded=v[I['lips_rounded']] + 0.25)),
+    'rnd_less':    lambda v: (setv(v, lips_rounded=0.0)
+                              if 0.3 < v[I['lips_rounded']] < 0.7
+                              else setv(v, lips_rounded=max(v[I['lips_rounded']] - 0.25, 0.0))),
+    'labialized':  lambda v: setv(v, lips_rounded=max(v[I['lips_rounded']], 1.0),
+                                  body=v[I['body']] - 0.12, tongue_root=0.3),
+    'palatalized': lambda v: setv(v, body=v[I['body']] + 0.24),
+    'velarized':   lambda v: setv(v, body=-0.12, tongue_root=0.3),
+    'pharyngeal':  lambda v: setv(v, tongue_root=0.7, body=-0.08),
+    'atr':         lambda v: setv(v, tongue_root=v[I['tongue_root']] - 0.3),
+    'rtr':         lambda v: setv(v, tongue_root=v[I['tongue_root']] + 0.3),
+    'rhot':        lambda v: setv(v, glottal_tension=v[I['glottal_tension']] + 0.5,
+                                  tip_shape=v[I['tip_shape']] + 0.1),
     'syllabic':    lambda v: setv(v, duration=v[I['duration']] + 0.5),
     'unrel':       lambda v: setv(v, duration=0.1),
-    'nasal_rel':   lambda v: setv(v, vel_open=1.0, duration=v[I['duration']] + 0.3),
+    'nasal_rel':   lambda v: setv(v, vel_open=0.8, duration=v[I['duration']] + 0.3),
     'lat_release': lambda v: setv(v, lateral_ratio=1.0,
                                   duration=v[I['duration']] + 0.3),
     'ejective':    lambda v: setv(v, glottal_aperture=-1.0, glottal_tension=0.6,
-                                  larynx_height=1.0),
+                                  voiced=0.0, larynx_height=1.0),
     'implosive':   lambda v: setv(v, glottal_aperture=-0.55, voiced=1.0,
                                   larynx_height=-1.0),
-    # ---- v8 full modifier set (16-dim ports) ----
+    # ---- v8 full modifier set (16-dim ports, span-2 place domain) ----
     'glottal_onset': lambda v: setv(v, glottal_aperture=-1.0),
     'nasal_click': lambda v: setv(v, vel_open=1.0, voiced=1.0,
-                                  glottal_aperture=0.0),
-    'schwa_rel':  lambda v: setv(v, effective_oral_area=0.7),
+                                  glottal_aperture=0.0, duration=1.0),
+    'schwa_rel':  lambda v: setv(v, effective_oral_area=0.7,
+                                 duration=v[I['duration']] * 0.5),
     'fric_release': lambda v: setv(v, effective_oral_area=0.08,
                                    duration=v[I['duration']] + 0.2),
-    'offglide_lab': lambda v: setv(v, lips_rounded=max(v[I['lips_rounded']], 0.5),
-                                   body=v[I['body']] - 0.3),
-    'sup_front':  lambda v: setv(v, place=0.575),   # offglide to /i/ (v8: body 1.0)
-    'sup_back':   lambda v: setv(v, place=0.640),
-    'sup_mid':    lambda v: setv(v, place=0.525,
+    'offglide_lab': lambda v: setv(v, lips_rounded=max(v[I['lips_rounded']], 1.0),
+                                   body=-0.2, tongue_root=v[I['tongue_root']]),
+    'offglide_pal': lambda v: setv(v, lips_rounded=max(v[I['lips_rounded']], 0.8),
+                                   body=v[I['body']] + 0.24),
+    'sup_front':  lambda v: setv(v, body=0.4),    # upper-articulator /i/ (v8 body 1.0)
+    'sup_back':   lambda v: setv(v, body=-0.2),
+    'sup_mid':    lambda v: setv(v, body=v[I['body']] * 0.5,
                                  effective_oral_area=0.7),
     'sup_open':   lambda v: setv(v, effective_oral_area=1.0),
     'sup_stop':   lambda v: setv(v, effective_oral_area=0.0, duration=0.1),
-    'centralized':lambda v: setv(v, place=0.500),
     'whistled':   lambda v: setv(v, jet_focus=v[I['jet_focus']] + 0.3,
                                  lips_rounded=max(v[I['lips_rounded']], 0.6)),
-    'alveolar_mark': lambda v: setv(v, place=0.290, tip_shape=0.6),
-    'lbd_mark':   lambda v: setv(v, place=0.150),
+    'alveolar_mark': lambda v: setv(v, place=0.55, tip_shape=0.6),
+    'lbd_mark':   lambda v: setv(v, lips_closed=0.5),
     'part_voiceless': lambda v: setv(v, voiced=0.4, glottal_aperture=0.2),
     'part_voiced':    lambda v: setv(v, voiced=0.6, glottal_aperture=0.2),
     'sliding':    lambda v: setv(v, duration=v[I['duration']] + 0.3),
-    'retroflex':  lambda v: setv(v, tip_shape=max(v[I['tip_shape']], 0.8),
-                                 place=0.500),   # retroflex anchor (v8: mod_retracted -> ʈ-class)
-    'pal_hook':   lambda v: setv(v, body=v[I['body']] + 0.4),
-    'lab_subw':   lambda v: setv(v, lips_rounded=max(v[I['lips_rounded']], 0.5)),
+    'retroflex':  lambda v: setv(v, tip_shape=max(v[I['tip_shape']], 0.65),
+                                 place=v[I['place']] + 0.15),
+    'pal_hook':   lambda v: setv(v, body=v[I['body']] + 0.24),
+    'lab_subw':   lambda v: setv(v, lips_rounded=max(v[I['lips_rounded']], 0.8)),
 }
 
 
@@ -176,9 +193,9 @@ def main():
     print('\n== 3. new-axis hits ==')
     t = np.array(tbl['t'])
     v = MODS['palatalized'](t)
-    print(f'  t+palatalized: body={v[I["body"]]:.2f} (expect ~0.4)')
+    print(f'  t+palatalized: body={v[I["body"]]:.2f} (expect ~0.24)')
     v = MODS['fortis'](t)
-    print(f'  t+fortis: tension={v[I["glottal_tension"]]:.2f} (expect 1.0)')
+    print(f'  t+fortis: tension={v[I["glottal_tension"]]:.2f} (expect +0.3)')
     v = MODS['ejective'](t)
     print(f'  t+ejective: aperture={v[I["glottal_aperture"]]:.2f} '
           f'tension={v[I["glottal_tension"]]:.2f} '
@@ -230,8 +247,8 @@ def main():
             dd = np.sqrt(np.sum((v - bv) ** 2))
             # idempotent cases: modifier target already equals base state
             idem = {('t', 'alveolar_mark'), ('a', 'sup_open'), ('a', 'sup_mid'),
-                    ('ǀ', 'nasal_click'), ('a', 'centralized'),
-                    ('w', 'sup_back'), ('w', 'lab_subw')}
+                    ('ǀ', 'nasal_click'), ('a', 'centralized'), ('t', 'centralized'),
+                    ('w', 'sup_back'), ('w', 'lab_subw'), ('ǀ', 'sup_back')}
             if dd < 0.05 and (base, m) not in idem:
                 fails += 1
                 print(f'  FAIL {base}+{m}: d={dd:.3f} (no effect)')
