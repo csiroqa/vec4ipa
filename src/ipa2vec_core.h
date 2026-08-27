@@ -22,6 +22,9 @@
 #include <math.h>
 #include <ctype.h>
 #include <stdint.h>
+#ifdef _WIN32
+#include <wchar.h>   /* _wfopen for path_fopen */
+#endif
 
 #ifdef _WIN32
 #include <windows.h>
@@ -117,6 +120,37 @@ static char **argv_utf8_from_wide(int argc, wchar_t **wargv)
     return argv;
 }
 #endif
+
+/* ------------------------------------------------------------------ */
+/* Path-aware file open — the CLI argv and the GUI marshal UTF-8, but  */
+/* MSVCRT fopen() interprets narrow paths on the ANSI code page, so a  */
+/* non-ASCII path (e.g. a Chinese scheme/metric/output file name)      */
+/* fails to open on Windows.  Convert UTF-8 -> UTF-16 and use _wfopen  */
+/* there; on POSIX narrow UTF-8 paths are already correct.             */
+/* ------------------------------------------------------------------ */
+static IPA2VEC_MAYBE_UNUSED FILE *path_fopen(const char *path, const char *mode)
+{
+#ifdef _WIN32
+    if (!path || !mode) return NULL;
+    int wn = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path, -1, NULL, 0);
+    int wm = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, mode, -1, NULL, 0);
+    if (wn <= 0 || wm <= 0) return NULL;   /* not valid UTF-8: fall through */
+    wchar_t *wp = (wchar_t *)malloc((size_t)wn * sizeof(wchar_t));
+    wchar_t *wmd = (wchar_t *)malloc((size_t)wm * sizeof(wchar_t));
+    FILE *f = NULL;
+    if (wp && wmd &&
+        MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path, -1, wp, wn) > 0 &&
+        MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, mode, -1, wmd, wm) > 0)
+        f = _wfopen(wp, wmd);
+    free(wp);
+    free(wmd);
+    if (f) return f;
+    /* non-UTF-8 input bytes: fall back to the narrow path so the old
+     * behaviour (ANSI interpretation) is preserved for pure-ASCII cases
+     * that do not round-trip cleanly (e.g. legacy code-page input). */
+#endif
+    return fopen(path, mode);
+}
 
 /* ------------------------------------------------------------------ */
 /* UTF-8                                                               */
@@ -5172,7 +5206,7 @@ static IPA2VEC_MAYBE_UNUSED int json_key (JsonCtx *c, const char *key)
  * Returns 0 on success; -1 on any parse/IO error (message printed). */
 static IPA2VEC_MAYBE_UNUSED int load_metric_json (const char *path)
 {
-    FILE *f = fopen(path, "rb");
+    FILE *f = path_fopen(path, "rb");
     if (!f) {
         fprintf(stderr, "--metric: cannot open '%s'\n", path);
         return -1;
@@ -5307,7 +5341,7 @@ static IPA2VEC_MAYBE_UNUSED void scheme_invalidate_caches (void)
 
 static IPA2VEC_MAYBE_UNUSED int load_scheme_file (const char *path)
 {
-    FILE *f = fopen(path, "r");
+    FILE *f = path_fopen(path, "r");
     if (!f) {
         fprintf(stderr, "--scheme: cannot open '%s'\n", path);
         return -1;
@@ -5622,7 +5656,7 @@ static IPA2VEC_MAYBE_UNUSED char *read_stdin(const char *toolname)
 /* redirect stdout to a file if -o FILE was given; returns 0 on success */
 static IPA2VEC_MAYBE_UNUSED int redirect_output(const char *file, const char *toolname)
 {
-    FILE *f = fopen(file, "w");
+    FILE *f = path_fopen(file, "w");
     if (!f) { fprintf(stderr, "%s: cannot open %s for writing\n", toolname, file); return -1; }
 #ifdef _WIN32
     if (_dup2(_fileno(f), _fileno(stdout)) != 0)
@@ -5653,7 +5687,7 @@ static IPA2VEC_MAYBE_UNUSED int export_ir(const IrTok *l1, int n1,
         fprintf(stderr, "%s: output base name too long\n", toolname);
         return -1;
     }
-    f = fopen(path, "w");
+    f = path_fopen(path, "w");
     if (!f) { fprintf(stderr, "%s: cannot open %s\n", toolname, path); return -1; }
     for (int i = 0; i < n1; i++) {
         const IrTok *t = &l1[i];
@@ -5677,7 +5711,7 @@ static IPA2VEC_MAYBE_UNUSED int export_ir(const IrTok *l1, int n1,
         fprintf(stderr, "%s: output base name too long\n", toolname);
         return -1;
     }
-    f = fopen(path, "w");
+    f = path_fopen(path, "w");
     if (!f) { fprintf(stderr, "%s: cannot open %s\n", toolname, path); return -1; }
     for (int i = 0; i < n2; i++) {
         const IrTok *t = &l2[i];

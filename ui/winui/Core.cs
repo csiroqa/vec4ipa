@@ -63,7 +63,7 @@ namespace Vec4ipaUI
         private static extern IntPtr ipa2v_docs();
 
         [DllImport("ipa2vec_core.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int ipa2v_set_args(int n, string[] argv);
+        private static extern int ipa2v_set_args(int n, IntPtr argv);
 
         [DllImport("ipa2vec_core.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern int ipa2v_modules(
@@ -77,8 +77,44 @@ namespace Vec4ipaUI
         private static extern int ipa2v_stats(
             [MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder out_, int outsz);
 
-        /// <summary>Apply CLI-style settings (school modules, --width).</summary>
-        public static void SetArgs(string[] args) => ipa2v_set_args(args.Length, args);
+        /// <summary>Apply CLI-style settings (school modules, --width, -D scheme file).</summary>
+        /// <remarks>
+        /// The C core reads UTF-8 byte strings (opt_scheme -> load_scheme_file
+        /// opens the -D path as UTF-8).  A plain string[] marshals to ANSI
+        /// char** (system code page), which corrupts any non-ASCII scheme
+        /// file path on non-UTF-8 code pages.  Build a UTF-8 pointer array
+        /// explicitly so paths survive the round-trip.
+        /// </remarks>
+        public static void SetArgs(string[] args)
+        {
+            if (args == null || args.Length == 0) { ipa2v_set_args(0, IntPtr.Zero); return; }
+            IntPtr[] ptrs = new IntPtr[args.Length];
+            var handles = new System.Collections.Generic.List<IntPtr>();
+            try
+            {
+                for (int i = 0; i < args.Length; i++)
+                {
+                    ptrs[i] = System.Runtime.InteropServices.Marshal.StringToCoTaskMemUTF8(args[i] ?? "");
+                    handles.Add(ptrs[i]);
+                }
+                IntPtr argv = System.Runtime.InteropServices.Marshal.AllocCoTaskMem(
+                    IntPtr.Size * args.Length);
+                try
+                {
+                    System.Runtime.InteropServices.Marshal.Copy(ptrs, 0, argv, args.Length);
+                    ipa2v_set_args(args.Length, argv);
+                }
+                finally
+                {
+                    System.Runtime.InteropServices.Marshal.FreeCoTaskMem(argv);
+                }
+            }
+            finally
+            {
+                foreach (IntPtr p in handles)
+                    System.Runtime.InteropServices.Marshal.FreeCoTaskMem(p);
+            }
+        }
 
         public static string[] Modules()
         {
