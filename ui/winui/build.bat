@@ -52,14 +52,14 @@ if not errorlevel 1 (
 ) else (
     for %%t in (ipa2vec vec2ipa vec4ipa) do (
         gcc -O2 -Wall -Wextra -std=c11 -Wno-unused-function -Wno-unused-variable ^
-            -municode -o ..\..\%%t.exe ..\..\src\%%t_main.c
+            -Wno-format-truncation -municode -o ..\..\%%t.exe ..\..\src\%%t_main.c
         if errorlevel 1 exit /b 1
     )
 )
 
 echo [2/3] building ipa2vec_core.dll ...
-gcc -O2 -std=c11 -Wno-unused-function -Wno-unused-variable ^
-    -I..\..\src -shared -o ..\ipa2vec_core.dll core_wrap.c
+gcc -O2 -Wall -Wextra -std=c11 -Wno-unused-function -Wno-unused-variable ^
+    -Wno-format-truncation -I..\..\src -shared -o ..\ipa2vec_core.dll core_wrap.c
 if errorlevel 1 exit /b 1
 
 echo [3/3] publishing WinUI 3 app ...
