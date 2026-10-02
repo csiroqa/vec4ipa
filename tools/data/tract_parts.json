@@ -1,0 +1,1007 @@
+{
+  "model": "tract-jaw-lips-larynx-3",
+  "dims": [
+    "jaw_open",
+    "lip_aperture",
+    "larynx_height"
+  ],
+  "ranges": {
+    "jaw_open": [
+      0.0,
+      1.0
+    ],
+    "lip_aperture": [
+      0.0,
+      1.0
+    ],
+    "larynx_height": [
+      -1.0,
+      1.0
+    ]
+  },
+  "range_basis": {
+    "JAW_RANGE_MM": {
+      "value": 45.0,
+      "kind": "LITERATURE",
+      "note": "adult max interincisal 35-50 mm, mid"
+    },
+    "LIP_RANGE_MM": {
+      "value": 20.0,
+      "kind": "ASSUMED",
+      "note": "aperture-only capacity, jaw held"
+    },
+    "LARYNX_RANGE_MM": {
+      "value": 20.0,
+      "kind": "LITERATURE",
+      "note": "laryngeal height excursion ~2 cm"
+    },
+    "MANDIBLE_RADIUS_MM": {
+      "value": 90.0,
+      "kind": "LITERATURE",
+      "note": "incisor-to-condyle"
+    },
+    "JAW_LARYNX_TRANSMISSION": {
+      "value": 0.5,
+      "kind": "ASSUMED",
+      "note": "suprahyoid coupling; unfittable here"
+    },
+    "REST_TRACT_MM": {
+      "value": 175.0,
+      "kind": "LITERATURE",
+      "note": "adult total vocal tract ~17-18 cm"
+    },
+    "section_split_mm": {
+      "oral": 90.0,
+      "pharyngeal": 65.0,
+      "laryngeal": 20.0,
+      "kind": "ASSUMED"
+    }
+  },
+  "derived": {
+    "JAW_LIP_TRANSMISSION": 0.4444,
+    "HEIGHT_LO": 0.16,
+    "HEIGHT_HI": 0.62
+  },
+  "measured": {
+    "lip_block_pairs": [
+      {
+        "lang": "f73",
+        "pair": "i/y",
+        "df1": 5.0,
+        "df2": -130.0
+      },
+      {
+        "lang": "f73",
+        "pair": "e/ø",
+        "df1": 35.0,
+        "df2": -520.0
+      },
+      {
+        "lang": "h95",
+        "pair": "ʌ/ɔ",
+        "df1": 58.97841726618708,
+        "df2": -207.03597122302176
+      },
+      {
+        "lang": "p73",
+        "pair": "i/y",
+        "df1": 11.0,
+        "df2": -478.0
+      },
+      {
+        "lang": "p73",
+        "pair": "e/ø",
+        "df1": 36.0,
+        "df2": -520.0
+      },
+      {
+        "lang": "p73",
+        "pair": "ɛ/œ",
+        "df1": -145.0,
+        "df2": -227.0
+      },
+      {
+        "lang": "pb52",
+        "pair": "ʌ/ɔ",
+        "df1": -122.125,
+        "df2": -440.5526315789473
+      },
+      {
+        "lang": "y96",
+        "pair": "i/y",
+        "df1": 13.0,
+        "df2": -107.5
+      },
+      {
+        "lang": "y96",
+        "pair": "e/ø",
+        "df1": -39.5,
+        "df2": -166.5
+      }
+    ],
+    "lip_block_stats": {
+      "mean_df1": -16.405175859312546,
+      "mean_abs_df1": 51.73371302957634,
+      "mean_df2": -310.73206697799657,
+      "mean_lang_f1_sd": 164.04127274143008,
+      "t_vs_zero": -0.6842088137802409,
+      "n_pairs": 9
+    },
+    "rounded_flag_r2": {
+      "f1": 0.0136,
+      "f2": 0.0047,
+      "f3": 0.058
+    },
+    "rounded_flag_r2_caveat": "confounded with which pair was sampled; superseded by the paired effect sizes below",
+    "paired_effect_sizes": {
+      "dF1_over_sd": 0.31537010268825194,
+      "dF2_over_sd": 0.5393112623785145,
+      "ratio": 0.5847645407911213,
+      "lang_sd_hz": {
+        "f1": 164.04127274143008,
+        "f2": 576.1646170850961
+      }
+    },
+    "collinearity": {
+      "rank_vowels": 4,
+      "columns": 5,
+      "n_vowels": 16,
+      "vowels": [
+        "a",
+        "e",
+        "i",
+        "o",
+        "u",
+        "y",
+        "æ",
+        "ø",
+        "œ",
+        "ɑ",
+        "ɔ",
+        "ɛ",
+        "ɨ",
+        "ʉ",
+        "ʊ",
+        "ʌ"
+      ],
+      "rank_all_segments_jaw_aperture_larynx": 3,
+      "correlation_matrix": [
+        [
+          1.0,
+          1.0,
+          -0.6203,
+          0.7313,
+          0.3528
+        ],
+        [
+          1.0,
+          1.0,
+          -0.6203,
+          0.7313,
+          0.3528
+        ],
+        [
+          -0.6203,
+          -0.6203,
+          1.0,
+          -0.9553,
+          -0.4214
+        ],
+        [
+          0.7313,
+          0.7313,
+          -0.9553,
+          1.0,
+          0.3622
+        ],
+        [
+          0.3528,
+          0.3528,
+          -0.4214,
+          0.3622,
+          1.0
+        ]
+      ],
+      "block_order": [
+        "jaw_open",
+        "larynx_height",
+        "lip_aperture",
+        "dorsum_y",
+        "lip_round"
+      ]
+    },
+    "within_language_f1_range_hz": {
+      "pb52": [
+        301.2631578947368,
+        833.5921052631579
+      ],
+      "h95": [
+        411.568345323741,
+        891.2517985611511
+      ],
+      "t07": [
+        328.087,
+        872.041
+      ],
+      "f73": [
+        255.0,
+        625.0
+      ],
+      "p73": [
+        294.0,
+        795.0
+      ],
+      "b95": [
+        286.0,
+        638.0
+      ],
+      "f99": [
+        340.0,
+        738.0
+      ],
+      "a96": [
+        312.5,
+        795.0
+      ],
+      "y96": [
+        342.5,
+        862.0
+      ]
+    }
+  },
+  "segment_split": {
+    "a": {
+      "jaw_open": 0.0435,
+      "lip_aperture": 0.8307,
+      "larynx_height": 0.0435
+    },
+    "b": {
+      "jaw_open": 0.0,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.0
+    },
+    "c": {
+      "jaw_open": 0.72,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.72
+    },
+    "d": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "d̪": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.1841,
+      "larynx_height": 0.2609
+    },
+    "d͡z": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "d͡ʑ": {
+      "jaw_open": 0.413,
+      "lip_aperture": 0.1364,
+      "larynx_height": 0.413
+    },
+    "d͡ʒ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.2147,
+      "larynx_height": 0.3043
+    },
+    "e": {
+      "jaw_open": 0.3375,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.3375
+    },
+    "f": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.0341,
+      "larynx_height": 0.2609
+    },
+    "fʼ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.0341,
+      "larynx_height": -0.7391
+    },
+    "h": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.3341,
+      "larynx_height": 0.2609
+    },
+    "i": {
+      "jaw_open": 0.3375,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.3375
+    },
+    "j": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.7147,
+      "larynx_height": 0.3043
+    },
+    "k": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "kʼ": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": -0.2125
+    },
+    "k͡p": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "k͡x": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "l": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "m": {
+      "jaw_open": 0.0,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.0
+    },
+    "n": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "n̪": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.1841,
+      "larynx_height": 0.2609
+    },
+    "o": {
+      "jaw_open": 0.3375,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.3375
+    },
+    "p": {
+      "jaw_open": 0.0,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.0
+    },
+    "pʼ": {
+      "jaw_open": 0.0,
+      "lip_aperture": 0.0,
+      "larynx_height": -1.0
+    },
+    "p̪": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.0341,
+      "larynx_height": 0.2609
+    },
+    "q": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "qʼ": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": -0.2125
+    },
+    "q͡χ": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "r": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "s": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "sʼ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": -0.7391
+    },
+    "t": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "tʼ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": -0.7391
+    },
+    "t̪": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.1841,
+      "larynx_height": 0.2609
+    },
+    "t͡s": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "t͡ɕ": {
+      "jaw_open": 0.413,
+      "lip_aperture": 0.1364,
+      "larynx_height": 0.413
+    },
+    "t͡ʃ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.2147,
+      "larynx_height": 0.3043
+    },
+    "t͡ʃʼ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.2147,
+      "larynx_height": -0.6957
+    },
+    "u": {
+      "jaw_open": 0.3375,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.3375
+    },
+    "v": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.0341,
+      "larynx_height": 0.2609
+    },
+    "w": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.7147,
+      "larynx_height": 0.3043
+    },
+    "x": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "xʼ": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": -0.2125
+    },
+    "y": {
+      "jaw_open": 0.3375,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.3375
+    },
+    "z": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "æ": {
+      "jaw_open": 0.1304,
+      "lip_aperture": 0.792,
+      "larynx_height": 0.1304
+    },
+    "ç": {
+      "jaw_open": 0.72,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.72
+    },
+    "ð": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.1841,
+      "larynx_height": 0.2609
+    },
+    "ø": {
+      "jaw_open": 0.3375,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.3375
+    },
+    "ħ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.2647,
+      "larynx_height": 0.3043
+    },
+    "ŋ": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "ŋ͡m": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "œ": {
+      "jaw_open": 0.3478,
+      "lip_aperture": 0.6954,
+      "larynx_height": 0.3478
+    },
+    "ǀ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.1841,
+      "larynx_height": 0.2609
+    },
+    "ǁ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ǂ": {
+      "jaw_open": 0.72,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.72
+    },
+    "ǃ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.2147,
+      "larynx_height": 0.3043
+    },
+    "ɐ": {
+      "jaw_open": 0.0217,
+      "lip_aperture": 0.8403,
+      "larynx_height": 0.0217
+    },
+    "ɑ": {
+      "jaw_open": 0.0,
+      "lip_aperture": 0.85,
+      "larynx_height": 0.0
+    },
+    "ɒ": {
+      "jaw_open": 0.0,
+      "lip_aperture": 0.85,
+      "larynx_height": 0.0
+    },
+    "ɓ": {
+      "jaw_open": 0.0,
+      "lip_aperture": 0.0,
+      "larynx_height": 1.0
+    },
+    "ɔ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.7147,
+      "larynx_height": 0.3043
+    },
+    "ɕ": {
+      "jaw_open": 0.413,
+      "lip_aperture": 0.1364,
+      "larynx_height": 0.413
+    },
+    "ɖ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ɖ͡ʐ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ɗ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 1.0
+    },
+    "ɘ": {
+      "jaw_open": 0.3375,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.3375
+    },
+    "ə": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.7147,
+      "larynx_height": 0.3043
+    },
+    "ɛ": {
+      "jaw_open": 0.3913,
+      "lip_aperture": 0.6761,
+      "larynx_height": 0.3913
+    },
+    "ɜ": {
+      "jaw_open": 0.3478,
+      "lip_aperture": 0.6954,
+      "larynx_height": 0.3478
+    },
+    "ɞ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.7147,
+      "larynx_height": 0.3043
+    },
+    "ɟ": {
+      "jaw_open": 0.72,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.72
+    },
+    "ɠ": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 1.0
+    },
+    "ɡ": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "ɡ͡b": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "ɢ": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "ɣ": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "ɤ": {
+      "jaw_open": 0.3375,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.3375
+    },
+    "ɥ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.7147,
+      "larynx_height": 0.3043
+    },
+    "ɦ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.3341,
+      "larynx_height": 0.2609
+    },
+    "ɧ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.2147,
+      "larynx_height": 0.3043
+    },
+    "ɨ": {
+      "jaw_open": 0.3375,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.3375
+    },
+    "ɪ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.7147,
+      "larynx_height": 0.3043
+    },
+    "ɬ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ɭ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ɮ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ɯ": {
+      "jaw_open": 0.3375,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.3375
+    },
+    "ɰ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.7147,
+      "larynx_height": 0.3043
+    },
+    "ɱ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.0341,
+      "larynx_height": 0.2609
+    },
+    "ɲ": {
+      "jaw_open": 0.72,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.72
+    },
+    "ɳ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ɴ": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "ɵ": {
+      "jaw_open": 0.6087,
+      "lip_aperture": 0.5795,
+      "larynx_height": 0.6087
+    },
+    "ɶ": {
+      "jaw_open": 0.087,
+      "lip_aperture": 0.8114,
+      "larynx_height": 0.087
+    },
+    "ɸ": {
+      "jaw_open": 0.0,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.0
+    },
+    "ɹ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ɺ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ɻ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ɽ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ɾ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ʀ": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "ʁ": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "ʂ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ʃ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.2147,
+      "larynx_height": 0.3043
+    },
+    "ʄ": {
+      "jaw_open": 0.72,
+      "lip_aperture": 0.0,
+      "larynx_height": 1.0
+    },
+    "ʈ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ʈ͡ʂ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ʉ": {
+      "jaw_open": 0.3375,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.3375
+    },
+    "ʊ": {
+      "jaw_open": 0.3375,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.3375
+    },
+    "ʋ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.0341,
+      "larynx_height": 0.2609
+    },
+    "ʌ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.7147,
+      "larynx_height": 0.3043
+    },
+    "ʍ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.7147,
+      "larynx_height": 0.3043
+    },
+    "ʎ": {
+      "jaw_open": 0.72,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.72
+    },
+    "ʏ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.7147,
+      "larynx_height": 0.3043
+    },
+    "ʐ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.2341,
+      "larynx_height": 0.2609
+    },
+    "ʑ": {
+      "jaw_open": 0.413,
+      "lip_aperture": 0.1364,
+      "larynx_height": 0.413
+    },
+    "ʒ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.2147,
+      "larynx_height": 0.3043
+    },
+    "ʔ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.3341,
+      "larynx_height": 0.2609
+    },
+    "ʕ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.2647,
+      "larynx_height": 0.3043
+    },
+    "ʘ": {
+      "jaw_open": 0.0,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.0
+    },
+    "ʙ": {
+      "jaw_open": 0.0,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.0
+    },
+    "ʛ": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 1.0
+    },
+    "ʜ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.2847,
+      "larynx_height": 0.3043
+    },
+    "ʝ": {
+      "jaw_open": 0.72,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.72
+    },
+    "ʟ": {
+      "jaw_open": 0.6522,
+      "lip_aperture": 0.0601,
+      "larynx_height": 0.6522
+    },
+    "ʡ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.2847,
+      "larynx_height": 0.3043
+    },
+    "ʢ": {
+      "jaw_open": 0.3043,
+      "lip_aperture": 0.2847,
+      "larynx_height": 0.3043
+    },
+    "β": {
+      "jaw_open": 0.0,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.0
+    },
+    "θ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.1841,
+      "larynx_height": 0.2609
+    },
+    "θʼ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.1841,
+      "larynx_height": -0.7391
+    },
+    "χ": {
+      "jaw_open": 0.7875,
+      "lip_aperture": 0.0,
+      "larynx_height": 0.7875
+    },
+    "ⱱ": {
+      "jaw_open": 0.2609,
+      "lip_aperture": 0.0341,
+      "larynx_height": 0.2609
+    }
+  },
+  "jaw_capped_segments": [
+    "b",
+    "c",
+    "e",
+    "i",
+    "k",
+    "kʼ",
+    "k͡p",
+    "k͡x",
+    "m",
+    "o",
+    "p",
+    "pʼ",
+    "q",
+    "qʼ",
+    "q͡χ",
+    "u",
+    "x",
+    "xʼ",
+    "y",
+    "ç",
+    "ø",
+    "ŋ",
+    "ŋ͡m",
+    "ǂ",
+    "ɓ",
+    "ɘ",
+    "ɟ",
+    "ɠ",
+    "ɡ",
+    "ɡ͡b",
+    "ɢ",
+    "ɣ",
+    "ɤ",
+    "ɨ",
+    "ɯ",
+    "ɲ",
+    "ɴ",
+    "ɸ",
+    "ʀ",
+    "ʁ",
+    "ʄ",
+    "ʉ",
+    "ʊ",
+    "ʎ",
+    "ʘ",
+    "ʙ",
+    "ʛ",
+    "ʝ",
+    "β",
+    "χ"
+  ],
+  "roundtrip": {
+    "segments": 133,
+    "contour_diffs": 0,
+    "max_lip_open_residual": 1.1102230246251565e-16,
+    "caveat": "exact reparameterisation; 0 diffs is arithmetic, not validation"
+  },
+  "tract_length": {
+    "jaw_closed_larynx_raised": {
+      "total_mm": 155.0,
+      "oral_mm": 90.0,
+      "pharyngeal_mm": 65.0,
+      "laryngeal_mm": 0.0,
+      "jaw_angle_deg": 0.0
+    },
+    "rest": {
+      "total_mm": 175.0,
+      "oral_mm": 90.0,
+      "pharyngeal_mm": 65.0,
+      "laryngeal_mm": 20.0,
+      "jaw_angle_deg": 0.0
+    },
+    "jaw_open_larynx_lowered": {
+      "total_mm": 245.27,
+      "oral_mm": 129.38,
+      "pharyngeal_mm": 65.0,
+      "laryngeal_mm": 50.89,
+      "jaw_angle_deg": 28.96
+    }
+  },
+  "honest_summary": {
+    "lips_vs_F1": "SUPPORTED BY DATA: lips-only effect is 31.5% of a within-language F1 SD vs 53.9% of an F2 SD; paired mean dF1 is not distinguishable from zero (t(8) = -0.68)",
+    "jaw_vs_larynx": "NOT SEPARABLE on vowel data: rank 4 of 5, larynx_height r = +1.000 with jaw_open. Rank returns to 3 of 3 once the phonation gesture of the consonant segments is included.",
+    "larynx_axis": "no positional data exists in any of the 9 datasets; rests on articulatory mechanics only",
+    "split_coefficient": "JAW_LIP_TRANSMISSION is unfittable here; capped segments go 21 -> 58 over the swept range, so the split is directional, not exact",
+    "variance_split": "NOT MEASURED in the form asked for. No dataset varies jaw or larynx independently of tongue height, so a jaw-vs-tongue variance partition is not identifiable and no number is quoted."
+  }
+}

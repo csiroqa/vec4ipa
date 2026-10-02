@@ -1,0 +1,372 @@
+{
+  "parameter": "groove_depth",
+  "model_units_per_cm": {
+    "x": 0.051428571428571435,
+    "y": 0.32999999999999996
+  },
+  "groove_depth_model_units": 0.165,
+  "groove_depth_cm": 0.5,
+  "groove_frac": 0.5,
+  "placements": [
+    "blade_dorsum",
+    "tip_blade"
+  ],
+  "segment_classification": {
+    "ɕ": {
+      "anchor": "palatoalveol",
+      "manner": "fricative"
+    },
+    "ʃ": {
+      "anchor": "postalveolar",
+      "manner": "fricative"
+    },
+    "t": {
+      "anchor": "alveolar",
+      "manner": "stop"
+    },
+    "t͡ʃ": {
+      "anchor": "postalveolar",
+      "manner": "affricate"
+    }
+  },
+  "distances": {
+    "blade_dorsum|ɕ plain vs ʃ plain (baseline)": {
+      "hausdorff_cm": 0.786,
+      "model_units": 0.0471,
+      "control_point_cm": 0.51
+    },
+    "blade_dorsum|ɕ GROOVED vs ʃ plain  <- the test": {
+      "hausdorff_cm": 0.786,
+      "model_units": 0.0471,
+      "control_point_cm": 0.51
+    },
+    "blade_dorsum|ɕ GROOVED vs ʃ GROOVED (negative control)": {
+      "hausdorff_cm": 0.909,
+      "model_units": 0.0493,
+      "control_point_cm": 0.51
+    },
+    "blade_dorsum|ɕ plain vs t (different place)": {
+      "hausdorff_cm": 1.644,
+      "model_units": 0.0799,
+      "control_point_cm": 1.272
+    },
+    "blade_dorsum|ɕ GROOVED vs t (different place)": {
+      "hausdorff_cm": 1.644,
+      "model_units": 0.0799,
+      "control_point_cm": 1.272
+    },
+    "blade_dorsum|ʃ vs t͡ʃ (same place, different manner)": {
+      "hausdorff_cm": 0.424,
+      "model_units": 0.07,
+      "control_point_cm": 0.212
+    },
+    "tip_blade|ɕ plain vs ʃ plain (baseline)": {
+      "hausdorff_cm": 0.786,
+      "model_units": 0.0471,
+      "control_point_cm": 0.51
+    },
+    "tip_blade|ɕ GROOVED vs ʃ plain  <- the test": {
+      "hausdorff_cm": 0.786,
+      "model_units": 0.0471,
+      "control_point_cm": 0.51
+    },
+    "tip_blade|ɕ GROOVED vs ʃ GROOVED (negative control)": {
+      "hausdorff_cm": 0.786,
+      "model_units": 0.0445,
+      "control_point_cm": 0.526
+    },
+    "tip_blade|ɕ plain vs t (different place)": {
+      "hausdorff_cm": 1.644,
+      "model_units": 0.0799,
+      "control_point_cm": 1.272
+    },
+    "tip_blade|ɕ GROOVED vs t (different place)": {
+      "hausdorff_cm": 1.901,
+      "model_units": 0.0799,
+      "control_point_cm": 1.272
+    },
+    "tip_blade|ʃ vs t͡ʃ (same place, different manner)": {
+      "hausdorff_cm": 0.424,
+      "model_units": 0.07,
+      "control_point_cm": 0.212
+    }
+  },
+  "baseline_cm": 0.786,
+  "separation_gain_cm": {
+    "blade_dorsum": 0.0,
+    "tip_blade": 0.0
+  },
+  "requested_vs_realised_groove_cm": {
+    "blade_dorsum": 0.183,
+    "tip_blade": 0.36
+  },
+  "concavities": {
+    "ɕ_plain": 1,
+    "ʃ_plain": 1,
+    "ɕ_grooved_blade_dorsum": 1,
+    "ɕ_grooved_tip_blade": 2
+  },
+  "adjacent_place_steps_cm": [
+    {
+      "from": "dental",
+      "to": "alveolar",
+      "cm": 1.135
+    },
+    {
+      "from": "alveolar",
+      "to": "postalveolar",
+      "cm": 0.972
+    },
+    {
+      "from": "postalveolar",
+      "to": "palatoalveol",
+      "cm": 0.786
+    },
+    {
+      "from": "palatoalveol",
+      "to": "retroflex",
+      "cm": 1.771
+    },
+    {
+      "from": "retroflex",
+      "to": "palatal",
+      "cm": 2.13
+    },
+    {
+      "from": "palatal",
+      "to": "velar",
+      "cm": 1.696
+    },
+    {
+      "from": "velar",
+      "to": "uvular",
+      "cm": 0.826
+    },
+    {
+      "from": "uvular",
+      "to": "pharyngeal",
+      "cm": 0.67
+    },
+    {
+      "from": "pharyngeal",
+      "to": "epiglottal",
+      "cm": 2.004
+    }
+  ],
+  "mean_adjacent_place_step_cm": 1.332,
+  "ɕʃ_in_place_steps": 0.59,
+  "unrelated_place_cm": 1.644,
+  "literal_criterion_groove_gt_unrelated": false,
+  "literal_criterion_note": "reported and FAILING. A place-refinement parameter must leave a same-place pair closer than a different-place pair; requiring the reverse would merge postalveolar with alveolar. The criterion as posed cannot be satisfied by any correct place scale.",
+  "verdict": "not earned at 5.0 mm depth",
+  "nearest_neighbours": {
+    "blade_dorsum": [
+      [
+        0.183,
+        "palatoalveol",
+        "fricative"
+      ],
+      [
+        0.273,
+        "palatoalveol",
+        "flap"
+      ],
+      [
+        0.424,
+        "palatoalveol",
+        "affricate"
+      ],
+      [
+        0.424,
+        "palatoalveol",
+        "ejective"
+      ],
+      [
+        0.424,
+        "palatoalveol",
+        "implosive"
+      ],
+      [
+        0.424,
+        "palatoalveol",
+        "stop"
+      ]
+    ],
+    "tip_blade": [
+      [
+        0.36,
+        "palatoalveol",
+        "fricative"
+      ],
+      [
+        0.427,
+        "palatoalveol",
+        "flap"
+      ],
+      [
+        0.46,
+        "palatoalveol",
+        "affricate"
+      ],
+      [
+        0.46,
+        "palatoalveol",
+        "ejective"
+      ],
+      [
+        0.46,
+        "palatoalveol",
+        "implosive"
+      ],
+      [
+        0.46,
+        "palatoalveol",
+        "stop"
+      ]
+    ]
+  },
+  "groove_recipients": [
+    "d͡ʑ",
+    "t͡ɕ",
+    "ɕ",
+    "ʑ"
+  ],
+  "old_table_axis_diffs": {
+    "ɕ/ʃ": [
+      [
+        "place",
+        -0.15,
+        -0.3
+      ],
+      [
+        "lips_rounded",
+        0.0,
+        0.25
+      ],
+      [
+        "tip_shape",
+        0.6,
+        0.65
+      ],
+      [
+        "duration",
+        0.85,
+        0.9
+      ],
+      [
+        "jet_focus",
+        0.9,
+        0.85
+      ],
+      [
+        "effective_oral_area",
+        0.05,
+        0.12
+      ]
+    ],
+    "ʃ/t͡ʃ": [
+      [
+        "tip_shape",
+        0.65,
+        1.0
+      ],
+      [
+        "duration",
+        0.9,
+        1.4
+      ]
+    ]
+  },
+  "phatak_crosscheck": {
+    "inventory": [
+      "p",
+      "t",
+      "k",
+      "f",
+      "θ",
+      "s",
+      "ʃ",
+      "b",
+      "d",
+      "g",
+      "v",
+      "ð",
+      "z",
+      "ʒ",
+      "m",
+      "n"
+    ],
+    "absent": [
+      "ɕ",
+      "ʑ",
+      "t͡ʃ"
+    ],
+    "sym_3_s": 0.012457875515766593,
+    "sym_3_eZH": 0.06301998007889804,
+    "sym_3_t": 0.00026867275658248256,
+    "mean_off_diagonal": 0.014703920219173085,
+    "per_snr": {
+      "ʃ/s": [
+        [
+          "12",
+          0.02095647501343364
+        ],
+        [
+          "6",
+          0.02095647501343364
+        ],
+        [
+          "0",
+          0.02095647501343364
+        ],
+        [
+          "-6",
+          0.02095647501343364
+        ]
+      ],
+      "ʃ/ʒ": [
+        [
+          "12",
+          0.11445459430413756
+        ],
+        [
+          "6",
+          0.11445459430413756
+        ],
+        [
+          "0",
+          0.11445459430413756
+        ],
+        [
+          "-6",
+          0.11445459430413756
+        ]
+      ],
+      "ʃ/t": [
+        [
+          "12",
+          0.0005373455131649651
+        ],
+        [
+          "6",
+          0.0005373455131649651
+        ],
+        [
+          "0",
+          0.0005373455131649651
+        ],
+        [
+          "-6",
+          0.0005373455131649651
+        ]
+      ]
+    }
+  },
+  "honesty": [
+    "The ɕ/ʃ separation is NOT an independent finding: the groove depth was authored from the anatomical description of ɕ that this script then measures.",
+    "No acoustic unit is attached to any distance: all nine formant datasets are vowel-only, so a consonant contour cannot be mapped onto F1/F2/F3 here.",
+    "GROOVE_DEPTH_CM = 0.5 is an order-of-magnitude assumption, not a measurement from imaging.",
+    "The Phatak-08 inventory does not contain ɕ, so the ɕ/ʃ confusion value requested in step 3 does not exist and is reported as unmeasured rather than estimated.",
+    "Per-SNR ʃ->s and ʃ->ʒ probabilities are identical at every SNR in phatak08_cm.json, so that corpus carries no signal about which sibilant contrasts degrade; treat 0.0125 and 0.0630 as one degraded-hearing figure each, not as an SNR trend."
+  ]
+}

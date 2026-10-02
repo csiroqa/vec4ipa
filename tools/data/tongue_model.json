@@ -1,0 +1,1005 @@
+{
+  "model": "tongue-contour-15",
+  "dims": [
+    "tip_x",
+    "tip_y",
+    "blade_x",
+    "blade_y",
+    "dorsum_x",
+    "dorsum_y",
+    "root_x",
+    "root_y",
+    "lip_open",
+    "lip_round"
+  ],
+  "rest": {
+    "tip": [
+      0.2,
+      0.15
+    ],
+    "blade": [
+      0.24,
+      0.2
+    ],
+    "dorsum": [
+      0.33,
+      0.28
+    ],
+    "root": [
+      0.72,
+      0.25
+    ]
+  },
+  "palate_knots": [
+    [
+      0.0,
+      0.95
+    ],
+    [
+      0.1,
+      0.62
+    ],
+    [
+      0.18,
+      0.85
+    ],
+    [
+      0.32,
+      1.0
+    ],
+    [
+      0.45,
+      0.86
+    ],
+    [
+      0.55,
+      0.6
+    ],
+    [
+      0.62,
+      0.15
+    ],
+    [
+      0.7,
+      0.62
+    ],
+    [
+      0.8,
+      0.78
+    ],
+    [
+      0.9,
+      0.45
+    ]
+  ],
+  "place_anchors": [
+    {
+      "name": "bilabial",
+      "want_place": -0.9,
+      "derived_x": 0.0,
+      "gap": 0.0,
+      "part": "lips",
+      "note": "lips close; tongue at rest",
+      "tongue_constricted": false,
+      "coords": {
+        "tip": [
+          0.2,
+          0.15
+        ],
+        "blade": [
+          0.24,
+          0.2
+        ],
+        "dorsum": [
+          0.33,
+          0.28
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      }
+    },
+    {
+      "name": "labiodental",
+      "want_place": -0.75,
+      "derived_x": 0.72,
+      "gap": 0.402,
+      "part": "root",
+      "note": "lower lip to upper teeth; tongue at rest",
+      "tongue_constricted": false,
+      "coords": {
+        "tip": [
+          0.2,
+          0.18
+        ],
+        "blade": [
+          0.24,
+          0.24
+        ],
+        "dorsum": [
+          0.33,
+          0.28
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      }
+    },
+    {
+      "name": "dental",
+      "want_place": -0.6,
+      "derived_x": 0.1,
+      "gap": 0.0,
+      "part": "blade",
+      "note": "blade against the back of the upper teeth",
+      "tongue_constricted": true,
+      "coords": {
+        "tip": [
+          0.1,
+          0.3
+        ],
+        "blade": [
+          0.1,
+          0.62
+        ],
+        "dorsum": [
+          0.33,
+          0.28
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      }
+    },
+    {
+      "name": "alveolar",
+      "want_place": -0.45,
+      "derived_x": 0.18,
+      "gap": 0.0,
+      "part": "blade",
+      "note": "blade at the alveolar ridge",
+      "tongue_constricted": true,
+      "coords": {
+        "tip": [
+          0.15,
+          0.28
+        ],
+        "blade": [
+          0.18,
+          0.85
+        ],
+        "dorsum": [
+          0.33,
+          0.28
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      }
+    },
+    {
+      "name": "postalveolar",
+      "want_place": -0.3,
+      "derived_x": 0.25,
+      "gap": 0.0,
+      "part": "blade",
+      "note": "blade just behind the ridge",
+      "tongue_constricted": true,
+      "coords": {
+        "tip": [
+          0.19,
+          0.25
+        ],
+        "blade": [
+          0.25,
+          0.925
+        ],
+        "dorsum": [
+          0.33,
+          0.3
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      }
+    },
+    {
+      "name": "palatoalveol",
+      "want_place": -0.15,
+      "derived_x": 0.3,
+      "gap": -0.0004,
+      "part": "blade",
+      "note": "blade at the front of the hard palate",
+      "tongue_constricted": true,
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.3,
+          0.979
+        ],
+        "dorsum": [
+          0.33,
+          0.35
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      }
+    },
+    {
+      "name": "retroflex",
+      "want_place": 0.0,
+      "derived_x": 0.28,
+      "gap": 0.3571,
+      "part": "blade",
+      "note": "tip retracted and lowered; blade raised behind it",
+      "tongue_constricted": false,
+      "coords": {
+        "tip": [
+          0.3,
+          0.2
+        ],
+        "blade": [
+          0.28,
+          0.6
+        ],
+        "dorsum": [
+          0.33,
+          0.28
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      }
+    },
+    {
+      "name": "palatal",
+      "want_place": 0.15,
+      "derived_x": 0.25,
+      "gap": 0.0,
+      "part": "dorsum",
+      "note": "front of the dorsum raised to the hard palate",
+      "tongue_constricted": true,
+      "coords": {
+        "tip": [
+          0.18,
+          0.22
+        ],
+        "blade": [
+          0.26,
+          0.55
+        ],
+        "dorsum": [
+          0.25,
+          0.925
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      }
+    },
+    {
+      "name": "velar",
+      "want_place": 0.3,
+      "derived_x": 0.45,
+      "gap": 0.0,
+      "part": "dorsum",
+      "note": "back of the dorsum raised to the velum",
+      "tongue_constricted": true,
+      "coords": {
+        "tip": [
+          0.2,
+          0.12
+        ],
+        "blade": [
+          0.24,
+          0.15
+        ],
+        "dorsum": [
+          0.45,
+          0.86
+        ],
+        "root": [
+          0.72,
+          0.28
+        ]
+      }
+    },
+    {
+      "name": "uvular",
+      "want_place": 0.45,
+      "derived_x": 0.52,
+      "gap": 0.0,
+      "part": "dorsum",
+      "note": "dorsum raised and retracted past the velum",
+      "tongue_constricted": true,
+      "coords": {
+        "tip": [
+          0.2,
+          0.12
+        ],
+        "blade": [
+          0.24,
+          0.15
+        ],
+        "dorsum": [
+          0.52,
+          0.678
+        ],
+        "root": [
+          0.72,
+          0.3
+        ]
+      }
+    },
+    {
+      "name": "pharyngeal",
+      "want_place": 0.6,
+      "derived_x": 0.7,
+      "gap": 0.0,
+      "part": "root",
+      "note": "tongue root raised to the pharyngeal wall",
+      "tongue_constricted": true,
+      "coords": {
+        "tip": [
+          0.2,
+          0.12
+        ],
+        "blade": [
+          0.24,
+          0.15
+        ],
+        "dorsum": [
+          0.4,
+          0.3
+        ],
+        "root": [
+          0.7,
+          0.62
+        ]
+      }
+    },
+    {
+      "name": "epiglottal",
+      "want_place": 0.75,
+      "derived_x": 0.8,
+      "gap": 0.0,
+      "part": "root",
+      "note": "root retracted and raised onto the epiglottis",
+      "tongue_constricted": true,
+      "coords": {
+        "tip": [
+          0.2,
+          0.12
+        ],
+        "blade": [
+          0.24,
+          0.15
+        ],
+        "dorsum": [
+          0.4,
+          0.3
+        ],
+        "root": [
+          0.8,
+          0.78
+        ]
+      }
+    },
+    {
+      "name": "glottal",
+      "want_place": 0.9,
+      "derived_x": 0.66,
+      "gap": 0.035,
+      "part": "root",
+      "note": "no tongue constriction; root retracted, no contact",
+      "tongue_constricted": false,
+      "coords": {
+        "tip": [
+          0.22,
+          0.12
+        ],
+        "blade": [
+          0.26,
+          0.15
+        ],
+        "dorsum": [
+          0.4,
+          0.28
+        ],
+        "root": [
+          0.66,
+          0.35
+        ]
+      }
+    }
+  ],
+  "vowels": [
+    {
+      "name": "i",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.22,
+          0.62
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.15,
+      "lip_round": -0.5
+    },
+    {
+      "name": "y",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.22,
+          0.58
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.15,
+      "lip_round": 1.0
+    },
+    {
+      "name": "e",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.23,
+          0.5
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.15,
+      "lip_round": 0.0
+    },
+    {
+      "name": "ø",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.23,
+          0.48
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.15,
+      "lip_round": 0.95
+    },
+    {
+      "name": "ɛ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.24,
+          0.34
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.85,
+      "lip_round": 0.0
+    },
+    {
+      "name": "œ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.24,
+          0.32
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.85,
+      "lip_round": 0.95
+    },
+    {
+      "name": "æ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.15
+        ],
+        "blade": [
+          0.24,
+          0.2
+        ],
+        "dorsum": [
+          0.25,
+          0.22
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.85,
+      "lip_round": 0.0
+    },
+    {
+      "name": "ɶ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.15
+        ],
+        "blade": [
+          0.24,
+          0.2
+        ],
+        "dorsum": [
+          0.25,
+          0.2
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.85,
+      "lip_round": 0.9
+    },
+    {
+      "name": "ɨ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.3,
+          0.58
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.15,
+      "lip_round": 0.0
+    },
+    {
+      "name": "ʉ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.3,
+          0.56
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.15,
+      "lip_round": 0.8
+    },
+    {
+      "name": "ɘ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.33,
+          0.46
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.15,
+      "lip_round": 0.0
+    },
+    {
+      "name": "ɵ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.33,
+          0.44
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.85,
+      "lip_round": 0.9
+    },
+    {
+      "name": "ɜ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.33,
+          0.32
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.85,
+      "lip_round": 0.0
+    },
+    {
+      "name": "ɞ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.33,
+          0.3
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.85,
+      "lip_round": 0.9
+    },
+    {
+      "name": "ɐ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.15
+        ],
+        "blade": [
+          0.24,
+          0.2
+        ],
+        "dorsum": [
+          0.36,
+          0.17
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.85,
+      "lip_round": 0.0
+    },
+    {
+      "name": "a",
+      "coords": {
+        "tip": [
+          0.2,
+          0.15
+        ],
+        "blade": [
+          0.24,
+          0.2
+        ],
+        "dorsum": [
+          0.38,
+          0.18
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.85,
+      "lip_round": 0.0
+    },
+    {
+      "name": "ɒ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.15
+        ],
+        "blade": [
+          0.24,
+          0.2
+        ],
+        "dorsum": [
+          0.38,
+          0.16
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.85,
+      "lip_round": 0.8
+    },
+    {
+      "name": "ɑ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.15
+        ],
+        "blade": [
+          0.24,
+          0.2
+        ],
+        "dorsum": [
+          0.42,
+          0.16
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.85,
+      "lip_round": 0.0
+    },
+    {
+      "name": "ɯ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.44,
+          0.58
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.15,
+      "lip_round": 0.0
+    },
+    {
+      "name": "ʊ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.44,
+          0.56
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.15,
+      "lip_round": 0.7
+    },
+    {
+      "name": "ɤ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.38,
+          0.5
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.15,
+      "lip_round": 0.0
+    },
+    {
+      "name": "o",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.42,
+          0.48
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.15,
+      "lip_round": 0.9
+    },
+    {
+      "name": "ʌ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.42,
+          0.3
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.85,
+      "lip_round": 0.0
+    },
+    {
+      "name": "ɔ",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.42,
+          0.3
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.85,
+      "lip_round": 0.0
+    },
+    {
+      "name": "u",
+      "coords": {
+        "tip": [
+          0.2,
+          0.22
+        ],
+        "blade": [
+          0.24,
+          0.3
+        ],
+        "dorsum": [
+          0.42,
+          0.6
+        ],
+        "root": [
+          0.72,
+          0.25
+        ]
+      },
+      "lip_open": 0.15,
+      "lip_round": 1.0
+    }
+  ]
+}

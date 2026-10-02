@@ -1,0 +1,4258 @@
+{
+  "a": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.38,
+    "gap": 0.7554,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.38,
+        0.18
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "b": {
+    "anchor": "bilabial",
+    "manner": "stop",
+    "derived_x": 0.0,
+    "gap": 0.0,
+    "constrictor": null,
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.0,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "c": {
+    "anchor": "palatal",
+    "manner": "stop",
+    "derived_x": 0.25,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.18,
+        0.22
+      ],
+      "blade": [
+        0.26,
+        0.55
+      ],
+      "dorsum": [
+        0.25,
+        0.925
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.32,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "d": {
+    "anchor": "alveolar",
+    "manner": "stop",
+    "derived_x": 0.18,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.85
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "d̪": {
+    "anchor": "dental",
+    "manner": "stop",
+    "derived_x": 0.1,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.1,
+        0.3
+      ],
+      "blade": [
+        0.1,
+        0.62
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.3,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "d͡z": {
+    "anchor": "alveolar",
+    "manner": "affricate",
+    "derived_x": 0.18,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.85
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.7
+  },
+  "d͡ʑ": {
+    "anchor": "palatoalveol",
+    "manner": "affricate",
+    "derived_x": 0.3,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.3,
+        0.979
+      ],
+      "dorsum": [
+        0.33,
+        0.35
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.32,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.7
+  },
+  "d͡ʒ": {
+    "anchor": "postalveolar",
+    "manner": "affricate",
+    "derived_x": 0.25,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.19,
+        0.25
+      ],
+      "blade": [
+        0.25,
+        0.925
+      ],
+      "dorsum": [
+        0.33,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.7
+  },
+  "e": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.23,
+    "gap": 0.4036,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.23,
+        0.5
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "f": {
+    "anchor": "labiodental",
+    "manner": "fricative",
+    "derived_x": null,
+    "gap": 0.402,
+    "constrictor": null,
+    "site_from": "none",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.18
+      ],
+      "blade": [
+        0.24,
+        0.24
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "fʼ": {
+    "anchor": "labiodental",
+    "manner": "ejective",
+    "derived_x": null,
+    "gap": 0.402,
+    "constrictor": null,
+    "site_from": "none",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.18
+      ],
+      "blade": [
+        0.24,
+        0.24
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 1.0,
+    "duration": 0.1
+  },
+  "h": {
+    "anchor": "glottal",
+    "manner": "approximant",
+    "derived_x": null,
+    "gap": 0.402,
+    "constrictor": null,
+    "site_from": "none",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.45,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "i": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.22,
+    "gap": 0.2729,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.22,
+        0.62
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": -0.5,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "j": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.35,
+    "gap": 0.6677,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.35,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": -0.3,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "k": {
+    "anchor": "velar",
+    "manner": "stop",
+    "derived_x": 0.45,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.45,
+        0.86
+      ],
+      "root": [
+        0.72,
+        0.28
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "kʼ": {
+    "anchor": "velar",
+    "manner": "ejective",
+    "derived_x": 0.45,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.45,
+        0.86
+      ],
+      "root": [
+        0.72,
+        0.28
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 1.0,
+    "duration": 0.1
+  },
+  "k͡p": {
+    "anchor": "velar",
+    "manner": "stop",
+    "derived_x": 0.45,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.45,
+        0.86
+      ],
+      "root": [
+        0.72,
+        0.28
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "k͡x": {
+    "anchor": "velar",
+    "manner": "fricative",
+    "derived_x": 0.45,
+    "gap": 0.14,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.45,
+        0.72
+      ],
+      "root": [
+        0.72,
+        0.28
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "l": {
+    "anchor": "alveolar",
+    "manner": "lateral",
+    "derived_x": 0.18,
+    "gap": 0.1525,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.45
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.68,
+        0.35
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 1.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "m": {
+    "anchor": "bilabial",
+    "manner": "nasal",
+    "derived_x": 0.0,
+    "gap": 0.0,
+    "constrictor": null,
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.68,
+        0.35
+      ]
+    },
+    "lip_open": 0.0,
+    "lip_round": 0.0,
+    "velum": 1.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "n": {
+    "anchor": "alveolar",
+    "manner": "nasal",
+    "derived_x": 0.18,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.85
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.68,
+        0.35
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 1.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "n̪": {
+    "anchor": "dental",
+    "manner": "nasal",
+    "derived_x": 0.1,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.1,
+        0.3
+      ],
+      "blade": [
+        0.1,
+        0.62
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.68,
+        0.35
+      ]
+    },
+    "lip_open": 0.3,
+    "lip_round": 0.0,
+    "velum": 1.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "o": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.42,
+    "gap": 0.4123,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.42,
+        0.48
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.9,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "p": {
+    "anchor": "bilabial",
+    "manner": "stop",
+    "derived_x": 0.0,
+    "gap": 0.0,
+    "constrictor": null,
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.0,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "pʼ": {
+    "anchor": "bilabial",
+    "manner": "ejective",
+    "derived_x": 0.0,
+    "gap": 0.0,
+    "constrictor": null,
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.0,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 1.0,
+    "duration": 0.1
+  },
+  "p̪": {
+    "anchor": "labiodental",
+    "manner": "stop",
+    "derived_x": null,
+    "gap": 0.402,
+    "constrictor": null,
+    "site_from": "none",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.18
+      ],
+      "blade": [
+        0.24,
+        0.24
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "q": {
+    "anchor": "uvular",
+    "manner": "stop",
+    "derived_x": 0.52,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.52,
+        0.678
+      ],
+      "root": [
+        0.72,
+        0.3
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "qʼ": {
+    "anchor": "uvular",
+    "manner": "ejective",
+    "derived_x": 0.52,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.52,
+        0.678
+      ],
+      "root": [
+        0.72,
+        0.3
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 1.0,
+    "duration": 0.1
+  },
+  "q͡χ": {
+    "anchor": "uvular",
+    "manner": "fricative",
+    "derived_x": 0.52,
+    "gap": 0.14,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.52,
+        0.538
+      ],
+      "root": [
+        0.72,
+        0.3
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "r": {
+    "anchor": "alveolar",
+    "manner": "trill",
+    "derived_x": 0.18,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.85
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.5
+  },
+  "s": {
+    "anchor": "alveolar",
+    "manner": "fricative",
+    "derived_x": 0.18,
+    "gap": 0.14,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.71
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "sʼ": {
+    "anchor": "alveolar",
+    "manner": "ejective",
+    "derived_x": 0.18,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.85
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 1.0,
+    "duration": 0.1
+  },
+  "t": {
+    "anchor": "alveolar",
+    "manner": "stop",
+    "derived_x": 0.18,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.85
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "tʼ": {
+    "anchor": "alveolar",
+    "manner": "ejective",
+    "derived_x": 0.18,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.85
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 1.0,
+    "duration": 0.1
+  },
+  "t̪": {
+    "anchor": "dental",
+    "manner": "stop",
+    "derived_x": 0.1,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.1,
+        0.3
+      ],
+      "blade": [
+        0.1,
+        0.62
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.3,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "t͡s": {
+    "anchor": "alveolar",
+    "manner": "affricate",
+    "derived_x": 0.18,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.85
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.7
+  },
+  "t͡ɕ": {
+    "anchor": "palatoalveol",
+    "manner": "affricate",
+    "derived_x": 0.3,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.3,
+        0.979
+      ],
+      "dorsum": [
+        0.33,
+        0.35
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.32,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.7
+  },
+  "t͡ʃ": {
+    "anchor": "postalveolar",
+    "manner": "affricate",
+    "derived_x": 0.25,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.19,
+        0.25
+      ],
+      "blade": [
+        0.25,
+        0.925
+      ],
+      "dorsum": [
+        0.33,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.7
+  },
+  "t͡ʃʼ": {
+    "anchor": "postalveolar",
+    "manner": "ejective",
+    "derived_x": 0.25,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.19,
+        0.25
+      ],
+      "blade": [
+        0.25,
+        0.925
+      ],
+      "dorsum": [
+        0.33,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 1.0,
+    "duration": 0.1
+  },
+  "u": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.42,
+    "gap": 0.2923,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.42,
+        0.6
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 1.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "v": {
+    "anchor": "labiodental",
+    "manner": "fricative",
+    "derived_x": null,
+    "gap": 0.402,
+    "constrictor": null,
+    "site_from": "none",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.18
+      ],
+      "blade": [
+        0.24,
+        0.24
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "w": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.35,
+    "gap": 0.6677,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.35,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 1.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "x": {
+    "anchor": "velar",
+    "manner": "fricative",
+    "derived_x": 0.45,
+    "gap": 0.14,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.45,
+        0.72
+      ],
+      "root": [
+        0.72,
+        0.28
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "xʼ": {
+    "anchor": "velar",
+    "manner": "ejective",
+    "derived_x": 0.45,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.45,
+        0.86
+      ],
+      "root": [
+        0.72,
+        0.28
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 1.0,
+    "duration": 0.1
+  },
+  "y": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.22,
+    "gap": 0.3129,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.22,
+        0.58
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 1.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "z": {
+    "anchor": "alveolar",
+    "manner": "fricative",
+    "derived_x": 0.18,
+    "gap": 0.14,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.71
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "æ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.25,
+    "gap": 0.705,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.25,
+        0.22
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ç": {
+    "anchor": "palatal",
+    "manner": "fricative",
+    "derived_x": 0.25,
+    "gap": 0.14,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.18,
+        0.22
+      ],
+      "blade": [
+        0.26,
+        0.55
+      ],
+      "dorsum": [
+        0.25,
+        0.785
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.32,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ð": {
+    "anchor": "dental",
+    "manner": "fricative",
+    "derived_x": 0.1,
+    "gap": 0.14,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.1,
+        0.3
+      ],
+      "blade": [
+        0.1,
+        0.48
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.3,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ø": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.23,
+    "gap": 0.4236,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.23,
+        0.48
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.95,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ħ": {
+    "anchor": "pharyngeal",
+    "manner": "fricative",
+    "derived_x": 0.7,
+    "gap": 0.14,
+    "constrictor": "root",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.4,
+        0.3
+      ],
+      "root": [
+        0.7,
+        0.48
+      ]
+    },
+    "lip_open": 0.4,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ŋ": {
+    "anchor": "velar",
+    "manner": "nasal",
+    "derived_x": 0.45,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.45,
+        0.86
+      ],
+      "root": [
+        0.68,
+        0.38
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 1.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "ŋ͡m": {
+    "anchor": "velar",
+    "manner": "nasal",
+    "derived_x": 0.45,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.45,
+        0.86
+      ],
+      "root": [
+        0.68,
+        0.38
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 1.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "œ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.24,
+    "gap": 0.5943,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.24,
+        0.32
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.95,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ǀ": {
+    "anchor": "dental",
+    "manner": "stop",
+    "derived_x": 0.1,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.1,
+        0.3
+      ],
+      "blade": [
+        0.1,
+        0.62
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.3,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "ǁ": {
+    "anchor": "alveolar",
+    "manner": "stop",
+    "derived_x": 0.18,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.85
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "ǂ": {
+    "anchor": "palatal",
+    "manner": "stop",
+    "derived_x": 0.25,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.18,
+        0.22
+      ],
+      "blade": [
+        0.26,
+        0.55
+      ],
+      "dorsum": [
+        0.25,
+        0.925
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.32,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "ǃ": {
+    "anchor": "postalveolar",
+    "manner": "stop",
+    "derived_x": 0.25,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.19,
+        0.25
+      ],
+      "blade": [
+        0.25,
+        0.925
+      ],
+      "dorsum": [
+        0.33,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "ɐ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.36,
+    "gap": 0.7869,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.36,
+        0.17
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɑ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.42,
+    "gap": 0.7323,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.42,
+        0.16
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɒ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.38,
+    "gap": 0.7754,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.38,
+        0.16
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.8,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɓ": {
+    "anchor": "bilabial",
+    "manner": "implosive",
+    "derived_x": 0.0,
+    "gap": 0.0,
+    "constrictor": null,
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.0,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": -1.0,
+    "duration": 0.1
+  },
+  "ɔ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.42,
+    "gap": 0.5923,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.42,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɕ": {
+    "anchor": "palatoalveol",
+    "manner": "fricative",
+    "derived_x": 0.3,
+    "gap": 0.14,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.3,
+        0.839
+      ],
+      "dorsum": [
+        0.33,
+        0.35
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.32,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ɖ": {
+    "anchor": "retroflex",
+    "manner": "stop",
+    "derived_x": 0.28,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.3,
+        0.2
+      ],
+      "blade": [
+        0.28,
+        0.957
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "ɖ͡ʐ": {
+    "anchor": "retroflex",
+    "manner": "affricate",
+    "derived_x": 0.28,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.3,
+        0.2
+      ],
+      "blade": [
+        0.28,
+        0.957
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.7
+  },
+  "ɗ": {
+    "anchor": "alveolar",
+    "manner": "implosive",
+    "derived_x": 0.18,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.85
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": -1.0,
+    "duration": 0.1
+  },
+  "ɘ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.33,
+    "gap": 0.5292,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.33,
+        0.46
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ə": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.35,
+    "gap": 0.6677,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.35,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.5,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɛ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.24,
+    "gap": 0.5743,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.24,
+        0.34
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɜ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.33,
+    "gap": 0.6692,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.33,
+        0.32
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɞ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.33,
+    "gap": 0.6892,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.33,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.9,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɟ": {
+    "anchor": "palatal",
+    "manner": "stop",
+    "derived_x": 0.25,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.18,
+        0.22
+      ],
+      "blade": [
+        0.26,
+        0.55
+      ],
+      "dorsum": [
+        0.25,
+        0.925
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.32,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "ɠ": {
+    "anchor": "velar",
+    "manner": "implosive",
+    "derived_x": 0.45,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.45,
+        0.86
+      ],
+      "root": [
+        0.72,
+        0.28
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": -1.0,
+    "duration": 0.1
+  },
+  "ɡ": {
+    "anchor": "velar",
+    "manner": "stop",
+    "derived_x": 0.45,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.45,
+        0.86
+      ],
+      "root": [
+        0.72,
+        0.28
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "ɡ͡b": {
+    "anchor": "velar",
+    "manner": "stop",
+    "derived_x": 0.45,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.45,
+        0.86
+      ],
+      "root": [
+        0.72,
+        0.28
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "ɢ": {
+    "anchor": "uvular",
+    "manner": "stop",
+    "derived_x": 0.52,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.52,
+        0.678
+      ],
+      "root": [
+        0.72,
+        0.3
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "ɣ": {
+    "anchor": "velar",
+    "manner": "fricative",
+    "derived_x": 0.45,
+    "gap": 0.14,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.45,
+        0.72
+      ],
+      "root": [
+        0.72,
+        0.28
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ɤ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.38,
+    "gap": 0.4354,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.38,
+        0.5
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɥ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.35,
+    "gap": 0.6677,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.35,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 1.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɦ": {
+    "anchor": "glottal",
+    "manner": "approximant",
+    "derived_x": null,
+    "gap": 0.402,
+    "constrictor": null,
+    "site_from": "none",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.45,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "ɧ": {
+    "anchor": "postalveolar",
+    "manner": "fricative",
+    "derived_x": 0.25,
+    "gap": 0.14,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.19,
+        0.25
+      ],
+      "blade": [
+        0.25,
+        0.785
+      ],
+      "dorsum": [
+        0.33,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ɨ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.3,
+    "gap": 0.3986,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.3,
+        0.58
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɪ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.35,
+    "gap": 0.6677,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.35,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": -0.2,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɬ": {
+    "anchor": "alveolar",
+    "manner": "lateral",
+    "derived_x": 0.18,
+    "gap": 0.1525,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.45
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.68,
+        0.35
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 1.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "ɭ": {
+    "anchor": "retroflex",
+    "manner": "lateral",
+    "derived_x": 0.28,
+    "gap": 0.1525,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.3,
+        0.2
+      ],
+      "blade": [
+        0.28,
+        0.507
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.68,
+        0.35
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 1.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "ɮ": {
+    "anchor": "alveolar",
+    "manner": "lateral",
+    "derived_x": 0.18,
+    "gap": 0.1525,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.45
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.68,
+        0.35
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 1.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "ɯ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.44,
+    "gap": 0.2908,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.44,
+        0.58
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɰ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.35,
+    "gap": 0.6677,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.35,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɱ": {
+    "anchor": "labiodental",
+    "manner": "nasal",
+    "derived_x": null,
+    "gap": 0.1525,
+    "constrictor": null,
+    "site_from": "none",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.18
+      ],
+      "blade": [
+        0.24,
+        0.24
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.68,
+        0.35
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.0,
+    "velum": 1.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "ɲ": {
+    "anchor": "palatal",
+    "manner": "nasal",
+    "derived_x": 0.25,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.18,
+        0.22
+      ],
+      "blade": [
+        0.26,
+        0.55
+      ],
+      "dorsum": [
+        0.25,
+        0.925
+      ],
+      "root": [
+        0.68,
+        0.35
+      ]
+    },
+    "lip_open": 0.32,
+    "lip_round": 0.0,
+    "velum": 1.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "ɳ": {
+    "anchor": "retroflex",
+    "manner": "nasal",
+    "derived_x": 0.28,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.3,
+        0.2
+      ],
+      "blade": [
+        0.28,
+        0.957
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.68,
+        0.35
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 1.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "ɴ": {
+    "anchor": "uvular",
+    "manner": "nasal",
+    "derived_x": 0.52,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.52,
+        0.678
+      ],
+      "root": [
+        0.68,
+        0.4
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 1.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "ɵ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.33,
+    "gap": 0.5492,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.33,
+        0.44
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.9,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɶ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.25,
+    "gap": 0.725,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.25,
+        0.2
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.9,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ɸ": {
+    "anchor": "bilabial",
+    "manner": "fricative",
+    "derived_x": 0.0,
+    "gap": 0.0,
+    "constrictor": null,
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.0,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ɹ": {
+    "anchor": "alveolar",
+    "manner": "approximant",
+    "derived_x": 0.18,
+    "gap": 0.4,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.45
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "ɺ": {
+    "anchor": "alveolar",
+    "manner": "flap",
+    "derived_x": 0.18,
+    "gap": 0.05,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.8
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.25
+  },
+  "ɻ": {
+    "anchor": "retroflex",
+    "manner": "approximant",
+    "derived_x": 0.28,
+    "gap": 0.402,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.3,
+        0.2
+      ],
+      "blade": [
+        0.28,
+        0.507
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "ɽ": {
+    "anchor": "retroflex",
+    "manner": "flap",
+    "derived_x": 0.28,
+    "gap": 0.402,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.3,
+        0.2
+      ],
+      "blade": [
+        0.28,
+        0.507
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.25
+  },
+  "ɾ": {
+    "anchor": "alveolar",
+    "manner": "flap",
+    "derived_x": 0.18,
+    "gap": 0.05,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.15,
+        0.28
+      ],
+      "blade": [
+        0.18,
+        0.8
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.25
+  },
+  "ʀ": {
+    "anchor": "uvular",
+    "manner": "trill",
+    "derived_x": 0.52,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.52,
+        0.678
+      ],
+      "root": [
+        0.72,
+        0.3
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.5
+  },
+  "ʁ": {
+    "anchor": "uvular",
+    "manner": "fricative",
+    "derived_x": 0.52,
+    "gap": 0.14,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.52,
+        0.538
+      ],
+      "root": [
+        0.72,
+        0.3
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ʂ": {
+    "anchor": "retroflex",
+    "manner": "fricative",
+    "derived_x": 0.28,
+    "gap": 0.402,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.3,
+        0.2
+      ],
+      "blade": [
+        0.28,
+        0.507
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ʃ": {
+    "anchor": "postalveolar",
+    "manner": "fricative",
+    "derived_x": 0.25,
+    "gap": 0.14,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.19,
+        0.25
+      ],
+      "blade": [
+        0.25,
+        0.785
+      ],
+      "dorsum": [
+        0.33,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ʄ": {
+    "anchor": "palatal",
+    "manner": "implosive",
+    "derived_x": 0.25,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.18,
+        0.22
+      ],
+      "blade": [
+        0.26,
+        0.55
+      ],
+      "dorsum": [
+        0.25,
+        0.925
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.32,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": -1.0,
+    "duration": 0.1
+  },
+  "ʈ": {
+    "anchor": "retroflex",
+    "manner": "stop",
+    "derived_x": 0.28,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.3,
+        0.2
+      ],
+      "blade": [
+        0.28,
+        0.957
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "ʈ͡ʂ": {
+    "anchor": "retroflex",
+    "manner": "affricate",
+    "derived_x": 0.28,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.3,
+        0.2
+      ],
+      "blade": [
+        0.28,
+        0.957
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.7
+  },
+  "ʉ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.3,
+    "gap": 0.4186,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.3,
+        0.56
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.8,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ʊ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.44,
+    "gap": 0.3108,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.44,
+        0.56
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.7,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ʋ": {
+    "anchor": "labiodental",
+    "manner": "approximant",
+    "derived_x": null,
+    "gap": 0.402,
+    "constrictor": null,
+    "site_from": "none",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.18
+      ],
+      "blade": [
+        0.24,
+        0.24
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "ʌ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.42,
+    "gap": 0.5923,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.42,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ʍ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.35,
+    "gap": 0.6677,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.35,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 1.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ʎ": {
+    "anchor": "palatal",
+    "manner": "lateral",
+    "derived_x": 0.25,
+    "gap": 0.1525,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.18,
+        0.22
+      ],
+      "blade": [
+        0.26,
+        0.55
+      ],
+      "dorsum": [
+        0.25,
+        0.525
+      ],
+      "root": [
+        0.68,
+        0.35
+      ]
+    },
+    "lip_open": 0.32,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 1.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "ʏ": {
+    "anchor": "vowel",
+    "manner": "vowel",
+    "derived_x": 0.35,
+    "gap": 0.6677,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.24,
+        0.3
+      ],
+      "dorsum": [
+        0.35,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.85,
+    "lip_round": 0.9,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 1.0
+  },
+  "ʐ": {
+    "anchor": "retroflex",
+    "manner": "fricative",
+    "derived_x": 0.28,
+    "gap": 0.402,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.3,
+        0.2
+      ],
+      "blade": [
+        0.28,
+        0.507
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ʑ": {
+    "anchor": "palatoalveol",
+    "manner": "fricative",
+    "derived_x": 0.3,
+    "gap": 0.14,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.22
+      ],
+      "blade": [
+        0.3,
+        0.839
+      ],
+      "dorsum": [
+        0.33,
+        0.35
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.32,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ʒ": {
+    "anchor": "postalveolar",
+    "manner": "fricative",
+    "derived_x": 0.25,
+    "gap": 0.14,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.19,
+        0.25
+      ],
+      "blade": [
+        0.25,
+        0.785
+      ],
+      "dorsum": [
+        0.33,
+        0.3
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ʔ": {
+    "anchor": "glottal",
+    "manner": "stop",
+    "derived_x": null,
+    "gap": 0.402,
+    "constrictor": null,
+    "site_from": "none",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.45,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "ʕ": {
+    "anchor": "pharyngeal",
+    "manner": "fricative",
+    "derived_x": 0.7,
+    "gap": 0.14,
+    "constrictor": "root",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.4,
+        0.3
+      ],
+      "root": [
+        0.7,
+        0.48
+      ]
+    },
+    "lip_open": 0.4,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ʘ": {
+    "anchor": "bilabial",
+    "manner": "stop",
+    "derived_x": 0.0,
+    "gap": 0.0,
+    "constrictor": null,
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.0,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "ʙ": {
+    "anchor": "bilabial",
+    "manner": "trill",
+    "derived_x": 0.0,
+    "gap": 0.0,
+    "constrictor": null,
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.0,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.5
+  },
+  "ʛ": {
+    "anchor": "uvular",
+    "manner": "implosive",
+    "derived_x": 0.52,
+    "gap": 0.0,
+    "constrictor": "dorsum",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.52,
+        0.678
+      ],
+      "root": [
+        0.72,
+        0.3
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": -1.0,
+    "duration": 0.1
+  },
+  "ʜ": {
+    "anchor": "epiglottal",
+    "manner": "fricative",
+    "derived_x": 0.8,
+    "gap": 0.14,
+    "constrictor": "root",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.4,
+        0.3
+      ],
+      "root": [
+        0.8,
+        0.64
+      ]
+    },
+    "lip_open": 0.42,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ʝ": {
+    "anchor": "palatal",
+    "manner": "fricative",
+    "derived_x": 0.25,
+    "gap": 0.14,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.18,
+        0.22
+      ],
+      "blade": [
+        0.26,
+        0.55
+      ],
+      "dorsum": [
+        0.25,
+        0.785
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.32,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ʟ": {
+    "anchor": "velar",
+    "manner": "lateral",
+    "derived_x": 0.45,
+    "gap": 0.1225,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.45,
+        0.46
+      ],
+      "root": [
+        0.68,
+        0.38
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 1.0,
+    "larynx": 0.0,
+    "duration": 0.9
+  },
+  "ʡ": {
+    "anchor": "epiglottal",
+    "manner": "stop",
+    "derived_x": 0.8,
+    "gap": 0.0,
+    "constrictor": "root",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.4,
+        0.3
+      ],
+      "root": [
+        0.8,
+        0.78
+      ]
+    },
+    "lip_open": 0.42,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.1
+  },
+  "ʢ": {
+    "anchor": "epiglottal",
+    "manner": "trill",
+    "derived_x": 0.8,
+    "gap": 0.0,
+    "constrictor": "root",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.4,
+        0.3
+      ],
+      "root": [
+        0.8,
+        0.78
+      ]
+    },
+    "lip_open": 0.42,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.5
+  },
+  "β": {
+    "anchor": "bilabial",
+    "manner": "fricative",
+    "derived_x": 0.0,
+    "gap": 0.0,
+    "constrictor": null,
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.15
+      ],
+      "blade": [
+        0.24,
+        0.2
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.0,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "θ": {
+    "anchor": "dental",
+    "manner": "fricative",
+    "derived_x": 0.1,
+    "gap": 0.14,
+    "constrictor": "blade",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.1,
+        0.3
+      ],
+      "blade": [
+        0.1,
+        0.48
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.3,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "θʼ": {
+    "anchor": "dental",
+    "manner": "ejective",
+    "derived_x": 0.1,
+    "gap": 0.0,
+    "constrictor": "blade",
+    "site_from": "derived",
+    "tongue": {
+      "tip": [
+        0.1,
+        0.3
+      ],
+      "blade": [
+        0.1,
+        0.62
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.3,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 1.0,
+    "duration": 0.1
+  },
+  "χ": {
+    "anchor": "uvular",
+    "manner": "fricative",
+    "derived_x": 0.52,
+    "gap": 0.14,
+    "constrictor": "dorsum",
+    "site_from": "assigned",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.12
+      ],
+      "blade": [
+        0.24,
+        0.15
+      ],
+      "dorsum": [
+        0.52,
+        0.538
+      ],
+      "root": [
+        0.72,
+        0.3
+      ]
+    },
+    "lip_open": 0.35,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.6
+  },
+  "ⱱ": {
+    "anchor": "labiodental",
+    "manner": "flap",
+    "derived_x": null,
+    "gap": 0.402,
+    "constrictor": null,
+    "site_from": "none",
+    "tongue": {
+      "tip": [
+        0.2,
+        0.18
+      ],
+      "blade": [
+        0.24,
+        0.24
+      ],
+      "dorsum": [
+        0.33,
+        0.28
+      ],
+      "root": [
+        0.72,
+        0.25
+      ]
+    },
+    "lip_open": 0.15,
+    "lip_round": 0.0,
+    "velum": 0.0,
+    "lateral": 0.0,
+    "larynx": 0.0,
+    "duration": 0.25
+  }
+}

@@ -1,0 +1,212 @@
+{
+  "displacements": {
+    "palatalized": {
+      "blade": [
+        0.08,
+        0.35
+      ],
+      "dorsum": [
+        -0.05,
+        0.05
+      ]
+    },
+    "velarized": {
+      "dorsum": [
+        -0.18,
+        0.05
+      ],
+      "root": [
+        0.02,
+        0.08
+      ]
+    },
+    "labialized": {
+      "dorsum": [
+        -0.1,
+        0.08
+      ],
+      "tip": [
+        -0.02,
+        0.05
+      ],
+      "lip_round": [
+        "+=",
+        0.3
+      ]
+    },
+    "pharyngeal": {
+      "root": [
+        0.14,
+        0.3
+      ],
+      "dorsum": [
+        0.0,
+        -0.08
+      ]
+    },
+    "atr": {
+      "root": [
+        -0.1,
+        -0.08
+      ]
+    },
+    "rtr": {
+      "root": [
+        0.1,
+        0.08
+      ]
+    },
+    "advanced": {
+      "_all_x": -0.06
+    },
+    "retracted": {
+      "_all_x": 0.06
+    },
+    "dental": {
+      "blade": [
+        "=",
+        0.1,
+        null
+      ],
+      "tip": [
+        "=",
+        0.1,
+        null
+      ]
+    },
+    "laminal": {
+      "blade": [
+        "=",
+        0.2,
+        null
+      ],
+      "tip": [
+        "=",
+        0.16,
+        null
+      ]
+    },
+    "apical": {
+      "tip": [
+        "=",
+        0.24,
+        null
+      ],
+      "blade": [
+        "=",
+        0.22,
+        null
+      ]
+    },
+    "centralized": {
+      "dorsum": [
+        "~",
+        0.33,
+        0.5
+      ]
+    },
+    "midcent": {
+      "tip": [
+        "=",
+        0.16,
+        null
+      ]
+    }
+  },
+  "scalar": {
+    "nasal": {
+      "velum": [
+        "=",
+        0.6
+      ]
+    },
+    "nasal_rel": {
+      "velum": [
+        "=",
+        0.8
+      ],
+      "duration": [
+        "+=",
+        0.3
+      ]
+    },
+    "lat_release": {
+      "lateral": [
+        "=",
+        1.0
+      ],
+      "duration": [
+        "+=",
+        0.3
+      ]
+    },
+    "nasal_click": {
+      "velum": [
+        "=",
+        1.0
+      ],
+      "periodic": [
+        "=",
+        1.0
+      ],
+      "duration": [
+        "=",
+        1.0
+      ]
+    },
+    "raised": {
+      "lip_open": [
+        "-=",
+        0.1
+      ]
+    },
+    "lowered": {
+      "lip_open": [
+        "+=",
+        0.1
+      ]
+    },
+    "rnd_more": {
+      "lip_round": [
+        "+=",
+        0.25
+      ]
+    },
+    "rnd_less": {
+      "lip_round": [
+        "-=",
+        0.25
+      ]
+    },
+    "long": {
+      "duration": [
+        "=",
+        2.0
+      ]
+    },
+    "half": {
+      "duration": [
+        "=",
+        1.5
+      ]
+    },
+    "extra_short": {
+      "duration": [
+        "=",
+        0.5
+      ]
+    },
+    "syllabic": {
+      "duration": [
+        "+=",
+        0.5
+      ]
+    },
+    "unrel": {
+      "duration": [
+        "=",
+        0.1
+      ]
+    }
+  }
+}
