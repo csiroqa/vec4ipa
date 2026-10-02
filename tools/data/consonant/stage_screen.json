@@ -1,0 +1,43 @@
+{
+ "screen_screened": 2,
+ "screen_accepted": [
+  {
+   "file": "G6PJ5F_laterals_data_learners_tab.txt",
+   "title": "Clear vs. dark /l/ in German Learner English: Dataset for chapter 5 in \"Phonological variation in German Learner English\"",
+   "accepted": true,
+   "reason": "",
+   "on_disk": true,
+   "acoustic_columns": [
+    "F1.Hz",
+    "F2.Hz",
+    "F1.Bk",
+    "F2.Bk",
+    "F1.zBk",
+    "F2.zBk"
+   ],
+   "consonant_columns": [],
+   "rows": 897,
+   "delimiter": "';'",
+   "consonant_evidence": "dataset title"
+  },
+  {
+   "file": "G6PJ5F_laterals_data_ns_tab.txt",
+   "title": "Clear vs. dark /l/ in German Learner English: Dataset for chapter 5 in \"Phonological variation in German Learner English\"",
+   "accepted": true,
+   "reason": "",
+   "on_disk": true,
+   "acoustic_columns": [
+    "F1.Hz",
+    "F2.Hz",
+    "F1.Bk",
+    "F2.Bk",
+    "F1.zBk",
+    "F2.zBk"
+   ],
+   "consonant_columns": [],
+   "rows": 383,
+   "delimiter": "';'",
+   "consonant_evidence": "dataset title"
+  }
+ ]
+}

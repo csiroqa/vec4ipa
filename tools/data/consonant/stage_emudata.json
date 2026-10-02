@@ -1,0 +1,71 @@
+{
+ "emudata": {
+  "objects": {
+   "stops10.Rd": "Spectral matrix extracted 10 ms after stop release burst onset in syllable-initial b, d, g isolated words, one male speaker of Standard German.",
+   "stops10.lab.Rd": "Vector of phoneme labels parallel to the spectral matrix stops10",
+   "stops.dft.Rd": "Spectral data from stop release/burst onset to the onset the following vowel",
+   "stops.bark.Rd": "Spectral data from the stop release/burst onset to the onset of the following vowel",
+   "keng.Rd": "Segment list of the aspiration of syllable-initial k preceding front and back vowels, two speakers of Australian English, read speech from database andosl.",
+   "keng.dft.5.Rd": "Spectral matrix extracted at the segment's temporal midpoint from the segment list keng.",
+   "keng.l.Rd": "Vector of labels designating whether the following vowel is front or back from the segment list keng",
+   "dorfric.Rd": "Segment list of palatal and velar fricatives, read speech, one female speaker of Standard North German from database kielread",
+   "sib.Rd": "Segment list of syllable-initial z preceding i:, I one male speaker of Standard North German from database kielread.",
+   "plos.Rd": "Segment list of syllable-initial German b and d , isolated words, one male speaker from database gerplosives.",
+   "dorsal.Rd": "Segment list of a a sequence of a vowel and K where K is either a voiceless dorsal fricative or k , isolated words, one speaker, Standard North German from database epgdorsal",
+   "fr.Rd": "Segment list 200 German fricatives, 2 speakers, one male, one female",
+   "stops.l.Rd": "Vector of stop labels"
+  },
+  "files": [
+   "data/dorfric.rda",
+   "data/dorsal.rda",
+   "data/f2geraus.rda",
+   "data/fr.rda",
+   "data/keng.rda",
+   "data/plos.rda",
+   "data/sib.rda",
+   "data/stops10.rda",
+   "data/stops2.rda",
+   "data/timevow.rda",
+   "data/v.sam.rda"
+  ],
+  "docs": {
+   "stops10.Rd": "Spectral matrix extracted 10 ms after stop release burst onset in syllable-initial b, d, g isolated words, one male speaker of Standard German.",
+   "stops10.lab.Rd": "Vector of phoneme labels parallel to the spectral matrix stops10",
+   "stops.dft.Rd": "Spectral data from stop release/burst onset to the onset the following vowel",
+   "stops.bark.Rd": "Spectral data from the stop release/burst onset to the onset of the following vowel",
+   "keng.Rd": "Segment list of the aspiration of syllable-initial k preceding front and back vowels, two speakers of Australian English, read speech from database andosl.",
+   "keng.dft.5.Rd": "Spectral matrix extracted at the segment's temporal midpoint from the segment list keng.",
+   "keng.l.Rd": "Vector of labels designating whether the following vowel is front or back from the segment list keng",
+   "dorfric.Rd": "Segment list of palatal and velar fricatives, read speech, one female speaker of Standard North German from database kielread",
+   "sib.Rd": "Segment list of syllable-initial z preceding i:, I one male speaker of Standard North German from database kielread.",
+   "plos.Rd": "Segment list of syllable-initial German b and d , isolated words, one male speaker from database gerplosives.",
+   "dorsal.Rd": "Segment list of a a sequence of a vowel and K where K is either a voiceless dorsal fricative or k , isolated words, one speaker, Standard North German from database epgdorsal",
+   "fr.Rd": "Segment list 200 German fricatives, 2 speakers, one male, one female",
+   "stops.l.Rd": "Vector of stop labels"
+  },
+  "parsed": 2,
+  "total": 11,
+  "csvs": [
+   {
+    "file": "emudata_stops10_b_d_g_spectra.csv",
+    "rows": 72,
+    "spectrum_columns": 129,
+    "labels": [
+     "b",
+     "d",
+     "g"
+    ],
+    "contents": "German b/d/g, spectral matrix 10 ms after burst onset"
+   },
+   {
+    "file": "emudata_keng_aspiration_spectra.csv",
+    "rows": 23,
+    "spectrum_columns": 258,
+    "labels": [
+     "H"
+    ],
+    "contents": "Australian English /k/ aspiration noise, spectral matrix at midpoint"
+   }
+  ]
+ }
+}

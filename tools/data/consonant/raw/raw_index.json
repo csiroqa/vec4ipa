@@ -1,0 +1,1474 @@
+{
+ "1J0YZG": {
+  "title": "Solving Russian velars: Palatalization, the lexicon and gradient contrast utilization",
+  "files": [
+   "1J0YZG_Description_of_files_txt.txt",
+   "1J0YZG_entropies_preV_txt.txt",
+   "1J0YZG_entropies_wf_txt.txt",
+   "1J0YZG_paried_consonants_type_token_prob_entropy_preV_txt.txt",
+   "1J0YZG_paried_consonants_type_token_prob_entropy_wf_txt.txt",
+   "1J0YZG_script_graphs_and_stats_txt.txt"
+  ],
+  "error": ""
+ },
+ "1NBWW5": {
+  "title": "Replication Data for: Volumetric visualization of vanishing vortices in wind turbine wakes",
+  "files": [
+   "1NBWW5_00_README_txt.txt"
+  ],
+  "error": ""
+ },
+ "2BQTJP": {
+  "title": "Replication Data for: \"epialleleR: an R/BioC package for quantifying and analysing low-frequency DNA methylation\"",
+  "files": [
+   "2BQTJP_00_README_txt.txt",
+   "2BQTJP_admixed_10_10_1_100_0_0_68_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_10_1_100_0_0_68_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_10_1_100_0_0_68_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_10_1_47_53_1_1_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_10_1_47_53_1_1_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_10_1_47_53_1_1_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_1_1_11_89_0_1_57_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_1_1_11_89_0_1_57_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_1_1_11_89_0_1_57_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_1_1_60_40_1_13_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_1_1_60_40_1_13_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_1_1_60_40_1_13_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_1_1_8_92_1_67_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_1_1_8_92_1_67_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_1_1_8_92_1_67_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_2_1_85_15_0_3_46_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_2_1_85_15_0_3_46_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_2_1_85_15_0_3_46_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_3_1_20_80_1_55_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_3_1_20_80_1_55_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_3_1_20_80_1_55_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_3_1_51_49_1_120_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_3_1_51_49_1_120_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_3_1_51_49_1_120_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_4_1_69_31_1_10_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_4_1_69_31_1_10_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_4_1_69_31_1_10_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_5_1_38_62_0_3_144_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_5_1_38_62_0_3_144_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_5_1_38_62_0_3_144_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_5_1_3_97_0_03_100_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_5_1_3_97_0_03_100_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_5_1_3_97_0_03_100_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_5_1_54_46_1_42_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_5_1_54_46_1_42_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_5_1_54_46_1_42_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_7_1_38_62_1_73_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_7_1_38_62_1_73_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_7_1_38_62_1_73_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_7_1_81_19_0_03_23_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_7_1_81_19_0_03_23_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_7_1_81_19_0_03_23_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_8_1_45_55_0_01_34_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_8_1_45_55_0_01_34_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_8_1_45_55_0_01_34_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_8_1_6_94_1_72_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_8_1_6_94_1_72_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_8_1_6_94_1_72_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_8_1_85_15_0_38_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_8_1_85_15_0_38_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_8_1_85_15_0_38_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_10_9_1_57_43_0_3_66_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_10_9_1_57_43_0_3_66_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_10_9_1_57_43_0_3_66_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_10_1_35_65_0_01_6_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_10_1_35_65_0_01_6_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_10_1_35_65_0_01_6_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_10_1_87_13_0_01_103_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_10_1_87_13_0_01_103_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_10_1_87_13_0_01_103_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_10_1_91_9_0_1_8_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_10_1_91_9_0_1_8_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_10_1_91_9_0_1_8_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_1_1_62_38_0_1_134_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_1_1_62_38_0_1_134_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_1_1_62_38_0_1_134_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_1_1_65_35_0_90_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_1_1_65_35_0_90_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_1_1_65_35_0_90_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_2_1_6_94_0_1_5_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_2_1_6_94_0_1_5_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_2_1_6_94_0_1_5_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_3_1_65_35_0_01_33_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_3_1_65_35_0_01_33_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_3_1_65_35_0_01_33_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_5_1_54_46_0_01_48_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_5_1_54_46_0_01_48_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_5_1_54_46_0_01_48_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_5_1_98_2_0_1_27_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_5_1_98_2_0_1_27_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_5_1_98_2_0_1_27_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_6_1_27_73_0_03_52_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_6_1_27_73_0_03_52_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_6_1_27_73_0_03_52_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_8_1_75_25_0_3_147_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_8_1_75_25_0_3_147_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_8_1_75_25_0_3_147_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_9_1_2_98_0_01_99_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_9_1_2_98_0_01_99_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_9_1_2_98_0_01_99_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_9_1_46_54_0_94_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_9_1_46_54_0_94_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_9_1_46_54_0_94_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_9_1_49_51_0_1_121_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_9_1_49_51_0_1_121_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_9_1_49_51_0_1_121_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_1_9_1_54_46_0_03_141_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_1_9_1_54_46_0_03_141_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_1_9_1_54_46_0_03_141_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_2_10_1_26_74_0_1_49_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_2_10_1_26_74_0_1_49_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_2_10_1_26_74_0_1_49_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_2_10_1_2_98_0_03_51_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_2_10_1_2_98_0_03_51_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_2_10_1_2_98_0_03_51_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_2_1_1_64_36_0_03_132_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_2_1_1_64_36_0_03_132_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_2_1_1_64_36_0_03_132_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_2_2_1_97_3_0_03_22_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_2_2_1_97_3_0_03_22_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_2_2_1_97_3_0_03_22_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_2_3_1_87_13_0_3_32_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_2_3_1_87_13_0_3_32_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_2_3_1_87_13_0_3_32_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_2_4_1_17_83_0_3_92_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_2_4_1_17_83_0_3_92_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_2_4_1_17_83_0_3_92_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_2_5_1_85_15_0_37_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_2_5_1_85_15_0_37_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_2_5_1_85_15_0_37_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_2_6_1_100_0_0_1_104_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_2_6_1_100_0_0_1_104_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_2_6_1_100_0_0_1_104_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_2_6_1_61_39_0_3_21_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_2_6_1_61_39_0_3_21_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_2_6_1_61_39_0_3_21_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_2_7_1_48_52_0_36_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_2_7_1_48_52_0_36_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_2_7_1_48_52_0_36_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_2_8_1_33_67_0_3_59_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_2_8_1_33_67_0_3_59_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_2_8_1_33_67_0_3_59_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_2_8_1_63_37_0_117_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_2_8_1_63_37_0_117_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_2_8_1_63_37_0_117_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_2_9_1_25_75_0_01_20_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_2_9_1_25_75_0_01_20_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_2_9_1_25_75_0_01_20_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_2_9_1_30_70_0_3_97_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_2_9_1_30_70_0_3_97_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_2_9_1_30_70_0_3_97_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_10_1_2_98_0_3_16_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_10_1_2_98_0_3_16_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_10_1_2_98_0_3_16_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_1_1_11_89_0_03_58_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_1_1_11_89_0_03_58_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_1_1_11_89_0_03_58_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_1_1_54_46_0_01_43_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_1_1_54_46_0_01_43_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_1_1_54_46_0_01_43_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_1_1_55_45_0_01_143_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_1_1_55_45_0_01_143_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_1_1_55_45_0_01_143_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_1_1_66_34_0_03_116_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_1_1_66_34_0_03_116_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_1_1_66_34_0_03_116_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_4_1_11_89_0_3_114_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_4_1_11_89_0_3_114_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_4_1_11_89_0_3_114_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_4_1_15_85_0_128_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_4_1_15_85_0_128_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_4_1_15_85_0_128_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_5_1_2_98_0_1_82_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_5_1_2_98_0_1_82_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_5_1_2_98_0_1_82_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_5_1_6_94_0_01_78_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_5_1_6_94_0_01_78_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_5_1_6_94_0_01_78_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_5_1_7_93_0_01_85_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_5_1_7_93_0_01_85_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_5_1_7_93_0_01_85_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_6_1_17_83_0_03_45_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_6_1_17_83_0_03_45_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_6_1_17_83_0_03_45_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_6_1_25_75_0_105_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_6_1_25_75_0_105_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_6_1_25_75_0_105_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_6_1_81_19_0_01_40_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_6_1_81_19_0_01_40_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_6_1_81_19_0_01_40_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_7_1_78_22_0_3_118_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_7_1_78_22_0_3_118_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_7_1_78_22_0_3_118_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_8_1_98_2_0_3_86_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_8_1_98_2_0_3_86_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_8_1_98_2_0_3_86_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_9_1_40_60_1_17_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_9_1_40_60_1_17_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_9_1_40_60_1_17_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_9_1_55_45_0_01_136_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_9_1_55_45_0_01_136_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_9_1_55_45_0_01_136_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_9_1_80_20_0_03_56_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_9_1_80_20_0_03_56_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_9_1_80_20_0_03_56_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_3_9_1_83_17_0_15_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_3_9_1_83_17_0_15_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_3_9_1_83_17_0_15_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_4_10_1_77_23_0_01_31_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_4_10_1_77_23_0_01_31_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_4_10_1_77_23_0_01_31_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_4_1_1_69_31_1_53_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_4_1_1_69_31_1_53_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_4_1_1_69_31_1_53_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_4_1_1_90_10_0_03_7_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_4_1_1_90_10_0_03_7_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_4_1_1_90_10_0_03_7_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_4_2_1_89_11_1_95_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_4_2_1_89_11_1_95_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_4_2_1_89_11_1_95_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_4_4_1_36_64_0_1_125_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_4_4_1_36_64_0_1_125_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_4_4_1_36_64_0_1_125_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_4_5_1_40_60_0_3_109_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_4_5_1_40_60_0_3_109_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_4_5_1_40_60_0_3_109_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_4_5_1_87_13_0_1_110_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_4_5_1_87_13_0_1_110_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_4_5_1_87_13_0_1_110_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_4_7_1_22_78_0_3_9_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_4_7_1_22_78_0_3_9_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_4_7_1_22_78_0_3_9_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_4_8_1_5_95_0_03_62_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_4_8_1_5_95_0_03_62_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_4_8_1_5_95_0_03_62_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_5_10_1_86_14_0_01_25_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_5_10_1_86_14_0_01_25_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_5_10_1_86_14_0_01_25_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_5_1_1_44_56_0_3_124_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_5_1_1_44_56_0_3_124_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_5_1_1_44_56_0_3_124_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_5_1_1_86_14_0_4_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_5_1_1_86_14_0_4_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_5_1_1_86_14_0_4_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_5_2_1_9_91_0_3_84_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_5_2_1_9_91_0_3_84_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_5_2_1_9_91_0_3_84_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_5_3_1_31_69_0_1_138_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_5_3_1_31_69_0_1_138_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_5_3_1_31_69_0_1_138_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_5_4_1_31_69_0_2_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_5_4_1_31_69_0_2_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_5_4_1_31_69_0_2_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_5_4_1_43_57_0_1_47_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_5_4_1_43_57_0_1_47_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_5_4_1_43_57_0_1_47_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_5_4_1_94_6_1_107_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_5_4_1_94_6_1_107_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_5_5_1_1_99_0_03_111_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_5_5_1_1_99_0_03_111_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_5_5_1_1_99_0_03_111_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_5_7_1_9_91_0_1_137_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_5_7_1_9_91_0_1_137_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_5_7_1_9_91_0_1_137_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_5_8_1_6_94_0_1_93_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_5_8_1_6_94_0_1_93_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_5_8_1_6_94_0_1_93_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_2_1_28_72_0_01_26_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_2_1_28_72_0_01_26_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_2_1_28_72_0_01_26_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_2_1_60_40_0_102_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_2_1_60_40_0_102_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_2_1_60_40_0_102_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_2_1_72_28_0_01_130_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_2_1_72_28_0_01_130_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_2_1_72_28_0_01_130_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_2_1_85_15_0_03_108_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_2_1_85_15_0_03_108_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_2_1_85_15_0_03_108_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_3_1_77_23_0_1_77_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_3_1_77_23_0_1_77_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_3_1_77_23_0_1_77_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_3_1_86_14_0_140_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_3_1_86_14_0_140_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_3_1_90_10_0_135_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_3_1_90_10_0_135_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_3_1_90_10_0_135_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_4_1_51_49_0_96_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_4_1_51_49_0_96_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_4_1_51_49_0_96_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_4_1_85_15_0_3_28_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_4_1_85_15_0_3_28_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_4_1_85_15_0_3_28_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_4_1_96_4_0_3_145_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_4_1_96_4_0_3_145_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_4_1_96_4_0_3_145_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_5_1_32_68_0_1_123_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_5_1_32_68_0_1_123_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_5_1_32_68_0_1_123_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_5_1_48_52_0_03_131_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_5_1_48_52_0_03_131_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_5_1_48_52_0_03_131_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_5_1_77_23_0_01_39_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_5_1_77_23_0_01_39_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_5_1_77_23_0_01_39_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_6_1_21_79_0_3_113_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_6_1_21_79_0_3_113_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_6_1_21_79_0_3_113_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_7_1_39_61_0_03_18_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_7_1_39_61_0_03_18_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_7_1_39_61_0_03_18_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_8_1_52_48_1_106_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_8_1_52_48_1_106_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_8_1_52_48_1_106_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_9_1_44_56_0_01_69_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_9_1_44_56_0_01_69_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_9_1_44_56_0_01_69_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_6_9_1_85_15_1_12_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_6_9_1_85_15_1_12_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_6_9_1_85_15_1_12_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_10_1_47_53_1_127_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_10_1_47_53_1_127_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_10_1_47_53_1_127_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_10_1_58_42_0_3_65_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_10_1_58_42_0_3_65_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_10_1_58_42_0_3_65_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_10_1_70_30_0_03_101_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_10_1_70_30_0_03_101_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_10_1_70_30_0_03_101_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_1_1_44_56_1_149_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_1_1_44_56_1_149_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_1_1_44_56_1_149_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_2_1_54_46_0_3_91_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_2_1_54_46_0_3_91_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_2_1_54_46_0_3_91_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_4_1_11_89_0_119_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_4_1_31_69_0_03_133_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_4_1_31_69_0_03_133_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_4_1_3_97_1_3_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_4_1_3_97_1_3_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_4_1_3_97_1_3_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_4_1_4_96_0_03_76_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_4_1_4_96_0_03_76_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_4_1_4_96_0_03_76_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_5_1_26_74_1_61_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_5_1_26_74_1_61_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_5_1_26_74_1_61_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_5_1_84_16_0_41_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_5_1_84_16_0_41_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_5_1_84_16_0_41_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_6_1_92_8_0_63_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_6_1_92_8_0_63_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_6_1_92_8_0_63_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_6_1_9_91_0_1_129_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_6_1_9_91_0_1_129_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_6_1_9_91_0_1_129_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_7_1_49_51_0_3_83_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_7_1_49_51_0_3_83_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_7_1_49_51_0_3_83_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_7_1_70_30_1_64_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_7_1_70_30_1_64_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_7_1_70_30_1_64_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_8_1_15_85_0_1_71_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_8_1_15_85_0_1_71_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_8_1_15_85_0_1_71_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_9_1_100_0_0_03_87_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_9_1_100_0_0_03_87_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_9_1_100_0_0_03_87_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_7_9_1_6_94_0_03_122_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_7_9_1_6_94_0_03_122_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_7_9_1_6_94_0_03_122_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_8_10_1_85_15_0_01_74_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_8_10_1_85_15_0_01_74_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_8_10_1_85_15_0_01_74_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_8_3_1_87_13_0_01_148_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_8_3_1_87_13_0_01_148_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_8_3_1_87_13_0_01_148_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_8_4_1_4_96_0_01_142_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_8_4_1_4_96_0_01_142_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_8_4_1_4_96_0_01_142_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_8_4_1_92_8_1_24_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_8_4_1_92_8_1_24_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_8_4_1_92_8_1_24_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_8_5_1_87_13_0_03_29_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_8_5_1_87_13_0_03_29_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_8_5_1_87_13_0_03_29_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_8_6_1_88_12_0_1_35_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_8_6_1_88_12_0_1_35_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_8_6_1_88_12_0_1_35_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_8_7_1_93_7_0_01_126_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_8_7_1_93_7_0_01_126_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_8_7_1_93_7_0_01_126_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_8_8_1_20_80_0_03_11_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_8_8_1_20_80_0_03_11_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_8_8_1_20_80_0_03_11_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_8_8_1_26_74_0_50_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_8_8_1_26_74_0_50_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_8_8_1_26_74_0_50_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_8_8_1_99_1_0_1_19_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_8_8_1_99_1_0_1_19_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_8_8_1_99_1_0_1_19_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_8_9_1_18_82_1_88_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_8_9_1_18_82_1_88_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_8_9_1_18_82_1_88_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_8_9_1_47_53_1_14_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_8_9_1_47_53_1_14_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_8_9_1_47_53_1_14_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_1_1_59_41_1_89_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_1_1_59_41_1_89_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_1_1_59_41_1_89_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_1_1_75_25_0_3_54_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_1_1_75_25_0_3_54_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_1_1_75_25_0_3_54_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_1_1_91_9_0_70_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_1_1_91_9_0_70_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_1_1_91_9_0_70_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_2_1_12_88_0_03_146_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_2_1_12_88_0_03_146_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_2_1_12_88_0_03_146_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_3_1_64_36_0_1_139_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_3_1_64_36_0_1_139_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_3_1_64_36_0_1_139_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_4_1_4_96_0_3_81_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_4_1_4_96_0_3_81_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_4_1_4_96_0_3_81_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_5_1_10_90_0_150_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_5_1_10_90_0_150_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_5_1_10_90_0_150_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_5_1_3_97_0_80_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_5_1_3_97_0_80_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_5_1_3_97_0_80_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_6_1_27_73_0_1_79_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_6_1_27_73_0_1_79_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_6_1_27_73_0_1_79_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_6_1_84_16_1_98_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_6_1_84_16_1_98_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_6_1_84_16_1_98_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_7_1_41_59_0_1_75_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_7_1_41_59_0_1_75_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_7_1_41_59_0_1_75_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_7_1_56_44_0_01_44_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_7_1_56_44_0_01_44_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_7_1_56_44_0_01_44_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_8_1_48_52_0_1_60_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_8_1_48_52_0_1_60_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_8_1_48_52_0_1_60_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_8_1_78_22_0_112_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_8_1_78_22_0_112_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_8_1_78_22_0_112_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_9_1_30_70_0_01_30_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_9_1_30_70_0_01_30_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_9_1_30_70_0_01_30_epi_VEF_report_txt.txt",
+   "2BQTJP_admixed_9_9_1_77_23_0_115_dragen_CX_report_txt.txt",
+   "2BQTJP_admixed_9_9_1_77_23_0_115_epi_CX_report_txt.txt",
+   "2BQTJP_admixed_9_9_1_77_23_0_115_epi_VEF_report_txt.txt",
+   "2BQTJP_all_shell_commands_txt.txt",
+   "2BQTJP_amplicon_highdepth_epi_meth_135_txt.txt",
+   "2BQTJP_capture_highdepth_epi_meth_135_txt.txt",
+   "2BQTJP_capture_lowdepth_epi_meth_135_txt.txt",
+   "2BQTJP_SamplesTable_txt.txt",
+   "2BQTJP_SOLDAT_full_report_tsv.txt"
+  ],
+  "error": ""
+ },
+ "2DQK6Z": {
+  "title": "Replication Data for: Benchmarking density functional methods for harmonic vibrational frequencies. IN REVIEW",
+  "files": [
+   "2DQK6Z_01_README_txt.txt",
+   "2DQK6Z_AF_sig_err_txt.txt",
+   "2DQK6Z_AF_sig_rel_err_txt.txt",
+   "2DQK6Z_AF_unsig_err_txt.txt",
+   "2DQK6Z_AF_unsig_rel_err_txt.txt",
+   "2DQK6Z_all_freq_txt.txt",
+   "2DQK6Z_each_mol_txt.txt",
+   "2DQK6Z_freq_range_txt.txt",
+   "2DQK6Z_sig_err_txt.txt",
+   "2DQK6Z_sig_rel_err_txt.txt",
+   "2DQK6Z_unsig_err_txt.txt",
+   "2DQK6Z_unsig_rel_err_txt.txt"
+  ],
+  "error": ""
+ },
+ "38HOYX": {
+  "title": "Replication Data for: Acoustic occurrence of deep-diving cetaceans in the southern Adriatic Sea",
+  "files": [
+   "38HOYX_00_README_txt.txt"
+  ],
+  "error": ""
+ },
+ "3LCQJX": {
+  "title": "Biomarker, foraminiferal abundance, stable isotope and trace element data from sediment cores JM11-FI-19PC and LINK 16 from the southern Norwegian Sea during 130-110 ka",
+  "files": [
+   "3LCQJX_00_README_Ezat_et_al_txt.txt",
+   "3LCQJX_Age_models_for_sediment_cores_LINK_16_and_JM11_FI_19PC_csv.txt",
+   "3LCQJX_Data_for_sediment_core_LINK16_csv.txt",
+   "3LCQJX_Data_from_sediment_core_JM11_FI_19PC_csv.txt"
+  ],
+  "error": ""
+ },
+ "3OTFVO": {
+  "title": "Replication data for: Biochemical changes after cold acclimation in Nordic red clover (Trifolium pratense L.) accessions with contrasting levels of freezing tolerance",
+  "files": [
+   "3OTFVO_00_readme_txt.txt",
+   "3OTFVO_Amino_Acids_content_txt.txt",
+   "3OTFVO_Carbohydrates_content_txt.txt"
+  ],
+  "error": ""
+ },
+ "5EOSVJ": {
+  "title": "Replication Data for: 4D imaging of two-phase flow in porous media using laboratory-based micro-Computed Tomography",
+  "files": [
+   "5EOSVJ_00_README_txt.txt"
+  ],
+  "error": ""
+ },
+ "6MEOMA": {
+  "title": "Raw data for \"Adipogenic activity of chemicals used in plastic consumer products\"",
+  "files": [
+   "6MEOMA_00_readme_txt.txt"
+  ],
+  "error": ""
+ },
+ "7NLJSG": {
+  "title": "Data on Icelandic pre-aspiration",
+  "files": [
+   "7NLJSG_ReadMe_txt.txt"
+  ],
+  "error": ""
+ },
+ "7TSABU": {
+  "title": "Replication data for: Chunking or predicting – frequency information and reduction in the perception of multi-word sequences",
+  "files": [
+   "7TSABU_00_ReadMe_ChunkingPredicting_txt.txt",
+   "7TSABU_ChunkingPredicting_accuracy_model_R_txt.txt",
+   "7TSABU_ChunkingPredicting_GAMM_and_plots_R_txt.txt",
+   "7TSABU_sall_clean_tab.txt",
+   "7TSABU_sall_items_tab.txt",
+   "7TSABU_sall_results_tab.txt",
+   "7TSABU_sall_target_tab.txt"
+  ],
+  "error": ""
+ },
+ "89MLBP": {
+  "title": "Replication Data for: Influence of light availability and soil productivity on insect herbivory on bilberry (Vaccinium myrtillus L.) leaves following mammalian herbivory",
+  "files": [
+   "89MLBP_00_ReadMe_txt.txt",
+   "89MLBP_02_Mammalian_insect_herbivory_bilberry_R_script_txt.txt",
+   "89MLBP_04_Mammalian_insect_herbivory_bilberry_txt.txt"
+  ],
+  "error": ""
+ },
+ "8JBWCJ": {
+  "title": "Replication data for: New method to determine near-surface currents from measurements of the wave spectrum",
+  "files": [
+   "8JBWCJ_00_README_txt.txt",
+   "8JBWCJ_ctil_txt.txt",
+   "8JBWCJ_disprel_txt.txt",
+   "8JBWCJ_kspectrum_txt.txt",
+   "8JBWCJ_parameters_txt.txt",
+   "8JBWCJ_u_prof_txt.txt"
+  ],
+  "error": ""
+ },
+ "8TWPS8": {
+  "title": "Replication Data for: Connecting the dots: Relationship between heart rate and Overall Dynamic Body Acceleration (ODBA) in free-ranging cattle",
+  "files": [
+   "8TWPS8_00_readme_txt.txt"
+  ],
+  "error": ""
+ },
+ "ABRUWW": {
+  "title": "NTNU Intranasal Naloxone Trial (NINA-1) Study documents",
+  "files": [
+   "ABRUWW_00readme_1_txt.txt"
+  ],
+  "error": ""
+ },
+ "ADPC3A": {
+  "title": "Replication data for: Enchaînement, liaison, accentuation chez les apprenants norvégiens",
+  "files": [
+   "ADPC3A_Enchainement_conversation_txt.txt",
+   "ADPC3A_Enchainement_Text_txt.txt",
+   "ADPC3A_Liaison_conversation_txt.txt",
+   "ADPC3A_Liaison_text_txt.txt"
+  ],
+  "error": ""
+ },
+ "AOK1F3": {
+  "title": "Replication Data for: Interactive population effects of sublethal copper exposure and predation risk in a naturally stressful environment",
+  "files": [
+   "AOK1F3_Concentration_animals_csv.txt",
+   "AOK1F3_MesocosmDataHeuscheleetal_csv.txt",
+   "AOK1F3_readmefiledataverse_txt.txt",
+   "AOK1F3_StableIsotopeData_csv.txt"
+  ],
+  "error": ""
+ },
+ "APTUHA": {
+  "title": "Replication data for: Measure schematicity through information content: A quantitative approach to grammaticalization",
+  "files": [
+   "APTUHA_00_ReadMe_Measure_schematicity_through_information_content_txt.txt"
+  ],
+  "error": ""
+ },
+ "ATIRRV": {
+  "title": "The TRAP-DRESS contrast in German Learner English: Dataset for chapter 4 in \"Phonological variation in German Learner English\"",
+  "files": [
+   "ATIRRV_00_ReadMe_ch04_trap_txt.txt",
+   "ATIRRV_learner_biodata_tab.txt",
+   "ATIRRV_ns_biodata_tab.txt",
+   "ATIRRV_trap_data_learners_tab.txt",
+   "ATIRRV_trap_data_ns_tab.txt"
+  ],
+  "error": ""
+ },
+ "B276ZX": {
+  "title": "The labiodental fricative /v/ in German Learner English: Dataset for chapter 8 in \"Phonological variation in German Learner English\"",
+  "files": [
+   "B276ZX_00_ReadMe_ch08_v_txt.txt",
+   "B276ZX_learner_biodata_tab.txt",
+   "B276ZX_v_data_rank_tab.txt",
+   "B276ZX_v_data_soenning_tab.txt"
+  ],
+  "error": ""
+ },
+ "BIIGT6": {
+  "title": "Replication Data for: Predicting Russian aspect by frequency across genres",
+  "files": [
+   "BIIGT6_00_readme_file_txt.txt",
+   "BIIGT6_fic50factor1tagged_tab.txt",
+   "BIIGT6_journ50_factor1tagged_tab.txt",
+   "BIIGT6_scitech50factor1tagged_tab.txt"
+  ],
+  "error": ""
+ },
+ "BLIFW8": {
+  "title": "Replication Data for: Harvesting history affects soil respiration and litterfall but not overall carbon balance in boreal Norway spruce forests",
+  "files": [
+   "BLIFW8_00_README_txt.txt",
+   "BLIFW8_01_Tree_litter_annual_csv.txt",
+   "BLIFW8_02_Tree_litter_seasonal_csv.txt",
+   "BLIFW8_03_Ground_vegetation_csv.txt",
+   "BLIFW8_04_Respiration_csv.txt",
+   "BLIFW8_05_Upscaled_respiration_csv.txt",
+   "BLIFW8_06_Basal_area_csv.txt"
+  ],
+  "error": ""
+ },
+ "BSTYXU": {
+  "title": "Replication data for: Scaling and dynamics of vortex lock-in for circular cylinders in an oscillating flow",
+  "files": [
+   "BSTYXU_00_README_txt.txt",
+   "BSTYXU_LockIn_points_txt.txt"
+  ],
+  "error": ""
+ },
+ "C8MQ7V": {
+  "title": "Replication Data for: Formation of an additional density peak in the bottom side of the sodium layer associated with the passage of multiple mesospheric frontal systems",
+  "files": [
+   "C8MQ7V_00_ReadMe_txt.txt",
+   "C8MQ7V_CrossF1_txt.txt",
+   "C8MQ7V_CrossF2_txt.txt",
+   "C8MQ7V_CrossF3_txt.txt",
+   "C8MQ7V_heights20141219_txt.txt",
+   "C8MQ7V_meridionalwind20141219_txt.txt",
+   "C8MQ7V_Nadensity20141219_txt.txt",
+   "C8MQ7V_temperature20141219_txt.txt",
+   "C8MQ7V_time20141219_txt.txt",
+   "C8MQ7V_ZenithIntRaw_txt.txt",
+   "C8MQ7V_zonalwind20141219_txt.txt"
+  ],
+  "error": ""
+ },
+ "CGDQAO": {
+  "title": "Specific Power Output of Wind, Solar and Wave Energy Devices Located in the Vicinity of a Recirculating Aquaculture System in Western Norway",
+  "files": [
+   "CGDQAO_00_ReadMe_txt.txt",
+   "CGDQAO_Spec_solar_power_output_txt.txt",
+   "CGDQAO_Spec_wave_power_output_txt.txt"
+  ],
+  "error": ""
+ },
+ "EYUPME": {
+  "title": "Supporting Data for: Investigating the covariation of features in ‘crowded’ vowel spaces – A corpus-based study of BOOT and BIT in Standard Scottish English",
+  "files": [
+   "EYUPME_00_ReadMe_CovariationOfFeaturesInCrowdedVowelSpaces_txt.txt",
+   "EYUPME_SSE_I_csv.txt",
+   "EYUPME_SSE_U_csv.txt",
+   "EYUPME_SSE_vowels_csv.txt"
+  ],
+  "error": ""
+ },
+ "F5WGQQ": {
+  "title": "R scripts and data for \"Surf's up; summer peak flows reduce offspring survival in a semi-aquatic species, the Eurasian beaver\" 2026",
+  "files": [
+   "F5WGQQ_beaver1_csv_csv.txt",
+   "F5WGQQ_beaver2_csv_csv.txt",
+   "F5WGQQ_o_ReadMe_txt.txt"
+  ],
+  "error": ""
+ },
+ "FEC2BO": {
+  "title": "Replication Data for: Perceiving and identifying vowels in regional accents of English: Evidence from Dutch- and Spanish-speaking L2 listeners",
+  "files": [
+   "FEC2BO_0_RegionalAccents_README_txt.txt",
+   "FEC2BO_Dutch_AusE_probs_csv.txt",
+   "FEC2BO_Dutch_N_Eng_probs_csv.txt",
+   "FEC2BO_Dutch_S_Eng_probs_csv.txt",
+   "FEC2BO_RegionalAccents_AusE_csv.txt",
+   "FEC2BO_RegionalAccents_Categorization_Dutch_csv.txt",
+   "FEC2BO_RegionalAccents_Categorization_Spanish_csv.txt",
+   "FEC2BO_RegionalAccents_Familiarity_Dutch_csv.txt",
+   "FEC2BO_RegionalAccents_Familiarity_Spanish_csv.txt",
+   "FEC2BO_RegionalAccents_Predictions_Dutch_csv.txt",
+   "FEC2BO_RegionalAccents_Predictions_Spanish_csv.txt",
+   "FEC2BO_RegionalAccents_Questionnaire_Dutch_csv.txt",
+   "FEC2BO_RegionalAccents_S_Eng_Speakers_csv.txt",
+   "FEC2BO_Spanish_N_Eng_probs_csv.txt",
+   "FEC2BO_Spanish_S_Eng_probs_csv.txt"
+  ],
+  "error": ""
+ },
+ "FWUKX0": {
+  "title": "Replication Data for: Bivalve shell horizons in seafloor pockmarks of the last glacial-interglacial transition suggest a thousand years of methane emissions in the Arctic Ocean",
+  "files": [
+   "FWUKX0_01_Readme_Carroll_txt.txt",
+   "FWUKX0_02_Original_Data_tables_tab.txt",
+   "FWUKX0_Ambrose_etal_Revision_Final_txt.txt",
+   "FWUKX0_Data_tables_table1_txt.txt",
+   "FWUKX0_Data_tables_table2_txt.txt",
+   "FWUKX0_Two_endmember_mixing_model_txt.txt"
+  ],
+  "error": ""
+ },
+ "G6PJ5F": {
+  "title": "Clear vs. dark /l/ in German Learner English: Dataset for chapter 5 in \"Phonological variation in German Learner English\"",
+  "files": [
+   "G6PJ5F_00_ReadMe_ch05_laterals_txt.txt",
+   "G6PJ5F_laterals_data_learners_tab.txt",
+   "G6PJ5F_laterals_data_ns_tab.txt",
+   "G6PJ5F_learner_biodata_tab.txt",
+   "G6PJ5F_ns_biodata_tab.txt"
+  ],
+  "error": ""
+ },
+ "GDT85X": {
+  "title": "Replication data for: Compressional wave phase velocity measurements during hydrate growth in partially and fully water saturated sandstone",
+  "files": [
+   "GDT85X_00_ReadMe_txt.txt"
+  ],
+  "error": ""
+ },
+ "GHZIIY": {
+  "title": "Replication Data for: Charged dust in the D-region incoherent scatter spectrum",
+  "files": [
+   "GHZIIY_00_README_txt.txt"
+  ],
+  "error": ""
+ },
+ "GTI2BR": {
+  "title": "Speech rhythm in German Learner English: Dataset for \"(Re-)viewing the acquisition of rhythm in the light of L2 phonological theories\"",
+  "files": [
+   "GTI2BR_00_ReadMe_rev_rhy_txt.txt",
+   "GTI2BR_2022_07_10_nPVI_V_data_learners_csv.txt",
+   "GTI2BR_2022_08_16_vocalic_intervals_data_learners_csv.txt",
+   "GTI2BR_2022_08_16_vocalic_intervals_data_ns_csv.txt",
+   "GTI2BR_2022_08_18_percentV_data_learners_csv.txt",
+   "GTI2BR_2022_08_18_VarcoV_data_learners_csv.txt",
+   "GTI2BR_2022_08_18_vocalic_intervals_data_learners_csv.txt",
+   "GTI2BR_learner_biodata_csv.txt",
+   "GTI2BR_ns_biodata_csv.txt"
+  ],
+  "error": ""
+ },
+ "H8MNKT": {
+  "title": "Replication Data for: Detecting silent whales using seabed fibre optic cables",
+  "files": [
+   "H8MNKT_00_README_txt.txt",
+   "H8MNKT_Inner_cable_csv.txt",
+   "H8MNKT_Outer_cable_csv.txt",
+   "H8MNKT_Svalbard_Isfjorden_ships_20220824_00_20220825_00_csv.txt",
+   "H8MNKT_Svalbard_Isfjorden_ships_20250801_00_20250808_00_csv.txt"
+  ],
+  "error": ""
+ },
+ "HJN3LV": {
+  "title": "Replication Data for: Goose grubbing and warming suppress summer net ecosystem CO2 uptake differentially across high-Arctic tundra habitats",
+  "files": [
+   "HJN3LV_00_ReadMe_CO2Fluxes_v1_txt.txt",
+   "HJN3LV_CO2Fluxes_dataset_v1_txt.txt"
+  ],
+  "error": ""
+ },
+ "HOSUV0": {
+  "title": "Medium-Frequency Acoustic Attenuation and Natural Convection in Nanofluids: Effect of Aggregate Size (ONESTEP)",
+  "files": [
+   "HOSUV0_00_README_ONESTEP_Attenuation_txt.txt"
+  ],
+  "error": ""
+ },
+ "IIZ1BZ": {
+  "title": "Replication Data for: Going with the flow - population genetics of the kelp Saccharina latissima (Phaeophyceae, Laminariales) in Norway",
+  "files": [
+   "IIZ1BZ_00_README_txt.txt",
+   "IIZ1BZ_01_Stations_txt.txt",
+   "IIZ1BZ_02_microsatellite_genotypes_txt.txt"
+  ],
+  "error": ""
+ },
+ "IORWF6": {
+  "title": "Primary data for: Metathesis and Unmetathesis in Amarasi",
+  "files": [
+   "IORWF6_0_ReadMe_txt.txt"
+  ],
+  "error": ""
+ },
+ "IZ63JH": {
+  "title": "Replication data for \"Performance improvement in a supercontinuum fiber-coupled system for near infrared absorption spectroscopy\"",
+  "files": [
+   "IZ63JH_00_Readme_txt.txt",
+   "IZ63JH_05_Direct_splitter_CMRR_std_txt.txt",
+   "IZ63JH_05_Direct_splitter_pulses_balanced_txt.txt",
+   "IZ63JH_05_Direct_splitter_pulses_laser_RIN_txt.txt",
+   "IZ63JH_05_Direct_splitter_shot_noise_txt.txt",
+   "IZ63JH_05_Direct_splitter_unbalanced_ref_txt.txt",
+   "IZ63JH_06_Direct_splitter_pulses_balanced_200avg_txt.txt",
+   "IZ63JH_07_Transmission_water_pulses_balanced_200avg_txt.txt",
+   "IZ63JH_07_Transmission_water_pulses_laser_RIN_txt.txt",
+   "IZ63JH_07_Transmission_water_std_txt.txt",
+   "IZ63JH_07_Transmission_water_unbalanced_ref_txt.txt",
+   "IZ63JH_10_Glucose_pointmeas_prediction_txt.txt",
+   "IZ63JH_10_Glucose_pointmeas_preprocessed_txt.txt",
+   "IZ63JH_10_Glucose_pointmeas_raw_txt.txt"
+  ],
+  "error": ""
+ },
+ "JEWIVW": {
+  "title": "Replication data for: What makes a word easy to acquire? The effects of word class, frequency, imageability and phonological neighbourhood density on lexical development",
+  "files": [
+   "JEWIVW_main_data_txt.txt",
+   "JEWIVW_Norwegian_CDS_frequency_txt.txt",
+   "JEWIVW_readme_main_data_txt.txt",
+   "JEWIVW_readme_Norwegian_CDS_frequency_txt.txt"
+  ],
+  "error": ""
+ },
+ "JKHCDE": {
+  "title": "Replication Data for: Decomposition of plant, fungal and tea litter in Picea abies forests with and without a history of clear-cutting",
+  "files": [
+   "JKHCDE_00_README_txt.txt",
+   "JKHCDE_01_Picea_Vaccinium_net_mass_csv.txt",
+   "JKHCDE_02_Picea_Vaccinium_k_csv.txt",
+   "JKHCDE_03_Cenococcum_Suillus_csv.txt",
+   "JKHCDE_04_Tea_net_mass_csv.txt",
+   "JKHCDE_05_TBI_k_csv.txt",
+   "JKHCDE_06_TBI_S_csv.txt"
+  ],
+  "error": ""
+ },
+ "JYS0Z1": {
+  "title": "Replication Data for: L'acquisition des voyelles nasales en français : une étude acoustique et perceptive sur la prononciation des apprenants néerlandophones belges",
+  "files": [
+   "JYS0Z1_0_README_Acquiring_nasal_vowels_in_French_txt.txt",
+   "JYS0Z1_2_Anvif_perception_csv.txt",
+   "JYS0Z1_3_Anvif_production_within_groups_csv.txt",
+   "JYS0Z1_4_Anvif_production_across_groups_csv.txt",
+   "JYS0Z1_6_Anvif_production_L1_txt.txt",
+   "JYS0Z1_7_Anvif_production_L2_txt.txt",
+   "JYS0Z1_8_Anvif_production_L1_L2_txt.txt"
+  ],
+  "error": ""
+ },
+ "KH6YDI": {
+  "title": "Supporting data for: Incipient vowel splits in Standard Scottish English",
+  "files": [
+   "KH6YDI_00_ReadMe_IncipientVowelSplitsInSSE_txt.txt",
+   "KH6YDI_SSE_VPairs_csv.txt"
+  ],
+  "error": ""
+ },
+ "KIJEWJ": {
+  "title": "Replication data for: Assessment of Data-Driven Techniques for Flow Rate Predictions in Sub-sea Oil Production",
+  "files": [
+   "KIJEWJ_00_ReadMe_txt.txt"
+  ],
+  "error": ""
+ },
+ "L0VPW7": {
+  "title": "Zooplankton spectral bioluminescence database",
+  "files": [
+   "L0VPW7_00_README_file_txt.txt",
+   "L0VPW7_General_info_csv.txt",
+   "L0VPW7_QEPro_data_processing_V1_3_txt.txt",
+   "L0VPW7_sbc030_Subt4__21__19_31_04_773_txt.txt",
+   "L0VPW7_sbc036_Subt4__50__19_24_23_771_txt.txt",
+   "L0VPW7_SBL018_Subt4__117__16_42_45_095_txt.txt",
+   "L0VPW7_SBL021_Subt4__70__13_34_23_781_txt.txt",
+   "L0VPW7_SBL022_Subt4__52__13_47_09_386_txt.txt",
+   "L0VPW7_SBL024_Subt4__15__15_04_46_812_txt.txt",
+   "L0VPW7_SBL027_b_Subt4__46__16_01_46_501_txt.txt",
+   "L0VPW7_SBL028_Subt4__14__16_03_40_502_txt.txt",
+   "L0VPW7_SBL029_Subt4__9__16_05_39_503_txt.txt",
+   "L0VPW7_sbl036_Subt4__5__13_21_15_141_txt.txt",
+   "L0VPW7_SBL042_b_Subt4__57__14_52_13_951_txt.txt",
+   "L0VPW7_SBL043_Subt4__9__15_21_33_274_txt.txt",
+   "L0VPW7_SBL052_Subt4__13__17_12_10_093_txt.txt",
+   "L0VPW7_SBL054_Subt4__22__17_19_22_097_txt.txt",
+   "L0VPW7_SBL055_Subt2__14__11_29_41_673_txt.txt",
+   "L0VPW7_SBL056_Subt2__11__11_33_07_675_txt.txt",
+   "L0VPW7_SBL061_Subt2__23__11_48_31_681_txt.txt",
+   "L0VPW7_SBL062_Subt2__11__11_50_33_682_txt.txt",
+   "L0VPW7_SBL063_Subt2__27__11_54_35_684_txt.txt",
+   "L0VPW7_SBL066_Subt4__3__14_07_19_878_txt.txt",
+   "L0VPW7_SBL067_Subt4__10__14_09_55_878_txt.txt",
+   "L0VPW7_SBL068B_Subt4__9__14_37_01_890_txt.txt",
+   "L0VPW7_SBL069B_Subt4__7__14_35_21_889_txt.txt",
+   "L0VPW7_SBL071_Subt4__3__14_25_35_886_txt.txt",
+   "L0VPW7_SBL072_Subt4__3__14_28_07_887_txt.txt",
+   "L0VPW7_SBL073_Subt4__21__14_30_33_888_txt.txt",
+   "L0VPW7_SBL074_Subt4__4__14_32_15_888_txt.txt",
+   "L0VPW7_SBL080_Subt4__26__17_57_46_682_txt.txt",
+   "L0VPW7_SBL081_Subt4__13__17_59_36_684_txt.txt",
+   "L0VPW7_SBL082_Subt4__22__18_01_16_684_txt.txt",
+   "L0VPW7_SBL093_Subt2__12__10_17_58_889_txt.txt",
+   "L0VPW7_SBL094_Subt2__6__10_19_50_891_txt.txt",
+   "L0VPW7_SBL096_Subt2__3__10_22_20_892_txt.txt",
+   "L0VPW7_SBL097_Subt2__12__10_23_44_893_txt.txt",
+   "L0VPW7_SBL099_Subt2__3__10_26_06_894_txt.txt",
+   "L0VPW7_SBL100_Subt2__8__10_27_26_895_txt.txt",
+   "L0VPW7_SBL101_Subt2__5__10_28_28_894_txt.txt",
+   "L0VPW7_SBL102_Subt2__4__10_29_56_896_txt.txt",
+   "L0VPW7_SBL103_Subt2__10__10_31_10_897_txt.txt",
+   "L0VPW7_SBL104_Subt2__9__18_12_56_785_txt.txt",
+   "L0VPW7_SBL105_Subt2__5__18_14_28_785_txt.txt",
+   "L0VPW7_SBL106_Subt2__11__18_15_46_785_txt.txt",
+   "L0VPW7_SBL107_Subt2__21__18_17_09_787_txt.txt",
+   "L0VPW7_SBL108_Subt2__7__18_18_10_787_txt.txt",
+   "L0VPW7_SBL109_Subt2__9__18_19_14_787_txt.txt",
+   "L0VPW7_SBL110_Subt2__28__18_20_36_788_txt.txt",
+   "L0VPW7_SBL111_Subt2__9__18_21_30_789_txt.txt",
+   "L0VPW7_SBL113_Subt2__4__18_23_53_789_txt.txt",
+   "L0VPW7_SBL114_Subt2__6__18_24_49_789_txt.txt",
+   "L0VPW7_SBL115_Subt2__9__18_25_54_790_txt.txt",
+   "L0VPW7_SBL116_Subt2__7__18_26_50_792_txt.txt",
+   "L0VPW7_SBL117_Subt2__16__18_28_04_792_txt.txt",
+   "L0VPW7_SBL118_Subt2__9__18_29_02_793_txt.txt",
+   "L0VPW7_SBL119_Subt2__8__18_29_54_793_txt.txt",
+   "L0VPW7_SBL121_Subt2__8__18_32_00_794_txt.txt",
+   "L0VPW7_SBL122_Subt2__8__18_32_59_794_txt.txt",
+   "L0VPW7_SBL126_Subt2__70__14_33_41_668_txt.txt",
+   "L0VPW7_SBL128_B_Subt4__12__15_05_12_344_txt.txt",
+   "L0VPW7_SBL136_Subt2__13__14_16_33_423_txt.txt",
+   "L0VPW7_SBL142_Subt4__11__15_03_22_398_txt.txt",
+   "L0VPW7_SBL143_B_Subt8__10__17_26_20_489_txt.txt",
+   "L0VPW7_SBL144_B_Subt8__38__17_28_31_990_txt.txt",
+   "L0VPW7_SBL148_A_Subt8__30__17_41_40_493_txt.txt",
+   "L0VPW7_SBL148_B_Subt8__3__17_42_04_494_txt.txt",
+   "L0VPW7_SBL150_A_Subt8__20__17_46_24_495_txt.txt",
+   "L0VPW7_SBL150_B_Subt8__1__17_46_53_495_txt.txt",
+   "L0VPW7_SBL151_A_Subt8__7__17_48_35_495_txt.txt",
+   "L0VPW7_SBL151_B_Subt8__2__17_49_14_495_txt.txt",
+   "L0VPW7_SBL153_A_Subt8__15__17_55_04_498_txt.txt",
+   "L0VPW7_SBL154_A_Subt8__4__17_57_17_498_txt.txt",
+   "L0VPW7_SBL155_A_Subt8__30__17_59_36_498_txt.txt",
+   "L0VPW7_SBL156_A_Subt8__25__18_01_11_498_txt.txt",
+   "L0VPW7_SBL157_A_Subt8__20__18_02_22_500_txt.txt",
+   "L0VPW7_SBL157_B_Subt8__3__18_15_27_503_txt.txt",
+   "L0VPW7_SBL159_A_Subt8__9__18_07_21_501_txt.txt",
+   "L0VPW7_SBL160_A_Subt8__14__18_08_42_501_txt.txt",
+   "L0VPW7_SBL164_B_Subt4__7__13_45_22_041_txt.txt",
+   "L0VPW7_SBL166_A_Subt4__29__13_57_42_042_txt.txt",
+   "L0VPW7_SBL167_C_Subt4__11__14_23_06_044_txt.txt",
+   "L0VPW7_SBL172_B_Subt2__1__15_30_45_604_txt.txt",
+   "L0VPW7_SBL181_A_Subt2__14__19_33_47_755_txt.txt",
+   "L0VPW7_SBL183_A_Subt2__25__13_36_29_507_txt.txt",
+   "L0VPW7_SBL184_A_Subt2__18__13_48_52_469_txt.txt",
+   "L0VPW7_SBL188_Subt2__30__14_30_39_475_txt.txt",
+   "L0VPW7_SBL189_Subt2__15__14_34_54_476_txt.txt",
+   "L0VPW7_SBL192_Subt2__54__14_40_30_476_txt.txt",
+   "L0VPW7_SBL193_Subt2__17__16_08_55_001_txt.txt",
+   "L0VPW7_SBL194_Subt2__10__16_13_34_001_txt.txt",
+   "L0VPW7_SBL195_Subt2__11__16_20_04_002_txt.txt",
+   "L0VPW7_SBL196_Subt2__24__16_24_00_002_txt.txt",
+   "L0VPW7_SBL197_Subt2__20__16_27_51_003_txt.txt",
+   "L0VPW7_SBL198_Subt2__16__16_31_10_004_txt.txt",
+   "L0VPW7_SBL200_Subt2__16__16_40_21_004_txt.txt",
+   "L0VPW7_SBL201_Subt2__12__16_43_23_005_txt.txt",
+   "L0VPW7_SBL204_Subt2__16__17_06_30_009_txt.txt",
+   "L0VPW7_SBL208_B_Subt2__42__17_33_18_012_txt.txt",
+   "L0VPW7_SBL216_Subt2__13__18_03_52_017_txt.txt",
+   "L0VPW7_SBL218_Subt2__16__18_17_57_019_txt.txt",
+   "L0VPW7_SBL220_Subt2__26__18_25_59_020_txt.txt",
+   "L0VPW7_SBL221_Subt2__10__18_29_32_020_txt.txt",
+   "L0VPW7_SBL223_C_Subt2__102__17_26_16_225_txt.txt",
+   "L0VPW7_SBL227_A_Subt2__25__18_52_38_027_txt.txt",
+   "L0VPW7_SBL231_A_Subt2__20__10_05_19_246_txt.txt",
+   "L0VPW7_SBL234_A_Subt2__3__10_31_23_255_txt.txt",
+   "L0VPW7_SBL239_A_Subt2__8__15_29_44_373_txt.txt",
+   "L0VPW7_SBL240_A_Subt2__32__15_33_20_373_txt.txt",
+   "L0VPW7_SBL245_A_Subt2__23__15_50_40_379_txt.txt",
+   "L0VPW7_SBL247_A_Subt2__9__16_16_36_389_txt.txt",
+   "L0VPW7_SBL248_A_Subt2__15__16_19_12_390_txt.txt",
+   "L0VPW7_SBL256_B_Subt2__23__20_47_36_847_txt.txt",
+   "L0VPW7_SBL256_C_Subt2__6__20_50_34_848_txt.txt",
+   "L0VPW7_SBL257_A_Subt2__9__20_53_52_849_txt.txt",
+   "L0VPW7_SBL258_A_Subt2__10__20_58_50_852_txt.txt",
+   "L0VPW7_SBL258_B_Subt2__16__21_00_46_852_txt.txt",
+   "L0VPW7_SBL261_B_Subt2__9__21_17_18_858_txt.txt",
+   "L0VPW7_SBL265_A_Subt2__8__15_53_07_380_txt.txt",
+   "L0VPW7_SBL266_C_Subt2__6__20_53_35_639_txt.txt",
+   "L0VPW7_SBL268_B_Subt2__14__21_00_39_641_txt.txt",
+   "L0VPW7_SBL271_A_Subt2__5__21_14_19_645_txt.txt",
+   "L0VPW7_SBL271_B_Subt2__9__21_16_19_646_txt.txt",
+   "L0VPW7_SBL272_A_Subt2__3__21_19_11_647_txt.txt",
+   "L0VPW7_SBL272_C_Subt2__2__21_21_01_648_txt.txt",
+   "L0VPW7_SBL273_A_Subt2__3__21_24_57_650_txt.txt",
+   "L0VPW7_SBL273_B_Subt2__4__21_26_59_650_txt.txt",
+   "L0VPW7_SBL274_A_Subt2__7__21_30_53_651_txt.txt",
+   "L0VPW7_SBL274_B_Subt2__12__21_32_43_652_txt.txt",
+   "L0VPW7_SBL275_A_Subt2__32__21_37_53_654_txt.txt",
+   "L0VPW7_SBL276_A_Subt2__17__21_40_17_654_txt.txt",
+   "L0VPW7_SBL277_A_Subt2__5__21_43_04_656_txt.txt"
+  ],
+  "error": ""
+ },
+ "LAOMLF": {
+  "title": "Background data for: In a Space of ‘Illegal Lawfulness': The Normative Order of Radical Environmental Movements and the Enforcement of International Environmental Law",
+  "files": [
+   "LAOMLF_00_ReadMe_txt.txt",
+   "LAOMLF_Actions_Tactics_Quant_txt.txt",
+   "LAOMLF_TEOs_Organizational_Qual_txt.txt",
+   "LAOMLF_TEOs_Organizational_Quant_txt.txt"
+  ],
+  "error": ""
+ },
+ "LBLYQT": {
+  "title": "Replication Data for: Monitoring bands during the Norwegian national day parade: a case study on urban distributed acoustic sensing",
+  "files": [
+   "LBLYQT_00_README_txt.txt"
+  ],
+  "error": ""
+ },
+ "LGCNKA": {
+  "title": "Replication Data for: Long term effects of forest management on forest structure and dead wood in mature boreal forests",
+  "files": [
+   "LGCNKA_00_README_txt.txt",
+   "LGCNKA_01_modelled_data_csv.txt",
+   "LGCNKA_02_Tree_data_csv.txt",
+   "LGCNKA_03_forest_structure_csv.txt",
+   "LGCNKA_04_PAI_csv.txt",
+   "LGCNKA_05_Light_transmission_csv.txt",
+   "LGCNKA_06_YearlyTemp_csv.txt",
+   "LGCNKA_07_tetraterm_csv.txt",
+   "LGCNKA_08_CWD_volumes_csv.txt",
+   "LGCNKA_09_Raw_CWD_volumes_csv.txt",
+   "LGCNKA_10_Connectivity_spruce_csv.txt"
+  ],
+  "error": ""
+ },
+ "LIYHRV": {
+  "title": "Replication data for: Balancing risks and rewards of alternate strategies in the seaward extent, duration and timing of fjord use in contemporary anadromy of brown trout (Salmo trutta)",
+  "files": [
+   "LIYHRV_00_readme_txt.txt",
+   "LIYHRV_01_Tagged_browntrout_Sognefjorden_csv.txt",
+   "LIYHRV_04_Sognefjord_browntrout_scales_stacked_growth_csv.txt",
+   "LIYHRV_05_Laerdal_maxdist_recapture_csv.txt",
+   "LIYHRV_06_Smolts_CH_csv.txt",
+   "LIYHRV_07_Veteran_migrant_CH_csv.txt"
+  ],
+  "error": ""
+ },
+ "LUISQN": {
+  "title": "Replication Data for: The reassigned pseudo Wigner–Ville transform in electrochemical noise analysis",
+  "files": [
+   "LUISQN_00_Read_Me_txt.txt",
+   "LUISQN_AA1080_borate_buffer_24h_10Hz_txt.txt",
+   "LUISQN_AA1080_NaCl_5h_10_Hz_txt.txt",
+   "LUISQN_AA6016_NaCl_24h_10_Hz_txt.txt",
+   "LUISQN_WVD_txt.txt"
+  ],
+  "error": ""
+ },
+ "LURI1R": {
+  "title": "Replication Data for: Dust observations with antenna measurements and its prospects for observations with Parker Solar Probe and Solar Orbiter",
+  "files": [
+   "LURI1R_00_ReadMe_txt.txt",
+   "LURI1R_Fig_4A__25V_txt.txt",
+   "LURI1R_Fig_4B__5V_txt.txt",
+   "LURI1R_Fig_4C_0V_txt.txt",
+   "LURI1R_Fig_4DD__10V_txt.txt",
+   "LURI1R_Fig_4D__5V_txt.txt",
+   "LURI1R_Fig_4E__25V_txt.txt"
+  ],
+  "error": ""
+ },
+ "LZNLFX": {
+  "title": "Raw data for \"Plastic food packaging from five countries contains endocrine and metabolism disrupting chemicals\"",
+  "files": [
+   "LZNLFX_00_README_1_txt.txt"
+  ],
+  "error": ""
+ },
+ "MEZX57": {
+  "title": "Supporting Data for: Differential expression of VA opsin transcript variants in tissues linked to photoperiodic time measurement in Svalbard rock ptarmigan",
+  "files": [
+   "MEZX57_00_README_file_txt.txt",
+   "MEZX57_InterPro_SRP_VAL_txt.txt",
+   "MEZX57_InterPro_SRP_VA_txt.txt",
+   "MEZX57_InterPro_VA_PIN1_txt.txt",
+   "MEZX57_InterPro_VA_PIN2_txt.txt",
+   "MEZX57_VA_GsX_Rep1_csv.txt",
+   "MEZX57_VA_GsX_Rep2_csv.txt",
+   "MEZX57_VA_GsX_Rep3_csv.txt",
+   "MEZX57_VA_GsX_Rep4_csv.txt",
+   "MEZX57_VA_spectra_Rep1_csv.txt",
+   "MEZX57_VA_spectra_Rep2_csv.txt",
+   "MEZX57_VA_spectra_Rep3_csv.txt"
+  ],
+  "error": ""
+ },
+ "MHWRGE": {
+  "title": "Replication Data for: Looking into the Russian future",
+  "files": [
+   "MHWRGE_00_Readme_looking_into_the_Russian_future_txt.txt",
+   "MHWRGE_01_PF_FUT_meanings_in_RUS_txt.txt",
+   "MHWRGE_02_IMPF_FUT_meanings_in_RUS_txt.txt"
+  ],
+  "error": ""
+ },
+ "MIFRWN": {
+  "title": "Perception and production of plosives: Data from Norwegian learners of French L3",
+  "files": [
+   "MIFRWN_0_Readme_Plosives_Andreassen_2021_txt.txt",
+   "MIFRWN_2_Values_plosives_csv.txt"
+  ],
+  "error": ""
+ },
+ "MMVQDF": {
+  "title": "Respiration and cognition in the lifespan",
+  "files": [
+   "MMVQDF_00_README_txt.txt",
+   "MMVQDF_respiration_and_cognition_for_dataverseNO_csv.txt"
+  ],
+  "error": ""
+ },
+ "MSP86P": {
+  "title": "Replication Data for: Intraspecific variation in spruce seed palatability perceived by bank voles",
+  "files": [
+   "MSP86P_00_ReadMe_txt.txt",
+   "MSP86P_data_seed_experiment_csv.txt"
+  ],
+  "error": ""
+ },
+ "NGISOA": {
+  "title": "Replication Data for: Modulation of Polar Mesospheric Summer Echoes (PMSE) with HF Heating during low solar illumination",
+  "files": [
+   "NGISOA_00_README_v1_txt.txt",
+   "NGISOA_O2_abs_REES_txt.txt"
+  ],
+  "error": ""
+ },
+ "NKTXLE": {
+  "title": "Mass Spectrometry Metabolite Library of Standards (MSMLS) mixture injection on LC-MS",
+  "files": [
+   "NKTXLE_00_ReadMe_txt.txt",
+   "NKTXLE_01_metabolite_mix_distribution_csv.txt"
+  ],
+  "error": ""
+ },
+ "ONGBEV": {
+  "title": "Replication data for: Near-surface characterization using shear-wave resonances: A case study from offshore Svalbard, Norway",
+  "files": [
+   "ONGBEV_00_README_txt.txt"
+  ],
+  "error": ""
+ },
+ "OOJYQ0": {
+  "title": "Replication Data for: Small rodent monitoring at Birkebeiner road, Norway",
+  "files": [
+   "OOJYQ0_00_ReadMe_Birkebeiner_txt.txt",
+   "OOJYQ0_occurrence_txt.txt"
+  ],
+  "error": ""
+ },
+ "PBYWJ0": {
+  "title": "Replication Data for: Observing mesospheric turbulence with specular meteor radars: A novel method for estimating second order statistics of wind velocity",
+  "files": [
+   "PBYWJ0_00_ReadMe_txt.txt"
+  ],
+  "error": ""
+ },
+ "Q57B06": {
+  "title": "Salmon keratocyte DIC microscopy videos",
+  "files": [
+   "Q57B06_000_readme_txt.txt",
+   "Q57B06_001_data_file_notes_csv.txt"
+  ],
+  "error": ""
+ },
+ "QMMER5": {
+  "title": "Raw data for \"Migration of endocrine and metabolism disrupting chemicals from plastic food packaging.\"",
+  "files": [
+   "QMMER5_00_README_txt.txt"
+  ],
+  "error": ""
+ },
+ "QRDET2": {
+  "title": "Programming code for article \"Radar imaging with EISCAT 3D\"",
+  "files": [
+   "QRDET2_00_readme_txt.txt",
+   "QRDET2_e3d_array_txt.txt",
+   "QRDET2_EISCAT3D_receivers_txt.txt",
+   "QRDET2_Eiscat3D_transmitter_txt.txt",
+   "QRDET2_j19_tab.txt",
+   "QRDET2_J_liten_tab.txt",
+   "QRDET2_J_tab.txt",
+   "QRDET2_storj_tab.txt"
+  ],
+  "error": ""
+ },
+ "QXQCUI": {
+  "title": "Replication Data for: Correlation between tectonic stress regimes and methane seepage on the west-Svalbard margin",
+  "files": [
+   "QXQCUI_01_README_Plaza_and_Keiding_SEE2018_txt.txt",
+   "QXQCUI_disloc3d_persistent_txt.txt",
+   "QXQCUI_pb_stress_persistent_txt.txt",
+   "QXQCUI_SourcesStress_persistent_txt.txt"
+  ],
+  "error": ""
+ },
+ "QZSNKI": {
+  "title": "Acoustic Analysis of Photothermal Boiling in Nanofluids (ONESTEP)",
+  "files": [
+   "QZSNKI_00_README_ONESTEP_Spectra_txt.txt"
+  ],
+  "error": ""
+ },
+ "RDU8M2": {
+  "title": "Replication Data for: Modeling monophthongal versus diphthongal /aɪ/ in sung vocal performance with interpretable machine learning",
+  "files": [
+   "RDU8M2_00_README_txt.txt",
+   "RDU8M2_formant_features_csv.txt"
+  ],
+  "error": ""
+ },
+ "RLVJFN": {
+  "title": "Supplementary material for: Milk production and methane emissions from dairy cows fed silages from different grassland species and harvesting frequencies",
+  "files": [
+   "RLVJFN_00_README_txt.txt"
+  ],
+  "error": ""
+ },
+ "RSPIRH": {
+  "title": "Replication Data for: The genesis of Dat-Gen with verbs of lacking in Old Frisian and Middle Low German",
+  "files": [
+   "RSPIRH_00_README_DatGen_Lack_txt.txt",
+   "RSPIRH_1_DatGen_Lack_Old_Frisian_dataset_txt.txt",
+   "RSPIRH_2_DatGen_Lack_Middle_Low_German_dataset_txt.txt"
+  ],
+  "error": ""
+ },
+ "S1PRBX": {
+  "title": "Supporting data for Detection of Detrimental Weak Emergent Behavior Considering Operational Factors: a Case Study in Search and Rescue",
+  "files": [
+   "S1PRBX_ReadMe_file_txt.txt"
+  ],
+  "error": ""
+ },
+ "T6ITR3": {
+  "title": "Replication data for: Are Schalter and šapka good competitors? Searching for stimuli for an investigation of the Russian-German bilingual mental lexicon",
+  "files": [
+   "T6ITR3_Data_subjective_frequency_csv.txt",
+   "T6ITR3_results_pre_test_Picture_word_matching_naming_csv.txt"
+  ],
+  "error": ""
+ },
+ "TCWUQN": {
+  "title": "Replication data for: Origin and periodic behavior of short duration signals recorded by seismometers at Vestnesa Ridge, an active seepage site on the west-Svalbard continental margin",
+  "files": [
+   "TCWUQN_00_ReadMe_txt.txt",
+   "TCWUQN_Stations_txt.txt"
+  ],
+  "error": ""
+ },
+ "TE5ZOG": {
+  "title": "Replication Data for: Learning to predict - second language perception of reduced multi-word sequences",
+  "files": [
+   "TE5ZOG_00_ReadMe_LearningToPredict_txt.txt",
+   "TE5ZOG_Consent_details_txt.txt",
+   "TE5ZOG_LearningToPredict_accuracy_R_txt.txt",
+   "TE5ZOG_LearningToPredict_GAMM_and_plots_R_txt.txt",
+   "TE5ZOG_ltp_final_csv.txt",
+   "TE5ZOG_ltp_items_csv.txt",
+   "TE5ZOG_ltp_results_csv.txt"
+  ],
+  "error": ""
+ },
+ "TVYCZL": {
+  "title": "Replication Data for: Defective verbs in Portuguese: a morphomic approach",
+  "files": [
+   "TVYCZL_00_README_txt.txt",
+   "TVYCZL_A_lexemes_used_for_regression_model_csv.txt",
+   "TVYCZL_B_defective_verbs_frequency_counts_csv.txt",
+   "TVYCZL_C_results_summary_csv.txt"
+  ],
+  "error": ""
+ },
+ "UFXAVM": {
+  "title": "Replication data for: Real-Time Optimization and Estimation for CO2 Purification Process",
+  "files": [
+   "UFXAVM_00_ReadMe_txt.txt"
+  ],
+  "error": ""
+ },
+ "USN.19926224": {
+  "title": "",
+  "files": [
+   "USN.19926224_ReadMe_txt.txt"
+  ],
+  "error": "HTTPError: HTTP Error 404: Not Found"
+ },
+ "USN.21904242": {
+  "title": "",
+  "files": [
+   "USN.21904242_DA_aniridia_csv.txt",
+   "USN.21904242_DA_healthy_controls_csv.txt",
+   "USN.21904242_OCT_aniridia_csv.txt",
+   "USN.21904242_README_1_txt.txt",
+   "USN.21904242_README_txt.txt"
+  ],
+  "error": "HTTPError: HTTP Error 404: Not Found"
+ },
+ "USN.25272964": {
+  "title": "",
+  "files": [
+   "USN.25272964_DarkCone_regions_csv.txt",
+   "USN.25272964_IntraRater_agreement_csv.txt",
+   "USN.25272964_OCT_nasal_n_csv.txt",
+   "USN.25272964_README_DarkCone_regions_txt.txt",
+   "USN.25272964_README_IntraRater_agreement_txt.txt",
+   "USN.25272964_README_OCT_nasal_n_txt.txt"
+  ],
+  "error": "HTTPError: HTTP Error 404: Not Found"
+ },
+ "USN.28919768": {
+  "title": "",
+  "files": [
+   "USN.28919768_Detailed_freq_of_economies_csv.txt",
+   "USN.28919768_ReadMe_file_txt.txt"
+  ],
+  "error": "HTTPError: HTTP Error 404: Not Found"
+ },
+ "USN.5226262": {
+  "title": "",
+  "files": [
+   "USN.5226262_ReadMe_txt.txt"
+  ],
+  "error": "HTTPError: HTTP Error 404: Not Found"
+ },
+ "USN.6580058": {
+  "title": "",
+  "files": [
+   "USN.6580058_ReadMe_txt.txt"
+  ],
+  "error": "HTTPError: HTTP Error 404: Not Found"
+ },
+ "USN.7203155": {
+  "title": "",
+  "files": [
+   "USN.7203155_readme_txt.txt"
+  ],
+  "error": "HTTPError: HTTP Error 404: Not Found"
+ },
+ "USN.8187617": {
+  "title": "",
+  "files": [
+   "USN.8187617_README_txt.txt"
+  ],
+  "error": "HTTPError: HTTP Error 404: Not Found"
+ },
+ "UWP6LL": {
+  "title": "Replication Data for: High-resolution underwater laser spectrometer sensing provides new insights into methane distribution at an Arctic seepage site",
+  "files": [
+   "UWP6LL_0_README_txt.txt"
+  ],
+  "error": ""
+ },
+ "VPRD2H": {
+  "title": "Replication data for DAS4Microseism - Svalbard distributed acoustic sensing (DAS) strain data for oceanographic study",
+  "files": [
+   "VPRD2H_00_README_txt.txt"
+  ],
+  "error": ""
+ },
+ "W72BZ1": {
+  "title": "Replication Data for: Acoustic wave-induced stroboscopic optical mechanotyping of adherent cells",
+  "files": [
+   "W72BZ1_00_README_txt.txt"
+  ],
+  "error": ""
+ },
+ "WF1AGU": {
+  "title": "Replication Data for: A genome-wide association study of freezing tolerance in red clover (Trifolium pratense L.) germplasm of European origin",
+  "files": [
+   "WF1AGU_00_README_txt.txt",
+   "WF1AGU_1_LT50_DATA_csv.txt",
+   "WF1AGU_4_Genomic_Relationship_Matrix_SNPs_csv.txt",
+   "WF1AGU_5_Genomic_Relationship_Matrix_HAPLOTYPES_csv.txt"
+  ],
+  "error": ""
+ },
+ "XRQEKH": {
+  "title": "Replication data for: Detecting phylogenetically destabilizing species in Potentilla L. (Rosaceae) using low-copy nuclear markers",
+  "files": [
+   "XRQEKH_00_README_txt.txt"
+  ],
+  "error": ""
+ },
+ "XYMXPC": {
+  "title": "Table of transcribed forms for: Syllable Structure and Prosodic Words in Old French",
+  "files": [
+   "XYMXPC_00_README_TXT.txt",
+   "XYMXPC_AlexisRaM_forms_utf_8_txt.txt",
+   "XYMXPC_RolMoign_forms_utf_8_txt.txt"
+  ],
+  "error": ""
+ },
+ "YSDZF8": {
+  "title": "Replication data for 'Effects of particle precipitation on the polar mesospheric summer echoes observed by EISCAT VHF 224 MHz radar'",
+  "files": [
+   "YSDZF8_00_ReadMe_txt.txt",
+   "YSDZF8_coramp_dat.txt",
+   "YSDZF8_corfiterr_dat.txt",
+   "YSDZF8_corfrpeak_dat.txt",
+   "YSDZF8_corwidth_dat.txt",
+   "YSDZF8_Elevation_dat.txt",
+   "YSDZF8_SpecW_dat.txt",
+   "YSDZF8_Timevec_dat.txt"
+  ],
+  "error": ""
+ },
+ "ZGAYDT": {
+  "title": "Sibilant and velarized coda /s/ matched guise survey in Spain",
+  "files": [
+   "ZGAYDT_00_README_CodaS_MatchedGuise_Madrid_txt.txt",
+   "ZGAYDT_CodaS_MatchedGuise_Madrid_txt.txt",
+   "ZGAYDT_VersionA_OriginalData_txt.txt",
+   "ZGAYDT_VersionB_OriginalData_txt.txt"
+  ],
+  "error": ""
+ },
+ "ZIYHH3": {
+  "title": "Supplementary data to large-scale fire experiment with exposed cross-laminated timber in ceiling - #FRIC-01",
+  "files": [
+   "ZIYHH3_00_Read_Me_FRIC_01_experiment_txt.txt",
+   "ZIYHH3_FRIC_01__gas_measurements_csv.txt"
+  ],
+  "error": ""
+ }
+}
