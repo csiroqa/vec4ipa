@@ -1,0 +1,1290 @@
+{
+  "what_this_is": "Nearest-neighbour retrieval comparison of the old 16-dim SPEC-NEXT basis against the new tongue-contour basis, on the SAME data with the SAME metric definition. It is NOT BDPA reference alignment and its percentages are not comparable to the published figures in docs/REFERENCE-COMPARISON.md (one-hot 51.83 / PHOIBLE 66.64 / phon2vec 66.99 / NN 75.88 / NN+RNN 78.45 / SCA 84.84).",
+  "bdpa_probe": {
+    "searched_root": "D:\\2-OGP\\IPA2Vector",
+    "searched_names": [
+      "ipavec",
+      "bdpa"
+    ],
+    "hits": [],
+    "present": false,
+    "conclusion": "BDPA corpus is not available locally; alignments.lingpy.org was deliberately not retried (it failed previously). Every number below comes from a declared substitute dataset."
+  },
+  "substitute_data": {
+    "phatak08": "16-consonant confusion counts, 4 SNRs, human perception (JASA 124:1220-1233). n=1024 cells.",
+    "phoible": "38 PhonoLib binary features, 98 of 133 table symbols keyed. Used as an external answer key.",
+    "svmcc": "9 languages, token column, 9 folds.",
+    "northeuralex": "121614 IPA transcriptions; 619344 tokens fall inside the 133-symbol table.",
+    "svmcc_off_table": "870 token types / 42511 tokens outside the 133-symbol table. Counted and reported, never silently dropped."
+  },
+  "symbols": 133,
+  "basis_dims": {
+    "old": 16,
+    "new": 16
+  },
+  "new_basis_coords": [
+    "tip_x",
+    "tip_y",
+    "blade_x",
+    "blade_y",
+    "dorsum_x",
+    "dorsum_y",
+    "root_x",
+    "root_y",
+    "lip_open",
+    "lip_round",
+    "velum",
+    "lateral",
+    "larynx",
+    "periodic",
+    "source_tilt",
+    "duration"
+  ],
+  "metric_definitions": {
+    "z-euclid": "per-coordinate z-score over the reference symbol set, unweighted Euclidean, then rescaled so the mean off-diagonal distance is 1 (unit_scale)",
+    "z-whiten": "z-euclid then full PCA whitening over the same reference set, same rescaling",
+    "old-fitted": "metric16.json weights; OLD ONLY, Gate 1 only, reported as circular"
+  },
+  "comparability_cost": "z-scoring reads the spread of each coordinate off the evaluation symbols. Closed inside Gate 3 (train-fold statistics only); NOT closed inside Gate 1, identically for both bases, so only the old-vs-new difference there is meaningful. Whitening strips each basis of its own correlation structure, which would otherwise decide the answer, because the new tongue coords are near-collinear. The unit_scale rescaling is a further assumption: it assumes a confusable pair sits at a fixed FRACTION of the mean consonant-consonant distance in either basis, which is not something either basis guarantees.",
+  "gate1_phatak": {
+    "variants": {
+      "old/z-euclid": {
+        "hit_at_1": 0.09375,
+        "hit_at_3": 0.578125,
+        "hit_at_5": 0.78125,
+        "mrr": 0.3705779463591964,
+        "nll_nats_per_response": 2.4126760395739444,
+        "n_cells": 64,
+        "cell_split": {
+          "voicing": {
+            "hit_at_1": 0.1111111111111111,
+            "n_cells": 18
+          },
+          "place_or_manner": {
+            "hit_at_1": 0.08695652173913043,
+            "n_cells": 46
+          }
+        },
+        "dead_coords_over_133": 0
+      },
+      "old/z-whiten": {
+        "hit_at_1": 0.09375,
+        "hit_at_3": 0.5625,
+        "hit_at_5": 0.71875,
+        "mrr": 0.362227355977356,
+        "nll_nats_per_response": 2.4032733637179873,
+        "n_cells": 64,
+        "cell_split": {
+          "voicing": {
+            "hit_at_1": 0.1111111111111111,
+            "n_cells": 18
+          },
+          "place_or_manner": {
+            "hit_at_1": 0.08695652173913043,
+            "n_cells": 46
+          }
+        },
+        "dead_coords_over_133": 0
+      },
+      "new/z-euclid": {
+        "hit_at_1": 0.296875,
+        "hit_at_3": 0.609375,
+        "hit_at_5": 0.78125,
+        "mrr": 0.48975503663003667,
+        "nll_nats_per_response": 2.5425541042377144,
+        "n_cells": 64,
+        "cell_split": {
+          "voicing": {
+            "hit_at_1": 0.1111111111111111,
+            "n_cells": 18
+          },
+          "place_or_manner": {
+            "hit_at_1": 0.3695652173913043,
+            "n_cells": 46
+          }
+        },
+        "dead_coords_over_133": 0
+      },
+      "new/z-whiten": {
+        "hit_at_1": 0.3125,
+        "hit_at_3": 0.640625,
+        "hit_at_5": 0.78125,
+        "mrr": 0.5101295405982906,
+        "nll_nats_per_response": 2.3302048076440123,
+        "n_cells": 64,
+        "cell_split": {
+          "voicing": {
+            "hit_at_1": 0.1111111111111111,
+            "n_cells": 18
+          },
+          "place_or_manner": {
+            "hit_at_1": 0.391304347826087,
+            "n_cells": 46
+          }
+        },
+        "dead_coords_over_133": 0
+      },
+      "old/old-fitted": {
+        "hit_at_1": 0.203125,
+        "hit_at_3": 0.640625,
+        "hit_at_5": 0.78125,
+        "mrr": 0.4513135302197802,
+        "nll_nats_per_response": 2.5676184390572745,
+        "n_cells": 64,
+        "cell_split": {
+          "voicing": {
+            "hit_at_1": 0.1111111111111111,
+            "n_cells": 18
+          },
+          "place_or_manner": {
+            "hit_at_1": 0.2391304347826087,
+            "n_cells": 46
+          }
+        },
+        "dead_coords_over_133": 0
+      }
+    },
+    "spearman_rho_distance_vs_negated_confusion": {
+      "old/z-euclid": 0.47995104868314126,
+      "old/z-whiten": 0.4648370178422042,
+      "new/z-euclid": 0.2892745541692633,
+      "new/z-whiten": 0.3324760547082853,
+      "old/old-fitted": 0.40219297147181227
+    },
+    "uniform_nll_nats": 2.772588722239781,
+    "circular_variants": [
+      "old/old-fitted"
+    ],
+    "note": "The old basis ships weights fitted to this same confusion data (metric16.json), so old/old-fitted is reported but excluded from the head-to-head. The old basis coordinates were also hand-tuned with Phatak visible (tools/audit_axis_coverage.py), which weakens Phatak as a blind test for it even at unit weights."
+  },
+  "gate1_neighbour_audit": [
+    {
+      "stimulus": "p",
+      "phatak_top3": [
+        "k",
+        "t",
+        "f"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "b",
+          "f",
+          "v"
+        ],
+        "new/z-whiten": [
+          "f",
+          "b",
+          "v"
+        ],
+        "old/old-fitted": [
+          "b",
+          "v",
+          "f"
+        ]
+      }
+    },
+    {
+      "stimulus": "t",
+      "phatak_top3": [
+        "p",
+        "k",
+        "f"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "d",
+          "θ",
+          "k"
+        ],
+        "new/z-whiten": [
+          "s",
+          "d",
+          "ʃ"
+        ],
+        "old/old-fitted": [
+          "d",
+          "p",
+          "ð"
+        ]
+      }
+    },
+    {
+      "stimulus": "k",
+      "phatak_top3": [
+        "p",
+        "t",
+        "f"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "g",
+          "θ",
+          "f"
+        ],
+        "new/z-whiten": [
+          "g",
+          "t",
+          "s"
+        ],
+        "old/old-fitted": [
+          "g",
+          "t",
+          "d"
+        ]
+      }
+    },
+    {
+      "stimulus": "f",
+      "phatak_top3": [
+        "b",
+        "v",
+        "p"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "θ",
+          "v",
+          "ð"
+        ],
+        "new/z-whiten": [
+          "p",
+          "v",
+          "ʃ"
+        ],
+        "old/old-fitted": [
+          "θ",
+          "v",
+          "ð"
+        ]
+      }
+    },
+    {
+      "stimulus": "θ",
+      "phatak_top3": [
+        "ð",
+        "f",
+        "b"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "f",
+          "ð",
+          "t"
+        ],
+        "new/z-whiten": [
+          "s",
+          "ð",
+          "z"
+        ],
+        "old/old-fitted": [
+          "f",
+          "ð",
+          "v"
+        ]
+      }
+    },
+    {
+      "stimulus": "s",
+      "phatak_top3": [
+        "z",
+        "θ",
+        "ð"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "ʃ",
+          "z",
+          "ʒ"
+        ],
+        "new/z-whiten": [
+          "ʃ",
+          "t",
+          "θ"
+        ],
+        "old/old-fitted": [
+          "ʃ",
+          "z",
+          "ʒ"
+        ]
+      }
+    },
+    {
+      "stimulus": "ʃ",
+      "phatak_top3": [
+        "ʒ",
+        "s",
+        "d"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "s",
+          "ʒ",
+          "z"
+        ],
+        "new/z-whiten": [
+          "s",
+          "ʒ",
+          "t"
+        ],
+        "old/old-fitted": [
+          "s",
+          "ʒ",
+          "z"
+        ]
+      }
+    },
+    {
+      "stimulus": "b",
+      "phatak_top3": [
+        "v",
+        "f",
+        "p"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "p",
+          "v",
+          "ð"
+        ],
+        "new/z-whiten": [
+          "v",
+          "p",
+          "d"
+        ],
+        "old/old-fitted": [
+          "p",
+          "v",
+          "d"
+        ]
+      }
+    },
+    {
+      "stimulus": "d",
+      "phatak_top3": [
+        "g",
+        "ð",
+        "ʒ"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "t",
+          "ð",
+          "g"
+        ],
+        "new/z-whiten": [
+          "z",
+          "t",
+          "ʒ"
+        ],
+        "old/old-fitted": [
+          "t",
+          "ð",
+          "b"
+        ]
+      }
+    },
+    {
+      "stimulus": "g",
+      "phatak_top3": [
+        "d",
+        "ð",
+        "ʒ"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "k",
+          "ð",
+          "v"
+        ],
+        "new/z-whiten": [
+          "k",
+          "d",
+          "z"
+        ],
+        "old/old-fitted": [
+          "k",
+          "d",
+          "t"
+        ]
+      }
+    },
+    {
+      "stimulus": "v",
+      "phatak_top3": [
+        "b",
+        "m",
+        "ð"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "ð",
+          "f",
+          "b"
+        ],
+        "new/z-whiten": [
+          "b",
+          "f",
+          "ʒ"
+        ],
+        "old/old-fitted": [
+          "ð",
+          "f",
+          "θ"
+        ]
+      }
+    },
+    {
+      "stimulus": "ð",
+      "phatak_top3": [
+        "θ",
+        "v",
+        "z"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "v",
+          "θ",
+          "d"
+        ],
+        "new/z-whiten": [
+          "z",
+          "θ",
+          "s"
+        ],
+        "old/old-fitted": [
+          "v",
+          "θ",
+          "f"
+        ]
+      }
+    },
+    {
+      "stimulus": "z",
+      "phatak_top3": [
+        "ʒ",
+        "s",
+        "ð"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "ʒ",
+          "s",
+          "ʃ"
+        ],
+        "new/z-whiten": [
+          "ʒ",
+          "d",
+          "ð"
+        ],
+        "old/old-fitted": [
+          "ʒ",
+          "s",
+          "ʃ"
+        ]
+      }
+    },
+    {
+      "stimulus": "ʒ",
+      "phatak_top3": [
+        "g",
+        "z",
+        "ʃ"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "z",
+          "ʃ",
+          "s"
+        ],
+        "new/z-whiten": [
+          "z",
+          "ʃ",
+          "d"
+        ],
+        "old/old-fitted": [
+          "z",
+          "ʃ",
+          "s"
+        ]
+      }
+    },
+    {
+      "stimulus": "m",
+      "phatak_top3": [
+        "n",
+        "v",
+        "b"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "b",
+          "p",
+          "n"
+        ],
+        "new/z-whiten": [
+          "n",
+          "v",
+          "f"
+        ],
+        "old/old-fitted": [
+          "n",
+          "f",
+          "θ"
+        ]
+      }
+    },
+    {
+      "stimulus": "n",
+      "phatak_top3": [
+        "m",
+        "d",
+        "g"
+      ],
+      "retrieved_top3": {
+        "old/z-whiten": [
+          "d",
+          "t",
+          "m"
+        ],
+        "new/z-whiten": [
+          "m",
+          "z",
+          "s"
+        ],
+        "old/old-fitted": [
+          "m",
+          "ʒ",
+          "θ"
+        ]
+      }
+    },
+    {
+      "summary_new_top1_voicing_counterpart": 2,
+      "n_stimuli": 16
+    }
+  ],
+  "gate1_controls": {
+    "n_random_runs": 8,
+    "seed": 20260830,
+    "random_same_width_old": {
+      "hit_at_1": 0.072265625,
+      "hit_at_1_sd_over_runs": 0.044836876106441395,
+      "mrr": 0.2250316577953297
+    },
+    "random_same_width_new": {
+      "hit_at_1": 0.078125,
+      "hit_at_1_sd_over_runs": 0.10881553341550093,
+      "mrr": 0.23751205933823122
+    },
+    "one_hot_orthographic": {
+      "hit_at_1": 0.078125,
+      "mrr": 0.3112414928821179
+    }
+  },
+  "gate3_loco": {
+    "folds": [
+      {
+        "held_out": "abvd",
+        "n_held_symbols": 45,
+        "n_train_symbols": 49,
+        "n_pool_strict": 88,
+        "thin_training_side": false,
+        "feat_acc_mode_baseline": 0.8631578947368421,
+        "bases": {
+          "old": {
+            "n_live_coords": 13,
+            "train_nll": 0.19242756856722662,
+            "weights_top": {},
+            "soft": {
+              "feat_acc": 0.9438596491228068,
+              "act_prec": 0.8215704119113209,
+              "top1_acc": 0.9432748538011694,
+              "n_query": 45
+            },
+            "strict": {
+              "feat_acc": 0.9274853801169589,
+              "act_prec": 0.6638913485504394,
+              "top1_acc": 0.9134502923976606,
+              "n_query": 45
+            }
+          },
+          "new": {
+            "n_live_coords": 15,
+            "train_nll": 0.29903125932137276,
+            "weights_top": {
+              "lateral": 0.9999586556868495,
+              "periodic": 0.6622348587794694,
+              "lip_open": 0.5447163053016829,
+              "root_x": 0.454291757536291,
+              "root_y": 0.2568531012330615
+            },
+            "soft": {
+              "feat_acc": 0.9239766081871343,
+              "act_prec": 0.652189098780008,
+              "top1_acc": 0.9134502923976608,
+              "n_query": 45
+            },
+            "strict": {
+              "feat_acc": 0.9187134502923976,
+              "act_prec": 0.5474911452184179,
+              "top1_acc": 0.9,
+              "n_query": 45
+            }
+          }
+        }
+      },
+      {
+        "held_out": "bai",
+        "n_held_symbols": 46,
+        "n_train_symbols": 48,
+        "n_pool_strict": 87,
+        "thin_training_side": false,
+        "feat_acc_mode_baseline": 0.8535469107551489,
+        "bases": {
+          "old": {
+            "n_live_coords": 16,
+            "train_nll": 0.19764827894568882,
+            "weights_top": {},
+            "soft": {
+              "feat_acc": 0.9462242562929062,
+              "act_prec": 0.7977338318247409,
+              "top1_acc": 0.9416475972540046,
+              "n_query": 46
+            },
+            "strict": {
+              "feat_acc": 0.9267734553775746,
+              "act_prec": 0.6320051160960252,
+              "top1_acc": 0.9193363844393593,
+              "n_query": 46
+            }
+          },
+          "new": {
+            "n_live_coords": 16,
+            "train_nll": 0.2582516346798926,
+            "weights_top": {
+              "velum": 0.9995623079590487,
+              "dorsum_y": 0.32183105983041926,
+              "blade_y": 0.2969509975414159,
+              "lip_open": 0.22230296361868368,
+              "blade_x": 0.2124368760261012
+            },
+            "soft": {
+              "feat_acc": 0.9427917620137299,
+              "act_prec": 0.706356585333858,
+              "top1_acc": 0.9244851258581236,
+              "n_query": 46
+            },
+            "strict": {
+              "feat_acc": 0.9164759725400458,
+              "act_prec": 0.4789723534041716,
+              "top1_acc": 0.9010297482837529,
+              "n_query": 46
+            }
+          }
+        }
+      },
+      {
+        "held_out": "central_asian",
+        "n_held_symbols": 46,
+        "n_train_symbols": 48,
+        "n_pool_strict": 87,
+        "thin_training_side": false,
+        "feat_acc_mode_baseline": 0.8352402745995423,
+        "bases": {
+          "old": {
+            "n_live_coords": 16,
+            "train_nll": 0.1749036233353817,
+            "weights_top": {},
+            "soft": {
+              "feat_acc": 0.9536613272311212,
+              "act_prec": 0.8161490683229813,
+              "top1_acc": 0.9387871853546911,
+              "n_query": 46
+            },
+            "strict": {
+              "feat_acc": 0.9170480549199083,
+              "act_prec": 0.5680931990714599,
+              "top1_acc": 0.911899313501144,
+              "n_query": 46
+            }
+          },
+          "new": {
+            "n_live_coords": 16,
+            "train_nll": 0.22131977019786092,
+            "weights_top": {
+              "dorsum_y": 0.63666031680984,
+              "duration": 0.6015422174276179,
+              "blade_y": 0.43038394972502486,
+              "lip_open": 0.4229341194302899,
+              "dorsum_x": 0.25973707282216524
+            },
+            "soft": {
+              "feat_acc": 0.9324942791762012,
+              "act_prec": 0.6856162557249514,
+              "top1_acc": 0.9107551487414188,
+              "n_query": 46
+            },
+            "strict": {
+              "feat_acc": 0.8935926773455377,
+              "act_prec": 0.4239052010791141,
+              "top1_acc": 0.8935926773455378,
+              "n_query": 46
+            }
+          }
+        }
+      },
+      {
+        "held_out": "chinese_1964",
+        "n_held_symbols": 50,
+        "n_train_symbols": 44,
+        "n_pool_strict": 83,
+        "thin_training_side": false,
+        "feat_acc_mode_baseline": 0.8431578947368421,
+        "bases": {
+          "old": {
+            "n_live_coords": 15,
+            "train_nll": 0.1761219354137106,
+            "weights_top": {},
+            "soft": {
+              "feat_acc": 0.938421052631579,
+              "act_prec": 0.7695795339412361,
+              "top1_acc": 0.9263157894736842,
+              "n_query": 50
+            },
+            "strict": {
+              "feat_acc": 0.9121052631578946,
+              "act_prec": 0.5879739645697093,
+              "top1_acc": 0.92,
+              "n_query": 50
+            }
+          },
+          "new": {
+            "n_live_coords": 16,
+            "train_nll": 0.25333830460058177,
+            "weights_top": {
+              "periodic": 1.019293736043716,
+              "root_x": 0.5591627974044067,
+              "root_y": 0.44785170647698586,
+              "lip_open": 0.3548391117453385,
+              "lip_round": 0.31665272088695
+            },
+            "soft": {
+              "feat_acc": 0.9226315789473682,
+              "act_prec": 0.6468829633723251,
+              "top1_acc": 0.9094736842105264,
+              "n_query": 50
+            },
+            "strict": {
+              "feat_acc": 0.9005263157894737,
+              "act_prec": 0.4763378465506124,
+              "top1_acc": 0.8957894736842106,
+              "n_query": 50
+            }
+          }
+        }
+      },
+      {
+        "held_out": "chinese_2004",
+        "n_held_symbols": 45,
+        "n_train_symbols": 49,
+        "n_pool_strict": 88,
+        "thin_training_side": false,
+        "feat_acc_mode_baseline": 0.8362573099415204,
+        "bases": {
+          "old": {
+            "n_live_coords": 15,
+            "train_nll": 0.17784228115289008,
+            "weights_top": {},
+            "soft": {
+              "feat_acc": 0.9456140350877194,
+              "act_prec": 0.7637175324675325,
+              "top1_acc": 0.9362573099415207,
+              "n_query": 45
+            },
+            "strict": {
+              "feat_acc": 0.9140350877192983,
+              "act_prec": 0.5754255214482488,
+              "top1_acc": 0.905263157894737,
+              "n_query": 45
+            }
+          },
+          "new": {
+            "n_live_coords": 16,
+            "train_nll": 0.24098764082388854,
+            "weights_top": {
+              "dorsum_y": 0.6228281683672421,
+              "blade_y": 0.45104633975704894,
+              "dorsum_x": 0.3259505868664234,
+              "duration": 0.24360600368745952,
+              "larynx": 0.22018078826754173
+            },
+            "soft": {
+              "feat_acc": 0.9269005847953214,
+              "act_prec": 0.679370818575364,
+              "top1_acc": 0.9163742690058478,
+              "n_query": 45
+            },
+            "strict": {
+              "feat_acc": 0.8906432748538012,
+              "act_prec": 0.39676964449691726,
+              "top1_acc": 0.8982456140350876,
+              "n_query": 45
+            }
+          }
+        }
+      },
+      {
+        "held_out": "ielex",
+        "n_held_symbols": 86,
+        "n_train_symbols": 8,
+        "n_pool_strict": 47,
+        "thin_training_side": true,
+        "feat_acc_mode_baseline": 0.8515911872705014,
+        "bases": {
+          "old": {
+            "n_live_coords": 15,
+            "train_nll": 0.09476558454468267,
+            "weights_top": {},
+            "soft": {
+              "feat_acc": 0.9372705018359851,
+              "act_prec": 0.674407807200015,
+              "top1_acc": 0.9378824969400243,
+              "n_query": 86
+            },
+            "strict": {
+              "feat_acc": 0.8577111383108933,
+              "act_prec": 0.133879612451041,
+              "top1_acc": 0.8870869033047735,
+              "n_query": 86
+            }
+          },
+          "new": {
+            "n_live_coords": 16,
+            "train_nll": 0.11525837504023585,
+            "weights_top": {
+              "dorsum_x": 22.443854805741303,
+              "duration": 14.847816617624668,
+              "larynx": 2.6636637998897763,
+              "periodic": 2.1073257617996055,
+              "source_tilt": 1.4496510337420885
+            },
+            "soft": {
+              "feat_acc": 0.9201346389228885,
+              "act_prec": 0.5946824459811472,
+              "top1_acc": 0.905752753977968,
+              "n_query": 86
+            },
+            "strict": {
+              "feat_acc": 0.8567931456548344,
+              "act_prec": 0.13040094825809112,
+              "top1_acc": 0.8696450428396569,
+              "n_query": 86
+            }
+          }
+        }
+      },
+      {
+        "held_out": "japanese",
+        "n_held_symbols": 31,
+        "n_train_symbols": 63,
+        "n_pool_strict": 102,
+        "thin_training_side": false,
+        "feat_acc_mode_baseline": 0.8531409168081495,
+        "bases": {
+          "old": {
+            "n_live_coords": 16,
+            "train_nll": 0.17671622150301067,
+            "weights_top": {},
+            "soft": {
+              "feat_acc": 0.9439728353140917,
+              "act_prec": 0.7702645502645502,
+              "top1_acc": 0.9431239388794566,
+              "n_query": 31
+            },
+            "strict": {
+              "feat_acc": 0.9202037351443124,
+              "act_prec": 0.6667965367965368,
+              "top1_acc": 0.9303904923599322,
+              "n_query": 31
+            }
+          },
+          "new": {
+            "n_live_coords": 16,
+            "train_nll": 0.24760390358773735,
+            "weights_top": {
+              "lip_open": 0.9822486215785141,
+              "periodic": 0.6971686611255145,
+              "root_x": 0.4845221487749647,
+              "root_y": 0.2938313449768533,
+              "blade_y": 0.21748805065356383
+            },
+            "soft": {
+              "feat_acc": 0.9219015280135823,
+              "act_prec": 0.5474338624338624,
+              "top1_acc": 0.9108658743633274,
+              "n_query": 31
+            },
+            "strict": {
+              "feat_acc": 0.9074702886247875,
+              "act_prec": 0.3907275132275132,
+              "top1_acc": 0.9049235993208827,
+              "n_query": 31
+            }
+          }
+        }
+      },
+      {
+        "held_out": "ob_ugrian",
+        "n_held_symbols": 32,
+        "n_train_symbols": 62,
+        "n_pool_strict": 101,
+        "thin_training_side": false,
+        "feat_acc_mode_baseline": 0.8495065789473685,
+        "bases": {
+          "old": {
+            "n_live_coords": 15,
+            "train_nll": 0.18804679486950301,
+            "weights_top": {},
+            "soft": {
+              "feat_acc": 0.9539473684210525,
+              "act_prec": 0.8147479256854258,
+              "top1_acc": 0.9366776315789473,
+              "n_query": 32
+            },
+            "strict": {
+              "feat_acc": 0.9333881578947368,
+              "act_prec": 0.6890557359307359,
+              "top1_acc": 0.930921052631579,
+              "n_query": 32
+            }
+          },
+          "new": {
+            "n_live_coords": 15,
+            "train_nll": 0.2268810231129234,
+            "weights_top": {
+              "velum": 0.9994161773587639,
+              "duration": 0.9644795562681647,
+              "lip_open": 0.5738306432941441,
+              "blade_y": 0.34951326213402534,
+              "root_x": 0.34056437529707995
+            },
+            "soft": {
+              "feat_acc": 0.9259868421052632,
+              "act_prec": 0.6691727543290042,
+              "top1_acc": 0.9161184210526316,
+              "n_query": 32
+            },
+            "strict": {
+              "feat_acc": 0.9029605263157894,
+              "act_prec": 0.5116804202741703,
+              "top1_acc": 0.9078947368421053,
+              "n_query": 32
+            }
+          }
+        }
+      },
+      {
+        "held_out": "tujia",
+        "n_held_symbols": 28,
+        "n_train_symbols": 66,
+        "n_pool_strict": 105,
+        "thin_training_side": false,
+        "feat_acc_mode_baseline": 0.8590225563909774,
+        "bases": {
+          "old": {
+            "n_live_coords": 16,
+            "train_nll": 0.18518969276845867,
+            "weights_top": {},
+            "soft": {
+              "feat_acc": 0.9501879699248121,
+              "act_prec": 0.8135214579659023,
+              "top1_acc": 0.9389097744360901,
+              "n_query": 28
+            },
+            "strict": {
+              "feat_acc": 0.9436090225563909,
+              "act_prec": 0.8071989738656405,
+              "top1_acc": 0.9370300751879699,
+              "n_query": 28
+            }
+          },
+          "new": {
+            "n_live_coords": 16,
+            "train_nll": 0.2392412257995413,
+            "weights_top": {
+              "lip_open": 0.5336639113713035,
+              "dorsum_y": 0.5032925340061436,
+              "duration": 0.42911575677542013,
+              "blade_y": 0.345249725801498,
+              "dorsum_x": 0.3011949278302308
+            },
+            "soft": {
+              "feat_acc": 0.9342105263157894,
+              "act_prec": 0.6475161669606114,
+              "top1_acc": 0.9248120300751879,
+              "n_query": 28
+            },
+            "strict": {
+              "feat_acc": 0.930451127819549,
+              "act_prec": 0.6495430495430495,
+              "top1_acc": 0.9219924812030075,
+              "n_query": 28
+            }
+          }
+        }
+      }
+    ],
+    "summary": {
+      "new/soft/act_prec": {
+        "mean": 0.647691216832348,
+        "sd_across_folds": 0.049024699658063664,
+        "mean_excl_thin_folds": 0.6543173131887481,
+        "per_fold": [
+          0.6522,
+          0.7064,
+          0.6856,
+          0.6469,
+          0.6794,
+          0.5947,
+          0.5474,
+          0.6692,
+          0.6475
+        ]
+      },
+      "new/soft/feat_acc": {
+        "mean": 0.9278920387196976,
+        "sd_across_folds": 0.007303979355317447,
+        "mean_excl_thin_folds": 0.9288617136942987,
+        "per_fold": [
+          0.924,
+          0.9428,
+          0.9325,
+          0.9226,
+          0.9269,
+          0.9201,
+          0.9219,
+          0.926,
+          0.9342
+        ]
+      },
+      "new/soft/top1_acc": {
+        "mean": 0.9146763999647436,
+        "sd_across_folds": 0.006538383312064514,
+        "mean_excl_thin_folds": 0.9157918557130906,
+        "per_fold": [
+          0.9135,
+          0.9245,
+          0.9108,
+          0.9095,
+          0.9164,
+          0.9058,
+          0.9109,
+          0.9161,
+          0.9248
+        ]
+      },
+      "new/strict/act_prec": {
+        "mean": 0.4450920135613397,
+        "sd_across_folds": 0.14300957203415005,
+        "mean_excl_thin_folds": 0.4844283967242458,
+        "per_fold": [
+          0.5475,
+          0.479,
+          0.4239,
+          0.4763,
+          0.3968,
+          0.1304,
+          0.3907,
+          0.5117,
+          0.6495
+        ]
+      },
+      "new/strict/feat_acc": {
+        "mean": 0.9019585310262462,
+        "sd_across_folds": 0.021138474319415092,
+        "mean_excl_thin_folds": 0.9076042041976727,
+        "per_fold": [
+          0.9187,
+          0.9165,
+          0.8936,
+          0.9005,
+          0.8906,
+          0.8568,
+          0.9075,
+          0.903,
+          0.9305
+        ]
+      },
+      "new/strict/top1_acc": {
+        "mean": 0.8992348192838046,
+        "sd_across_folds": 0.013916323181294014,
+        "mean_excl_thin_folds": 0.9029335413393231,
+        "per_fold": [
+          0.9,
+          0.901,
+          0.8936,
+          0.8958,
+          0.8982,
+          0.8696,
+          0.9049,
+          0.9079,
+          0.922
+        ]
+      },
+      "old/soft/act_prec": {
+        "mean": 0.7824102355093006,
+        "sd_across_folds": 0.046430541495711644,
+        "mean_excl_thin_folds": 0.7959105390479612,
+        "per_fold": [
+          0.8216,
+          0.7977,
+          0.8161,
+          0.7696,
+          0.7637,
+          0.6744,
+          0.7703,
+          0.8147,
+          0.8135
+        ]
+      },
+      "old/soft/feat_acc": {
+        "mean": 0.945906555095786,
+        "sd_across_folds": 0.005935607004035367,
+        "mean_excl_thin_folds": 0.9469860617532612,
+        "per_fold": [
+          0.9439,
+          0.9462,
+          0.9537,
+          0.9384,
+          0.9456,
+          0.9373,
+          0.944,
+          0.9539,
+          0.9502
+        ]
+      },
+      "old/soft/top1_acc": {
+        "mean": 0.9380973975177321,
+        "sd_across_folds": 0.005124280209013407,
+        "mean_excl_thin_folds": 0.9381242600899455,
+        "per_fold": [
+          0.9433,
+          0.9416,
+          0.9388,
+          0.9263,
+          0.9363,
+          0.9379,
+          0.9431,
+          0.9367,
+          0.9389
+        ]
+      },
+      "old/strict/act_prec": {
+        "mean": 0.5915911120866485,
+        "sd_across_folds": 0.18669124031142864,
+        "mean_excl_thin_folds": 0.6488050495410994,
+        "per_fold": [
+          0.6639,
+          0.632,
+          0.5681,
+          0.588,
+          0.5754,
+          0.1339,
+          0.6668,
+          0.6891,
+          0.8072
+        ]
+      },
+      "old/strict/feat_acc": {
+        "mean": 0.9169288105775522,
+        "sd_across_folds": 0.024341873175469316,
+        "mean_excl_thin_folds": 0.9243310196108844,
+        "per_fold": [
+          0.9275,
+          0.9268,
+          0.917,
+          0.9121,
+          0.914,
+          0.8577,
+          0.9202,
+          0.9334,
+          0.9436
+        ]
+      },
+      "old/strict/top1_acc": {
+        "mean": 0.9172641857463506,
+        "sd_across_folds": 0.015245079913873827,
+        "mean_excl_thin_folds": 0.9210363460515477,
+        "per_fold": [
+          0.9135,
+          0.9193,
+          0.9119,
+          0.92,
+          0.9053,
+          0.8871,
+          0.9304,
+          0.9309,
+          0.937
+        ]
+      }
+    },
+    "mode_baseline_feat_acc": 0.8494023915763214,
+    "thin_folds": [
+      "ielex"
+    ],
+    "min_train_symbols_for_headline": 20,
+    "n_languages": 9,
+    "knn_k": 5,
+    "lambda": 5.5
+  },
+  "headline_delta": {
+    "strict_feat_acc_new_minus_old": -0.01497027955130592,
+    "soft_feat_acc_new_minus_old": -0.01801451637608842,
+    "strict_act_prec_new_minus_old": -0.1464990985253088,
+    "soft_act_prec_new_minus_old": -0.13471901867695257,
+    "strict_top1_acc_new_minus_old": -0.018029366462546048,
+    "soft_top1_acc_new_minus_old": -0.023420997552988543,
+    "gate1_hit_at_1_old_z-euclid_new_minus_old": 0.0,
+    "gate1_hit_at_3_old_z-euclid_new_minus_old": 0.015625,
+    "gate1_hit_at_5_old_z-euclid_new_minus_old": 0.0625,
+    "gate1_mrr_old_z-euclid_new_minus_old": 0.008350590381840384,
+    "gate1_hit_at_1_old_z-whiten_new_minus_old": 0.0,
+    "gate1_hit_at_3_old_z-whiten_new_minus_old": 0.0,
+    "gate1_hit_at_5_old_z-whiten_new_minus_old": 0.0,
+    "gate1_mrr_old_z-whiten_new_minus_old": 0.0,
+    "gate1_hit_at_1_new_z-euclid_new_minus_old": 0.203125,
+    "gate1_hit_at_3_new_z-euclid_new_minus_old": 0.046875,
+    "gate1_hit_at_5_new_z-euclid_new_minus_old": 0.0625,
+    "gate1_mrr_new_z-euclid_new_minus_old": 0.12752768065268066,
+    "gate1_hit_at_1_new_z-whiten_new_minus_old": 0.21875,
+    "gate1_hit_at_3_new_z-whiten_new_minus_old": 0.078125,
+    "gate1_hit_at_5_new_z-whiten_new_minus_old": 0.0625,
+    "gate1_mrr_new_z-whiten_new_minus_old": 0.14790218462093463,
+    "gate1_hit_at_1_old_old-fitted_new_minus_old": 0.109375,
+    "gate1_hit_at_3_old_old-fitted_new_minus_old": 0.078125,
+    "gate1_hit_at_5_old_old-fitted_new_minus_old": 0.0625,
+    "gate1_mrr_old_old-fitted_new_minus_old": 0.08908617424242421
+  },
+  "limitations": [
+    "SUBSTITUTE, NOT BDPA. No number here estimates reference-alignment accuracy; the six published percentages are unreachable without the BDPA corpus.",
+    "The old basis has fitted Phatak weights (metric16.json) and its coordinates were hand-tuned with Phatak visible; Phatak is only a partly blind test for it.",
+    "The new basis has NO fitted weights. z-euclid and z-whiten are assumptions, not fitted quantities; they were chosen and declared before results were read, but a third reasonable metric could reverse the ordering. Gate 1 already shows that: the new basis wins every rank metric and loses the likelihood metric.",
+    "Gate 3 fits only a diagonal per-coordinate weighting. It cannot reward what the new basis claims for interacting coordinates, so it under-sells the new basis by construction.",
+    "feat_acc is near-saturated because 38 PhonoLib columns are mostly negative; read act_prec, whose per-fold mode baseline floor is reported, not feat_acc.",
+    "The ielex fold holds out 86 of the 133 symbols and leaves 8 for the metric fit. It is reported and separately excluded from the excl_thin means rather than being silently averaged in.",
+    "No consonant acoustic data exists yet, so nothing here tests whether the tongue coordinates are acoustically live; Gate 3 tests only whether they carry the right phonological geometry.",
+    "No significance test is reported. With 9 folds the per-fold spread is the honest uncertainty statement, and it is printed."
+  ],
+  "runtime_note": {
+    "cpu_seconds": 5.5
+  },
+  "verdict": {
+    "question": "Does the new tongue basis beat the old 16-dim basis on identical ground? Answer: not yet, and the pooled Gate-1 hit@1 of 0.39 vs 0.09 that looks like a win is an artefact worth naming.",
+    "pooled_gate1_hit1": "new 0.391 vs old 0.094 at unit weights. The cell split shows why: on the 18 Phatak cells whose human confusion was a VOICING pair, the new basis scores hit@1 = 1.000 and the old basis 0.111. The new basis separates voicing perfectly in raw geometry, because voicing moves several tongue coordinates at once.",
+    "place_or_manner_cells": "On the 46 remaining cells -- the place and manner confusions, which is what a tongue-shape basis exists to model -- the ordering REVERSES: new 0.152 vs old 0.087 at unit weights, and old 0.239 with its own deployed metric16 weights. The new basis is currently WORSE at place than the old basis is.",
+    "likelihood_and_rank_metrics": "Gate 1 NLL and Spearman both favour the old basis (2.40 vs 2.80 nats, rho 0.46 vs 0.29), so the new basis does not win Gate 1 uniformly either.",
+    "loco": "Gate 3 LOCO over 9 SVMCC languages, held-out segments removed from the candidate pool: old act_prec 0.649 vs new 0.443 (excluding the degenerate ielex fold). The old basis wins.",
+    "what_the_new_basis_does_win": "Voicing separation, and 38 PhonoLib feature geometry only in the soft-pool variant where its own symbols are reachable.",
+    "what_this_says_about_the_known_gaps": "Gap 1 (a palatal GROOVE to separate ɕ from ʃ) is confirmed as load-bearing: in the retrieval audit the new basis top-1 is the voicing counterpart for 2 of the 16 Phatak stimuli, and where it is not, it reaches only a coronal sibilant, never a second place. Gap 3 (no consonant acoustics) cannot be tested here at all. This gate adds a fourth: the tongue contour as generated separates voicing well and place poorly, which the generators did not report."
+  }
+}
