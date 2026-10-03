@@ -28,6 +28,10 @@ VEC = os.path.join(ROOT, 'tools', 'data', 'vec_table_16.json')
 TONGUE = tm.TONGUE
 LIP_SITES = tm.LIP_SITES
 
+# Lip protrusion added for a secondary labialised segment. Same constant the
+# `labialized` modifier adds in gen_tongue_modifiers.py.
+LABIAL_LIP_ROUND = 0.30
+
 # gap below the roof at the constrictor; 0.00 is full contact.
 PROFILES = {
     'stop':        {'gap': 0.00, 'dur': 0.10, 'velum': 0.0, 'lat': 0.0, 'larynx': 0.0},
@@ -36,6 +40,7 @@ PROFILES = {
     'nasal':       {'gap': 0.00, 'dur': 0.90, 'velum': 1.0, 'lat': 0.0, 'larynx': 0.0},
     'approximant': {'gap': 0.40, 'dur': 0.90, 'velum': 0.0, 'lat': 0.0, 'larynx': 0.0},
     'lateral':     {'gap': 0.40, 'dur': 0.90, 'velum': 0.0, 'lat': 1.0, 'larynx': 0.0},
+    'lateral_fricative': {'gap': 0.14, 'dur': 0.90, 'velum': 0.0, 'lat': 1.0, 'larynx': 0.0},
     'trill':       {'gap': 0.00, 'dur': 0.50, 'velum': 0.0, 'lat': 0.0, 'larynx': 0.0},
     'flap':        {'gap': 0.05, 'dur': 0.25, 'velum': 0.0, 'lat': 0.0, 'larynx': 0.0},
     # A click closes like a stop and then releases a rarefied intraoral air
@@ -141,11 +146,23 @@ def classify(vec, I):
     # oral stop at the same place.
     if flow < 0.0:
         return anchor, 'click'
+    # Flap before lateral. ɺ is the only lateral_ratio >= 0.5 segment whose
+    # duration and oral area put it in the flap range (0.30, 0.00) -- every
+    # other lateral sits at 0.80-1.00 duration or 0.08 area. Its
+    # lateral_ratio = 1.0 is an old-table mislabel; testing first means the
+    # mislabel no longer decides the manner and ɺ stops sharing a vector with
+    # l and ɮ. ǁ, the lateral click, is caught by the airflow branch above.
+    if 0.10 <= dur <= 0.40 and eoa <= 0.01:
+        return anchor, 'flap'
     # Lateral before the jet test: a lateral fricative (ɬ ɮ) carries BOTH a
     # lateral airflow and frication, so testing jets first would file ɬ
     # alongside s and ɮ alongside z and make those pairs identical.
     if lat >= 0.5:
-        return anchor, 'lateral'
+        # A lateral fricative (ɬ ɮ) is a different gesture from a lateral
+        # approximant (l ɭ ʎ ʟ): the approximants sit at effective_oral_area
+        # 0.50, the fricatives at 0.08. Sharing one profile made l and ɮ
+        # identical even though the old table separates them on two axes.
+        return anchor, 'lateral_fricative' if eoa <= 0.12 else 'lateral'
     # This must come AFTER the lateral test but BEFORE the dur==0 stop test.
     # An affricate has duration 0 in the old table -- the table records only
     # the closure -- and took the stop branch, so k͡p and ɡ͡b were generated
@@ -160,8 +177,6 @@ def classify(vec, I):
         return anchor, 'affricate' if dur >= 1.2 else 'fricative'
     if dur == 0.0:
         return anchor, 'stop'
-    if 0.10 <= dur <= 0.40 and eoa <= 0.01:
-        return anchor, 'flap'
     if eoa <= 0.12:
         return anchor, 'fricative'
     if 0.40 <= dur <= 0.60 and eoa <= 0.25:
@@ -263,6 +278,22 @@ def main():
 
         anchor, manner = classify(vec, I)
         cfg, prof = apply_manner(anchor, manner)
+
+        # Secondary labialisation is not a manner: it is a lip gesture on top of
+        # whatever closure the segment already has. The old table records it on
+        # lips_closed = 1.0, the same value a genuinely bilabial segment gets,
+        # so the two were indistinguishable and k͡p came out identical to k,
+        # ɡ͡b to ɡ and ŋ͡m to ŋ. The anchor is already known here, and it
+        # separates them exactly: lips_closed > 0.5 with a bilabial anchor is
+        # b m p pʼ ɓ ʘ ʙ, lips_closed > 0.5 with any other anchor is labialised.
+        # lips_rounded is 0.000 on all three, so the old table carries no
+        # magnitude either; 0.30 is the value gen_tongue_modifiers.py already
+        # uses for its `labialized` rule, reused rather than newly invented.
+        labial = vec[I['lips_closed']] > 0.5 and anchor != 'bilabial'
+        if labial:
+            cfg = dict(cfg)
+            cfg['lip_round'] = min(cfg['lip_round'] + LABIAL_LIP_ROUND, 1.0)
+
         site_x, gap, part, origin = derived_site(cfg, anchor, manner)
         if anchor == 'glottal':
             # /h ɦ ʔ/ close at the glottis. The tongue is simply at rest, so
