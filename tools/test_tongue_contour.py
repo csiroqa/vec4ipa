@@ -68,6 +68,23 @@ int main(void)
                c.lip_open, c.lip_round, c.velum, c.lateral, c.periodic,
                c.larynx, c.source_tilt, c.duration);
     }
+/* Vector round trip: apply a modifier to a full 18-axis vector and print it
+     * back, so the derived constriction axes can be compared too. */
+    int nv;
+    if (scanf("%d", &nv) != 1) return 4;
+    for (int i = 0; i < nv; i++) {
+        double v[18];
+        for (int k = 0; k < 18; k++) scanf("%lf", &v[k]);
+        char name[32];
+        scanf("%31s", name);
+        /* Indices follow the scheme's own dim order, in which larynx sits at
+         * 12 and periodic at 13 -- the reverse of the struct field order. */
+        TongueAxes ax = {0,1,2,3,4,5,6,7, 8,9, 10,11,13,12,14,15, 16,17};
+        if (!tongue_apply_mod_vector(v, &ax, name)) { printf("Y\n"); continue; }
+        printf("V");
+        for (int k = 0; k < 18; k++) printf(" %.17g", v[k]);
+        printf("\n");
+    }
     return 0;
 }
 '''
@@ -118,6 +135,14 @@ def main():
                      '%.17g %.17g %.17g %.17g' % (per, e['larynx'],
                                                   tilt, e['duration']),
                      name]))
+        # Full 18-axis vectors, so the derived constriction axes are compared.
+        vecs = []
+        for s in syms:
+            for name in mods:
+                bv = list(basis['table'][s])
+                vecs.append(' '.join('%.17g' % x for x in bv) + ' ' + name)
+        payload.append('%d' % len(vecs))
+        payload.extend(vecs)
         r = subprocess.run([exe], input='\n'.join(payload) + '\n',
                            capture_output=True, text=True)
         if r.returncode != 0:
@@ -208,8 +233,77 @@ def main():
     print('modifiers(): %d (segment, rule) pairs, max abs difference %.3g, '
           'mismatches %d' % (len(pairs), max_md, bad_mod))
 
+    # --- vector round trip: the derived constriction axes must follow -------
+    import gen_merged_basis as MB
+    vec_rows = [ln.split() for ln in lines if ln.startswith('V ')]
+    dim_i = {d: i for i, d in enumerate(basis['dims'])}
+    TONGUE_SET = {'tip_x', 'tip_y', 'blade_x', 'blade_y', 'dorsum_x',
+                  'dorsum_y', 'root_x', 'root_y', 'lip_open', 'lip_round'}
+    bad_v, shown_v, max_vd = 0, 0, 0.0
+    for (s, m), row in zip(pairs, vec_rows):
+        bv = list(basis['table'][s])
+        e = table[s]
+        cfg = {p: tuple(e['tongue'][p]) for p in PARTS}
+        cfg.update(lip_open=e['lip_open'], lip_round=e['lip_round'],
+                   velum=e['velum'], lateral=e['lateral'],
+                   periodic=bv[dim_i['periodic']], larynx=e['larynx'],
+                   source_tilt=bv[dim_i['source_tilt']],
+                   duration=e['duration'])
+        want = M.apply_mod(cfg, m)
+        got = [float(x) for x in row[1:]]
+        exp = list(bv)
+        # Four parts, four x axes -- zip stops at the shorter one, so a
+        # list of all eight axis names here would silently misalign and leave
+        # blade_x holding its base value, which reads as a port mismatch.
+        for p, di in zip(PARTS, ('tip_x', 'blade_x', 'dorsum_x', 'root_x')):
+            exp[dim_i[di]] = want[p][0]
+            exp[dim_i[di.replace('_x', '_y')]] = want[p][1]
+        exp[dim_i['lip_open']] = want['lip_open']
+        exp[dim_i['lip_round']] = want['lip_round']
+        for di, key in (('velum', 'velum'), ('lateral', 'lateral'),
+                        ('periodic', 'periodic'), ('larynx', 'larynx'),
+                        ('source_tilt', 'source_tilt'), ('duration', 'duration')):
+            exp[dim_i[di]] = want[key]
+        site = tm.derived_constriction(
+            {p: tuple(want[p]) for p in PARTS} | {'lip_open': want['lip_open'],
+                                                 'lip_round': want['lip_round']})
+        # A segment with no oral constriction (h, ɦ, ʔ) keeps the sentinel;
+        # the contour alone cannot express that, so it is carried forward.
+        if bv[dim_i['constriction_pos']] == MB.NO_CONSTRICTION:
+            exp[dim_i['constriction_pos']] = MB.NO_CONSTRICTION
+            exp[dim_i['constriction_gap']] = bv[dim_i['constriction_gap']]
+        else:
+            exp[dim_i['constriction_pos']] = site[0]
+            exp[dim_i['constriction_gap']] = site[1]
+        diffs = [abs(a - b) for a, b in zip(exp, got)]
+        d = max(diffs)
+        max_vd = max(max_vd, d)
+        if d > 1e-12:
+            bad_v += 1
+            if shown_v < 5:
+                shown_v += 1
+                k = diffs.index(d)
+                print('  VMISMATCH %s + %-13s %s: C=%.17g PY=%.17g'
+                      % (s, m, basis['dims'][k], got[k], exp[k]))
+    print('vector round trip(): %d pairs, max abs difference %.3g, '
+          'mismatches %d' % (len(pairs), max_vd, bad_v))
+
+    # The derived axes must actually move when the tongue does. If
+    # constriction_pos were copied through instead of recomputed, palatalized
+    # would leave it untouched and the retrofit would look fine.
+    moved, unmoved = 0, 0
+    for (s, m), row in zip(pairs, vec_rows):
+        got = [float(x) for x in row[1:]]
+        if abs(got[dim_i['constriction_pos']]
+               - basis['table'][s][dim_i['constriction_pos']]) > 1e-12:
+            moved += 1
+        else:
+            unmoved += 1
+    print('constriction_pos moved on %d of %d pairs, unchanged on %d'
+          % (moved, len(pairs), unmoved))
+
     ok = (bad_roof == 0 and bad_c == 0 and bad_g == 0 and bad_p == 0
-          and bad_mod == 0)
+          and bad_mod == 0 and bad_v == 0)
     print('\n%s' % ('PASS: the C port and the Python model agree exactly'
                     if ok else 'FAIL: the port has diverged'))
     return 0 if ok else 1

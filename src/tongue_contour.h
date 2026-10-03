@@ -346,6 +346,104 @@ static int tongue_apply_mod (TongueContour *c, const char *name)
     return 0;
 }
 
+/* --- vector round trip ---------------------------------------------------
+ * The scheme stores the contour flat. Rebuilding it needs the axis INDICES,
+ * not names: the deployed scheme is 16 axes and has none of these, which is
+ * why none of this runs until a tongue scheme is actually loaded. Passing
+ * indices rather than a global keeps that fact visible at the call site. */
+typedef struct {
+    int tip_x, tip_y, blade_x, blade_y, dorsum_x, dorsum_y, root_x, root_y;
+    int lip_open, lip_round;
+    int velum, lateral, periodic, larynx, source_tilt, duration;
+    int constriction_pos, constriction_gap;
+} TongueAxes;
+
+/* Sentinel for an axis the scheme does not carry. Reading one would index
+ * another coordinate, which is the silent-corruption case the runtime now
+ * warns about; skipping it is the safe reading. */
+#define AX_NONE (-1)
+
+/* Value the basis puts on constriction_pos when there is no oral constriction.
+ * It sits just past the most posterior anchored site (0.80) so a
+ * constriction-less segment cannot be mistaken for a pharyngeal one.
+ * Transcribed from NO_CONSTRICTION in gen_merged_basis.py. */
+#define TONGUE_NO_CONSTRICTION 0.95
+
+static void tongue_from_vector (double *v, const TongueAxes *ax,
+        TongueContour *c)
+{
+    c->pt[TONGUE_TIP][0]    = v[ax->tip_x];     c->pt[TONGUE_TIP][1]    = v[ax->tip_y];
+    c->pt[TONGUE_BLADE][0]  = v[ax->blade_x];   c->pt[TONGUE_BLADE][1]  = v[ax->blade_y];
+    c->pt[TONGUE_DORSUM][0] = v[ax->dorsum_x];  c->pt[TONGUE_DORSUM][1] = v[ax->dorsum_y];
+    c->pt[TONGUE_ROOT][0]   = v[ax->root_x];    c->pt[TONGUE_ROOT][1]   = v[ax->root_y];
+    c->lip_open  = v[ax->lip_open];
+    c->lip_round = v[ax->lip_round];
+    c->velum       = (ax->velum       >= 0) ? v[ax->velum]       : 0.0;
+    c->lateral     = (ax->lateral     >= 0) ? v[ax->lateral]     : 0.0;
+    c->periodic    = (ax->periodic    >= 0) ? v[ax->periodic]    : 0.0;
+    c->larynx      = (ax->larynx      >= 0) ? v[ax->larynx]      : 0.0;
+    c->source_tilt = (ax->source_tilt >= 0) ? v[ax->source_tilt] : 0.0;
+    c->duration    = (ax->duration    >= 0) ? v[ax->duration]    : 0.0;
+}
+
+/* Write back, then RECOMPUTE the derived axes.
+ *
+ * This is the part that cannot be skipped. constriction_pos and
+ * constriction_gap are functions of the contour -- storing them and leaving
+ * them alone is how a modifier ends up moving the tongue without the place
+ * axis following it, which is the defect the whole redesign exists to remove.
+ * A modifier that moves the tongue and does not move the site is a lie the
+ * caller cannot detect. */
+static void tongue_to_vector (const TongueContour *c, const TongueAxes *ax,
+        double *v, int keep_absent)
+{
+    v[ax->tip_x] = c->pt[TONGUE_TIP][0];    v[ax->tip_y] = c->pt[TONGUE_TIP][1];
+    v[ax->blade_x] = c->pt[TONGUE_BLADE][0];
+    v[ax->blade_y] = c->pt[TONGUE_BLADE][1];
+    v[ax->dorsum_x] = c->pt[TONGUE_DORSUM][0];
+    v[ax->dorsum_y] = c->pt[TONGUE_DORSUM][1];
+    v[ax->root_x] = c->pt[TONGUE_ROOT][0];  v[ax->root_y] = c->pt[TONGUE_ROOT][1];
+    v[ax->lip_open]  = c->lip_open;
+    v[ax->lip_round] = c->lip_round;
+    if (ax->velum       >= 0) v[ax->velum]       = c->velum;
+    if (ax->lateral     >= 0) v[ax->lateral]     = c->lateral;
+    if (ax->periodic    >= 0) v[ax->periodic]    = c->periodic;
+    if (ax->larynx      >= 0) v[ax->larynx]      = c->larynx;
+    if (ax->source_tilt >= 0) v[ax->source_tilt] = c->source_tilt;
+    if (ax->duration    >= 0) v[ax->duration]    = c->duration;
+
+    /* A segment that had no oral constriction to begin with (h, ɦ, ʔ) keeps
+     * NO_CONSTRICTION. The contour alone cannot express "no constriction":
+     * every segment has four tongue points, so recomputing unconditionally
+     * would hand ʔ an invented site at the tongue's resting position. The
+     * generator gets this from an explicit 'none' verdict; the runtime has to
+     * carry it forward from the incoming vector. */
+    if (keep_absent) {
+        v[ax->constriction_pos] = TONGUE_NO_CONSTRICTION;
+        v[ax->constriction_gap] = v[ax->constriction_gap];
+        return;
+    }
+    double x, gap; int part;
+    tongue_constriction(c, &x, &gap, &part);
+    v[ax->constriction_pos] = x;
+    v[ax->constriction_gap] = gap;
+}
+
+/* Apply one modifier to a scheme vector, deriving the site afterwards.
+ * Returns 0 for an unknown modifier and leaves v untouched, so the caller can
+ * tell "this diacritic did nothing" from "this diacritic was applied". */
+static int tongue_apply_mod_vector (double *v, const TongueAxes *ax,
+        const char *name)
+{
+    TongueContour c;
+    int absent = (v[ax->constriction_pos] == TONGUE_NO_CONSTRICTION);
+    tongue_from_vector(v, ax, &c);
+    if (!tongue_apply_mod(&c, name)) return 0;
+    tongue_to_vector(&c, ax, v, absent);
+    return 1;
+}
+
+
 
 
 #endif /* IPA2VEC_TONGUE_CONTOUR_H */
