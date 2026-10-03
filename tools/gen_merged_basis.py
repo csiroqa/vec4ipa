@@ -235,6 +235,82 @@ def main():
         f.write(json.dumps(gout, ensure_ascii=False, indent=1))
     print('\nwrote %s' % gpath)
 
+    # --- vowel-only height --------------------------------------------------
+    # diagnose_tense.py: the 17 segments PhonoLib marks `tense` are all
+    # close VOWELS, and both bases already keep them clustered, so the deficit
+    # is in the metric's view of vowel height, not in the glottal axes.
+    # constriction_gap = roof(dorsum_x) - dorsum_y mixes tongue height with the
+    # roof slope, so /i/ and /u/ -- both close -- land far apart on it.
+    #
+    # Adding dorsum_y outright FAILED: for a consonant that height IS the roof,
+    # so it re-injects place and Gate 1 collapsed from 0.522 to 0.304. A
+    # consonant has no independent height to record -- its vertical position is
+    # determined by place. A vowel does. So this coordinate carries the mean of
+    # the four control-point heights for vowels and a single constant for every
+    # consonant, which after standardisation contributes exactly zero to
+    # consonant-to-consonant distance and cannot reintroduce place noise.
+    parts_y = [[contour[s]['tongue'][p][1] for p in PARTS] for s in syms]
+    raw = {s: float(np.mean(ys)) for s, ys in zip(syms, parts_y)}
+    floor = float(np.mean(list(raw.values())))
+    vk = keep + ['vowel_height']
+    vrows = {s: srows[s] + [raw[s] if contour[s]['anchor'] == 'vowel' else floor]
+             for s in syms}
+    V = np.array([vrows[s] for s in syms], float)
+    print('\n== summary + vowel-only height ==')
+    print('  dimensions %d   rank %d   distinct rows %d of %d'
+          % (len(vk), np.linalg.matrix_rank(V),
+             len({tuple(vrows[s]) for s in syms}), len(syms)))
+    con = {vrows[s][-1] for s in syms if contour[s]['anchor'] != 'vowel'}
+    print('  consonant values taken: %d (must be 1)' % len(con))
+    print('  vowel range %.3f to %.3f' % (min(raw[s] for s in syms
+                                             if contour[s]['anchor'] == 'vowel'),
+                                         max(raw[s] for s in syms
+                                             if contour[s]['anchor'] == 'vowel')))
+    for a, b in [('i', 'a'), ('u', 'a'), ('e', 'ɐ'), ('ɤ', 'ɑ')]:
+        if a in vrows and b in vrows and contour[a]['anchor'] == 'vowel' \
+                and contour[b]['anchor'] == 'vowel':
+            print('  %-2s %.3f  vs %-2s %.3f  -> %s higher'
+                  % (a, vrows[a][-1], b, vrows[b][-1],
+                     a if vrows[a][-1] > vrows[b][-1] else b))
+    vout = {'dims': vk, 'table': vrows,
+            'derived_from': 'merged_basis.json',
+            'consonant_floor': floor,
+            'note': 'mean control-point height for vowels, constant elsewhere'}
+    vpath = os.path.join(DATA, 'summary_vheight.json')
+    with io.open(vpath, 'w', encoding='utf-8') as f:
+        f.write(json.dumps(vout, ensure_ascii=False, indent=1))
+    print('\nwrote %s' % vpath)
+
+    # --- one coordinate, mode-appropriate definition ------------------------
+    # A vowel has no constriction, so "how far the tongue is from the roof" is
+    # not a quantity it has: for /i/ the whole tract is narrow, for /a/ it is
+    # wide, and roof(x) - dorsum_y mixes the two. So constriction_gap is defined
+    # for consonants (closure degree) and for vowels as openness, which is the
+    # same perceptual axis the height coordinate carries. One coordinate, not
+    # two, and no constant-valued axis.
+    j = keep.index('constriction_gap')
+    ugap = {s: (raw[s] if contour[s]['anchor'] == 'vowel'
+                else srows[s][j]) for s in syms}
+    urows = {s: (srows[s][:j] + [ugap[s]] + srows[s][j + 1:]) for s in syms}
+    U = np.array([urows[s] for s in syms], float)
+    print('\n== summary with mode-appropriate constriction_gap (%d dims) =='
+          % len(keep))
+    print('  rank %d   distinct rows %d of %d'
+          % (np.linalg.matrix_rank(U),
+             len({tuple(urows[s]) for s in syms}), len(syms)))
+    for a, b in [('i', 'a'), ('u', 'a'), ('i', 'u')]:
+        print('  gap %-2s %.3f  vs %-2s %.3f  -> %s wider'
+              % (a, urows[a][j], b, urows[b][j],
+                 b if urows[a][j] > urows[b][j] else a))
+    uout = {'dims': keep, 'table': urows,
+            'derived_from': 'merged_basis.json',
+            'note': 'constriction_gap is closure for consonants, openness '
+                    '(mean control-point height) for vowels'}
+    upath = os.path.join(DATA, 'summary_vgap.json')
+    with io.open(upath, 'w', encoding='utf-8') as f:
+        f.write(json.dumps(uout, ensure_ascii=False, indent=1))
+    print('\nwrote %s' % upath)
+
 
 if __name__ == '__main__':
     main()

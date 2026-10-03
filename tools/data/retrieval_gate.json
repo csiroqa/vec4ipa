@@ -20,7 +20,7 @@
   "symbols": 133,
   "basis_dims": {
     "old": 16,
-    "new": 10
+    "new": 11
   },
   "new_basis_coords": [
     "constriction_pos",
@@ -32,7 +32,8 @@
     "larynx",
     "periodic",
     "source_tilt",
-    "duration"
+    "duration",
+    "vowel_height"
   ],
   "metric_definitions": {
     "z-euclid": "per-coordinate z-score over the reference symbol set, unweighted Euclidean, then rescaled so the mean off-diagonal distance is 1 (unit_scale)",
@@ -85,7 +86,7 @@
         "hit_at_3": 0.75,
         "hit_at_5": 0.921875,
         "mrr": 0.5897941468253968,
-        "nll_nats_per_response": 2.54711842222222,
+        "nll_nats_per_response": 2.5207725463298765,
         "n_cells": 64,
         "cell_split": {
           "voicing": {
@@ -104,7 +105,7 @@
         "hit_at_3": 0.703125,
         "hit_at_5": 0.859375,
         "mrr": 0.5358010912698413,
-        "nll_nats_per_response": 2.6271914171071846,
+        "nll_nats_per_response": 2.5692900341119977,
         "n_cells": 64,
         "cell_split": {
           "voicing": {
@@ -142,7 +143,7 @@
       "old/z-euclid": 0.47995104868314126,
       "old/z-whiten": 0.4648370178422042,
       "new/z-euclid": 0.3891665851618264,
-      "new/z-whiten": 0.38685074164753314,
+      "new/z-whiten": 0.3845045640060106,
       "old/old-fitted": 0.40219297147181227
     },
     "uniform_nll_nats": 2.772588722239781,
@@ -167,8 +168,8 @@
         ],
         "new/z-whiten": [
           "t",
-          "f",
-          "b"
+          "b",
+          "f"
         ],
         "old/old-fitted": [
           "b",
@@ -192,8 +193,8 @@
         ],
         "new/z-whiten": [
           "k",
-          "s",
-          "ʃ"
+          "ʃ",
+          "s"
         ],
         "old/old-fitted": [
           "d",
@@ -217,8 +218,8 @@
         ],
         "new/z-whiten": [
           "t",
-          "ʃ",
-          "g"
+          "g",
+          "ʃ"
         ],
         "old/old-fitted": [
           "g",
@@ -267,8 +268,8 @@
         ],
         "new/z-whiten": [
           "s",
-          "f",
-          "ʃ"
+          "ʃ",
+          "f"
         ],
         "old/old-fitted": [
           "f",
@@ -342,8 +343,8 @@
         ],
         "new/z-whiten": [
           "d",
-          "v",
-          "p"
+          "p",
+          "v"
         ],
         "old/old-fitted": [
           "p",
@@ -367,8 +368,8 @@
         ],
         "new/z-whiten": [
           "g",
-          "z",
-          "ʒ"
+          "ʒ",
+          "z"
         ],
         "old/old-fitted": [
           "t",
@@ -392,8 +393,8 @@
         ],
         "new/z-whiten": [
           "d",
-          "ʒ",
-          "k"
+          "k",
+          "ʒ"
         ],
         "old/old-fitted": [
           "k",
@@ -442,8 +443,8 @@
         ],
         "new/z-whiten": [
           "z",
-          "v",
-          "ʒ"
+          "ʒ",
+          "v"
         ],
         "old/old-fitted": [
           "v",
@@ -518,7 +519,7 @@
         "new/z-whiten": [
           "n",
           "v",
-          "f"
+          "p"
         ],
         "old/old-fitted": [
           "n",
@@ -566,9 +567,9 @@
       "mrr": 0.2250316577953297
     },
     "random_same_width_new": {
-      "hit_at_1": 0.0625,
-      "hit_at_1_sd_over_runs": 0.03314563036811941,
-      "mrr": 0.22067221515463703
+      "hit_at_1": 0.076171875,
+      "hit_at_1_sd_over_runs": 0.07346969872579698,
+      "mrr": 0.2260071254700161
     },
     "one_hot_orthographic": {
       "hit_at_1": 0.078125,
@@ -603,25 +604,25 @@
             }
           },
           "new": {
-            "n_live_coords": 9,
-            "train_nll": 0.2830630382967904,
+            "n_live_coords": 10,
+            "train_nll": 0.28088668551519685,
             "weights_top": {
-              "duration": 1.7105937518574839,
-              "lateral": 0.9999985976243995,
-              "constriction_gap": 0.9069473971331288,
-              "lip_open": 0.5816492186552075,
-              "velum": 0.25347677109978234
+              "duration": 1.8436914400097526,
+              "constriction_gap": 1.075795140638227,
+              "lateral": 0.9999976207439444,
+              "vowel_height": 0.5863485565222928,
+              "lip_open": 0.5688913615837221
             },
             "soft": {
-              "feat_acc": 0.9309941520467836,
-              "act_prec": 0.6671700773973501,
-              "top1_acc": 0.9233918128654971,
+              "feat_acc": 0.9350877192982455,
+              "act_prec": 0.6692993244129608,
+              "top1_acc": 0.9146198830409358,
               "n_query": 45
             },
             "strict": {
-              "feat_acc": 0.9315789473684208,
-              "act_prec": 0.6125442739079102,
-              "top1_acc": 0.9157894736842104,
+              "feat_acc": 0.9263157894736842,
+              "act_prec": 0.5972755148891513,
+              "top1_acc": 0.9087719298245613,
               "n_query": 45
             }
           }
@@ -653,25 +654,25 @@
             }
           },
           "new": {
-            "n_live_coords": 10,
-            "train_nll": 0.26602901602195467,
+            "n_live_coords": 11,
+            "train_nll": 0.26390548586222484,
             "weights_top": {
-              "duration": 2.3741930095798383,
-              "velum": 1.0000002894752074,
-              "lip_open": 0.8427848458445089,
-              "constriction_gap": 0.7323572083424863,
-              "lip_round": 0.11569554200164202
+              "duration": 2.690181183849952,
+              "velum": 0.9999997652917056,
+              "lip_open": 0.8430802857833278,
+              "constriction_gap": 0.7679891494227816,
+              "vowel_height": 0.5091772481298639
             },
             "soft": {
-              "feat_acc": 0.9290617848970253,
-              "act_prec": 0.5966704381477108,
-              "top1_acc": 0.9227688787185354,
+              "feat_acc": 0.9399313501144166,
+              "act_prec": 0.6537239275875639,
+              "top1_acc": 0.9233409610983981,
               "n_query": 46
             },
             "strict": {
-              "feat_acc": 0.9107551487414187,
-              "act_prec": 0.4621449888495342,
-              "top1_acc": 0.9038901601830664,
+              "feat_acc": 0.9130434782608695,
+              "act_prec": 0.48828135248589793,
+              "top1_acc": 0.902745995423341,
               "n_query": 46
             }
           }
@@ -703,25 +704,25 @@
             }
           },
           "new": {
-            "n_live_coords": 10,
-            "train_nll": 0.2599009755113507,
+            "n_live_coords": 11,
+            "train_nll": 0.26029233318629097,
             "weights_top": {
-              "duration": 1.1925030308338906,
-              "lip_open": 1.0425672798143912,
-              "constriction_gap": 0.6474869048175972,
-              "lip_round": 0.2798637202322613,
-              "constriction_pos": 0.14551009099803233
+              "duration": 1.1894301773336289,
+              "lip_open": 1.0140818263321194,
+              "constriction_gap": 0.6116760710945724,
+              "lip_round": 0.23681137230878194,
+              "vowel_height": 0.22836988602596928
             },
             "soft": {
-              "feat_acc": 0.9284897025171625,
-              "act_prec": 0.622367306606437,
-              "top1_acc": 0.9210526315789472,
+              "feat_acc": 0.9336384439359265,
+              "act_prec": 0.6513528138528139,
+              "top1_acc": 0.9176201372997711,
               "n_query": 46
             },
             "strict": {
-              "feat_acc": 0.8987414187643021,
-              "act_prec": 0.4443173975782671,
-              "top1_acc": 0.8953089244851257,
+              "feat_acc": 0.9056064073226545,
+              "act_prec": 0.48054928163623817,
+              "top1_acc": 0.8970251716247138,
               "n_query": 46
             }
           }
@@ -753,25 +754,25 @@
             }
           },
           "new": {
-            "n_live_coords": 10,
-            "train_nll": 0.277533200744088,
+            "n_live_coords": 11,
+            "train_nll": 0.27603591730352284,
             "weights_top": {
-              "periodic": 0.7039036879688862,
-              "lip_open": 0.6472699116463757,
-              "constriction_gap": 0.3070157658102135,
-              "lip_round": 0.24872952317337435,
-              "duration": 0.21083171818351415
+              "lip_open": 0.7170719111924608,
+              "periodic": 0.6572172600270385,
+              "vowel_height": 0.3105116380901412,
+              "constriction_gap": 0.2918536041499877,
+              "lip_round": 0.2659032355871553
             },
             "soft": {
-              "feat_acc": 0.9268421052631578,
-              "act_prec": 0.6559255165638145,
-              "top1_acc": 0.9147368421052632,
+              "feat_acc": 0.934736842105263,
+              "act_prec": 0.6968238617174788,
+              "top1_acc": 0.911578947368421,
               "n_query": 50
             },
             "strict": {
-              "feat_acc": 0.9047368421052632,
+              "feat_acc": 0.9042105263157895,
               "act_prec": 0.5004497866199994,
-              "top1_acc": 0.8952631578947369,
+              "top1_acc": 0.8873684210526317,
               "n_query": 50
             }
           }
@@ -803,25 +804,25 @@
             }
           },
           "new": {
-            "n_live_coords": 10,
-            "train_nll": 0.27840893900922403,
+            "n_live_coords": 11,
+            "train_nll": 0.2796390614907144,
             "weights_top": {
-              "lip_open": 0.4552201177756445,
-              "constriction_gap": 0.3019674912833731,
-              "duration": 0.24035186803049777,
-              "periodic": 0.23584462756895702,
-              "source_tilt": 0.15326430518030357
+              "lip_open": 0.4852867574557875,
+              "vowel_height": 0.45508601577459173,
+              "constriction_gap": 0.3440763813158733,
+              "duration": 0.25092230670588456,
+              "periodic": 0.18464103204998175
             },
             "soft": {
-              "feat_acc": 0.9286549707602336,
-              "act_prec": 0.6363169027941755,
-              "top1_acc": 0.915204678362573,
+              "feat_acc": 0.9368421052631577,
+              "act_prec": 0.6880673619309984,
+              "top1_acc": 0.9140350877192983,
               "n_query": 45
             },
             "strict": {
-              "feat_acc": 0.8959064327485379,
-              "act_prec": 0.47380706414797324,
-              "top1_acc": 0.8877192982456138,
+              "feat_acc": 0.9105263157894735,
+              "act_prec": 0.5295880886789978,
+              "top1_acc": 0.887719298245614,
               "n_query": 45
             }
           }
@@ -853,25 +854,25 @@
             }
           },
           "new": {
-            "n_live_coords": 10,
-            "train_nll": 0.1700182541709772,
+            "n_live_coords": 11,
+            "train_nll": 0.17251291655318027,
             "weights_top": {
-              "constriction_pos": 9.568175129356497,
-              "duration": 0.8967017252916705,
-              "constriction_gap": 0.4617293158390814,
-              "lip_round": 0.4216263902928815,
-              "lip_open": 0.4039288143232396
+              "constriction_pos": 10.592180683084786,
+              "vowel_height": 1.4424567938218193,
+              "constriction_gap": 1.103626784942601,
+              "duration": 0.9739912254554812,
+              "lip_open": 0.3877544679037222
             },
             "soft": {
-              "feat_acc": 0.912484700122399,
-              "act_prec": 0.5496256629373512,
-              "top1_acc": 0.8968788249694,
+              "feat_acc": 0.9170746634026926,
+              "act_prec": 0.5612600963250315,
+              "top1_acc": 0.8974908200734392,
               "n_query": 86
             },
             "strict": {
-              "feat_acc": 0.8607711138310892,
-              "act_prec": 0.14325022019827213,
-              "top1_acc": 0.86015911872705,
+              "feat_acc": 0.8626070991432065,
+              "act_prec": 0.1684825996514308,
+              "top1_acc": 0.8610771113831086,
               "n_query": 86
             }
           }
@@ -903,24 +904,24 @@
             }
           },
           "new": {
-            "n_live_coords": 10,
-            "train_nll": 0.25131260791670434,
+            "n_live_coords": 11,
+            "train_nll": 0.2512536870744142,
             "weights_top": {
-              "duration": 1.2303728737372988,
-              "lip_open": 1.1915925877230065,
-              "constriction_gap": 0.5658188262139623,
-              "velum": 0.25054080340651574,
-              "lip_round": 0.18989305915431476
+              "duration": 1.420381379510383,
+              "lip_open": 1.2155124603673975,
+              "constriction_gap": 0.9327034756473954,
+              "vowel_height": 0.34669208925346096,
+              "velum": 0.2353318545377484
             },
             "soft": {
-              "feat_acc": 0.9346349745331068,
-              "act_prec": 0.6419035594035595,
+              "feat_acc": 0.9405772495755517,
+              "act_prec": 0.6691005291005292,
               "top1_acc": 0.9125636672325974,
               "n_query": 31
             },
             "strict": {
-              "feat_acc": 0.9210526315789473,
-              "act_prec": 0.5041257816257816,
+              "feat_acc": 0.9235993208828525,
+              "act_prec": 0.5286628186628186,
               "top1_acc": 0.8989813242784379,
               "n_query": 31
             }
@@ -953,25 +954,25 @@
             }
           },
           "new": {
-            "n_live_coords": 9,
-            "train_nll": 0.22781197666127057,
+            "n_live_coords": 10,
+            "train_nll": 0.2273170141480876,
             "weights_top": {
-              "duration": 2.5042476278658032,
-              "lip_open": 1.6153160752788243,
-              "velum": 0.9997077633455053,
-              "constriction_gap": 0.684638721124091,
-              "constriction_pos": 0.23768192745230526
+              "duration": 2.6163267258132556,
+              "lip_open": 1.5975291519416668,
+              "velum": 0.9996085598402117,
+              "constriction_gap": 0.8637306602511149,
+              "vowel_height": 0.6602220406860645
             },
             "soft": {
-              "feat_acc": 0.921875,
-              "act_prec": 0.6160872113997113,
-              "top1_acc": 0.9177631578947368,
+              "feat_acc": 0.930921052631579,
+              "act_prec": 0.6645878427128427,
+              "top1_acc": 0.9144736842105263,
               "n_query": 32
             },
             "strict": {
-              "feat_acc": 0.893092105263158,
-              "act_prec": 0.4085734577922078,
-              "top1_acc": 0.9161184210526316,
+              "feat_acc": 0.9103618421052633,
+              "act_prec": 0.49836760461760465,
+              "top1_acc": 0.912828947368421,
               "n_query": 32
             }
           }
@@ -1003,25 +1004,25 @@
             }
           },
           "new": {
-            "n_live_coords": 10,
-            "train_nll": 0.2614704635432373,
+            "n_live_coords": 11,
+            "train_nll": 0.25021538554480177,
             "weights_top": {
-              "larynx": 0.9439806214760311,
-              "lip_open": 0.6408288768422213,
-              "duration": 0.3933054342900691,
-              "constriction_gap": 0.38364184233874504,
-              "periodic": 0.3255496588701281
+              "duration": 1.645676317769251,
+              "lip_open": 1.331824203785497,
+              "constriction_gap": 1.0178980242533053,
+              "vowel_height": 0.34784673499972707,
+              "constriction_pos": 0.16353237960596617
             },
             "soft": {
               "feat_acc": 0.9351503759398495,
-              "act_prec": 0.6275706803484582,
-              "top1_acc": 0.9154135338345862,
+              "act_prec": 0.6530570252792475,
+              "top1_acc": 0.9191729323308268,
               "n_query": 28
             },
             "strict": {
-              "feat_acc": 0.931390977443609,
-              "act_prec": 0.582817593928705,
-              "top1_acc": 0.9172932330827066,
+              "feat_acc": 0.9295112781954887,
+              "act_prec": 0.6311715033937256,
+              "top1_acc": 0.9191729323308268,
               "n_query": 28
             }
           }
@@ -1030,99 +1031,99 @@
     ],
     "summary": {
       "new/soft/act_prec": {
-        "mean": 0.6237374839553964,
-        "sd_across_folds": 0.03484069482283287,
-        "mean_excl_thin_folds": 0.6330014615826521,
+        "mean": 0.6563636425466074,
+        "sd_across_folds": 0.038934315667390716,
+        "mean_excl_thin_folds": 0.6682515858243043,
         "per_fold": [
-          0.6672,
-          0.5967,
-          0.6224,
-          0.6559,
-          0.6363,
-          0.5496,
-          0.6419,
-          0.6161,
-          0.6276
+          0.6693,
+          0.6537,
+          0.6514,
+          0.6968,
+          0.6881,
+          0.5613,
+          0.6691,
+          0.6646,
+          0.6531
         ]
       },
       "new/soft/feat_acc": {
-        "mean": 0.927576418453302,
-        "sd_across_folds": 0.006927102348819863,
-        "mean_excl_thin_folds": 0.929462883244665,
+        "mean": 0.9337733113629647,
+        "sd_across_folds": 0.006938869610951428,
+        "mean_excl_thin_folds": 0.9358606423579987,
         "per_fold": [
-          0.931,
-          0.9291,
-          0.9285,
-          0.9268,
-          0.9287,
-          0.9125,
-          0.9346,
-          0.9219,
+          0.9351,
+          0.9399,
+          0.9336,
+          0.9347,
+          0.9368,
+          0.9171,
+          0.9406,
+          0.9309,
           0.9352
         ]
       },
       "new/soft/top1_acc": {
-        "mean": 0.915530447506904,
-        "sd_across_folds": 0.007961704251144204,
-        "mean_excl_thin_folds": 0.9178619003240921,
+        "mean": 0.913877346708246,
+        "sd_across_folds": 0.007142042907279992,
+        "mean_excl_thin_folds": 0.9159256625375969,
         "per_fold": [
-          0.9234,
-          0.9228,
-          0.9211,
-          0.9147,
-          0.9152,
-          0.8969,
+          0.9146,
+          0.9233,
+          0.9176,
+          0.9116,
+          0.914,
+          0.8975,
           0.9126,
-          0.9178,
-          0.9154
+          0.9145,
+          0.9192
         ]
       },
       "new/strict/act_prec": {
-        "mean": 0.4591145071831834,
-        "sd_across_folds": 0.1347898466635292,
-        "mean_excl_thin_folds": 0.49859754305629733,
+        "mean": 0.4914253945150961,
+        "sd_across_folds": 0.13139924725473387,
+        "mean_excl_thin_folds": 0.5317932438730542,
         "per_fold": [
-          0.6125,
-          0.4621,
-          0.4443,
+          0.5973,
+          0.4883,
+          0.4805,
           0.5004,
-          0.4738,
-          0.1433,
-          0.5041,
-          0.4086,
-          0.5828
+          0.5296,
+          0.1685,
+          0.5287,
+          0.4984,
+          0.6312
         ]
       },
       "new/strict/feat_acc": {
-        "mean": 0.9053361797605274,
-        "sd_across_folds": 0.02211515341663262,
-        "mean_excl_thin_folds": 0.9109068130017071,
+        "mean": 0.9095313397210314,
+        "sd_across_folds": 0.019806688015202713,
+        "mean_excl_thin_folds": 0.9153968697932595,
         "per_fold": [
-          0.9316,
-          0.9108,
-          0.8987,
-          0.9047,
-          0.8959,
-          0.8608,
-          0.9211,
-          0.8931,
-          0.9314
+          0.9263,
+          0.913,
+          0.9056,
+          0.9042,
+          0.9105,
+          0.8626,
+          0.9236,
+          0.9104,
+          0.9295
         ]
       },
       "new/strict/top1_acc": {
-        "mean": 0.8989470124037309,
-        "sd_across_folds": 0.01801705513632704,
-        "mean_excl_thin_folds": 0.9037954991133161,
+        "mean": 0.8972990146146285,
+        "sd_across_folds": 0.017270869819739534,
+        "mean_excl_thin_folds": 0.9018267525185684,
         "per_fold": [
-          0.9158,
-          0.9039,
-          0.8953,
-          0.8953,
+          0.9088,
+          0.9027,
+          0.897,
+          0.8874,
           0.8877,
-          0.8602,
+          0.8611,
           0.899,
-          0.9161,
-          0.9173
+          0.9128,
+          0.9192
         ]
       },
       "old/soft/act_prec": {
@@ -1232,12 +1233,12 @@
     "lambda": 5.5
   },
   "headline_delta": {
-    "strict_feat_acc_new_minus_old": -0.011592630817024774,
-    "soft_feat_acc_new_minus_old": -0.018330136642484063,
-    "strict_act_prec_new_minus_old": -0.13247660490346508,
-    "soft_act_prec_new_minus_old": -0.15867275155390415,
-    "strict_top1_acc_new_minus_old": -0.01831717334261973,
-    "soft_top1_acc_new_minus_old": -0.02256695001082809,
+    "strict_feat_acc_new_minus_old": -0.00739747085652076,
+    "soft_feat_acc_new_minus_old": -0.01213324373282132,
+    "strict_act_prec_new_minus_old": -0.1001657175715524,
+    "soft_act_prec_new_minus_old": -0.12604659296269316,
+    "strict_top1_acc_new_minus_old": -0.019965171131722137,
+    "soft_top1_acc_new_minus_old": -0.024220050809486082,
     "gate1_hit_at_1_old_z-euclid_new_minus_old": 0.0,
     "gate1_hit_at_3_old_z-euclid_new_minus_old": 0.015625,
     "gate1_hit_at_5_old_z-euclid_new_minus_old": 0.0625,
@@ -1270,7 +1271,7 @@
     "No significance test is reported. With 9 folds the per-fold spread is the honest uncertainty statement, and it is printed."
   ],
   "runtime_note": {
-    "cpu_seconds": 3.34
+    "cpu_seconds": 3.0
   },
   "verdict": {
     "question": "Does the new tongue basis beat the old 16-dim basis on identical ground? Answer: not yet, and the pooled Gate-1 hit@1 of 0.39 vs 0.09 that looks like a win is an artefact worth naming.",

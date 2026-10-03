@@ -26,9 +26,9 @@
 ### 0.1 两层分工
 
 ```
-18 维几何层  merged_basis.json   解释 + 正向模型（F3 R²=0.690）
+18 维几何层  merged_basis.json    解释 + 正向模型（F3 R²=0.690）
      ↓ 派生收缩点
-10 维摘要层  summary_basis.json  距离度量实际跑在这里
+11 维摘要层  summary_vheight.json  距离度量实际跑在这里
 ```
 
 **为什么拆开**：把派生轴 `constriction_pos` 加进几何层同一向量时，拟合
@@ -36,9 +36,19 @@
 共线，优化器绕开它走。教训是「派生量不该和它的原料同处一个度量空间」。
 故几何负责解释，摘要负责距离。
 
-摘要 10 维：`constriction_pos, constriction_gap, lip_open, lip_round,
-velum, lateral, larynx, periodic, source_tilt, duration`。秩 10/10，
-唯一向量 117/133，`k` vs `t` 只差一根轴。
+摘要 11 维：`constriction_pos, constriction_gap, lip_open, lip_round,
+velum, lateral, larynx, periodic, source_tilt, duration, vowel_height`。
+秩 11/11，唯一向量 117/133，`k` vs `t` 只差一根轴。
+
+**一根轴必须对自己的适用范围诚实。** `vowel_height` 是元音舌高，对辅音
+取**同一个常量**：辅音没有独立的舌高可言，它的垂直位置由部位决定，直接
+放 `dorsum_y` 会把部位噪声重新灌回来（实测部位格 0.522 → 0.304）。加了
+常量版本后，辅音间距离**恰好不变**，元音相关特征召回大幅回升。
+
+另一条同源教训：`constriction_gap = roof(dorsum_x) − dorsum_y` 把舌高和
+腭顶斜率混在一起，`/i/` 与 `/u/` 都是闭元音却被拉开。把闭合度与开放度
+并进同一根轴（辅音取闭合、元音取开放，`summary_vgap.json`）反而更差，
+LOCO 0.4981 对 0.5318——一根轴兼顾两种语义，拟合权重无法两全。
 
 ### 0.2 部位轴不再手调
 
@@ -49,14 +59,16 @@ velum, lateral, larynx, periodic, source_tilt, duration`。秩 10/10，
 
 ### 0.3 实测成绩（`retrieval_gate.json`）
 
-| 指标 | 旧 16 维 | 摘要 10 维 |
+| 指标 | 旧 16 维 | 摘要 11 维 |
 |------|----------|------------|
 | 部位/手法格 hit@1（未拟合，Phatak 真人混淆） | 0.2391（自身拟合）/ 0.0870（z-euclid） | **0.5217** |
+| Phatak 池化 hit@1（z-euclid，未拟合） | 0.2031（自身拟合，**循环**） | **0.3750** |
 | 清浊对应误取 | — | **0/16** |
-| LOCO act_prec（留一语言，拟合） | 0.6488 | 0.4986 |
+| LOCO act_prec（留一语言，拟合） | 0.6488 | 0.5318 |
+| 摘要层加 `vowel_height` 前 | — | 0.4986 |
 | 合并前 14 维基线的清浊误取 | 14/16 | 0/16 |
 
-**部位检索领先两倍多，LOCO 仍落后 0.15。**
+**部位检索领先两倍多，LOCO 仍落后 0.117**（加舌高轴前落后 0.150）。
 
 ### 0.4 修掉的一个真缺陷
 
@@ -73,14 +85,18 @@ velum, lateral, larynx, periodic, source_tilt, duration`。秩 10/10，
 - **补一根舌位高可救 `high`**：不成立。部位格由 0.522 跌到 0.304，
   `high` 召回仅由 0.084 到 0.126。
 - **保留两根声门轴可救 `tense`**：不成立。`tense` 召回 0.500 → 0.487。
-  当初按 r = −0.775 合并声门轴，**错在没看相关性的符号**：负相关说明两轴
-  反向编码，取均值恰好抵消不一致处，而那 39% 残差正是喉化/紧喉所在。
+  `diagnose_tense.py` 随后证明**整个方向打错了目标**：PhonoLib 标 `tense`
+  的 17 个音素**全是元音**（`e i j o u w y ø ɘ ɤ ɥ ɨ ɯ ɰ ɵ ʉ ʍ`），
+  此处的 `tense` 是高元音，与 `high`/`back`/`round` 共现，**与喉部收紧无关**。
+  当初按 r = −0.775 合并声门轴，错在没看相关性的符号；后续拿 `tense` 当
+  合并的佐证，则是错在特征本身。
 
 ### 0.6 LOCO 差距的构成（`loco_feature_audit.json`）
 
-按特征维拆解后，旧基线的优势集中在 `tense` +0.421、`high` +0.358、
-`strident` +0.269，以及 `coronal`/`dorsal`/`anterior`/`front` 等**部位类别
-特征**。新基线在 `nasal` 上以 0.645 对 0.032 反超。
+按特征维拆解后（`summary_vheight.json`），旧基线的优势集中在 `back` +0.393、
+`anterior` +0.316、`tense` +0.303、`strident` +0.269、`high` +0.253，以及
+`dorsal`/`coronal`/`front` 等部位类别特征。新基线在 `nasal` 上以 0.645
+对 0.032 反超。
 
 **其中部位类别特征那部分不该全算在模型头上**：PhonoLib 把 `coronal`
 定义为图表标签（t d s z 同属一类），而 `constriction_pos` 只有一根单调轴，
@@ -782,7 +798,7 @@ velar uvular glottal pharyngeal labiodental epiglottal`，
 | `tools/gen_tract.py` → `tract_parts.json` | 颌/唇/喉三坐标、圆唇配对测量、共线性秩 | 颌/喉 |
 | `tools/gen_groove.py` → `tongue_groove.json` | 腭沟实验（否定结论）、Phatak 交叉核对 | 腭沟 |
 | `tools/fetch_consonant_data.py` → `data/consonant/` | 辅音声学数据（7 音位 / 3 语言） | 辅音数据 |
-| `tools/gen_merged_basis.py` → `merged_basis.json`、`summary_basis.json` | 18 维几何层 + 10 维摘要层；另出两个**已判负**的变体 `summary_height.json`、`summary_both_glottal.json` | §0 |
+| `tools/gen_merged_basis.py` → `merged_basis.json`、`summary_basis.json` | 18 维几何层 + 10 维摘要层；另出三个**已判负或非最优**的变体 `summary_height.json`、`summary_both_glottal.json`、`summary_vgap.json`，以及当前最优 `summary_vheight.json` | §0 |
 | `tools/gate_retrieval.py` → `retrieval_gate.json` | 闸门 1（Phatak 真人混淆，未拟合）与闸门 3（九语种留一语言） | §0 |
 | `tools/fit_metric_full.py` → `metric_full_gate.json` | 全半正定度量 vs 对角度量，**结论为证伪** | §0.5 |
 | `tools/audit_loco_features.py` → `loco_feature_audit.json` | LOCO act_prec 逐特征维拆解 | §0.6 |
