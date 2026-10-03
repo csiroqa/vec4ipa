@@ -98,10 +98,12 @@ test: all
 	# moves the numbers under it. This is the check that keeps a conclusion
 	# from outliving its evidence.
 	$(PYTHON) tools/check_doc_numbers.py
-	# The WinUI wrapper hands the managed side a compile-time NDIM, so a wider
-	# scheme is truncated. That cannot be fixed from here (the C# half needs
-	# AppxPackage targets this SDK lacks), but it must not be silent.
-	$(PYTHON) tools/test_winui_wrapper.py
+	# The WinUI wrapper hands the managed side one width and the two must agree with
+	# the loaded scheme. vec4ipa_ui.csproj cannot be built here (it needs the
+	# AppxPackage targets), so this compiles Core.cs against the real DLL and
+	# diffs it against the CLI -- value for value, because a mis-strided wrapper
+	# fills the tail with ANOTHER segment's coordinates.
+	$(PYTHON) tools/test_winui_core.py
 
 ifeq ($(OS),Windows_NT)
 DEL_CMD = cmd /c del /Q /F

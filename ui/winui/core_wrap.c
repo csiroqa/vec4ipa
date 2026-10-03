@@ -27,37 +27,22 @@ static void set_width_global(int level)
 
 /* forward: IPA string -> N segments. Returns segment count or -1 on
  * parse error (err filled). Buffer sizes are fixed (MAX_TOKS etc.). */
-/* Buffer stride is NDIM, fixed at compile time, because the managed side
- * allocates `NDIM * MAX_TOKS` and reads back with the same stride (Core.cs,
- * `public const int NDIM = 16`). A --scheme FILE wider than that therefore
- * cannot be copied out in full, and the axes past NDIM would be dropped with
- * no sign anywhere: under the 18-dim tongue scheme that is exactly
- * constriction_pos and constriction_gap, the two the redesign exists for.
+/* The stride IS the loaded scheme's width, and the managed side reads it back
+ * through ipa2v_ndim() and sizes its arrays with it (Core.cs, NDim). Both
+ * halves therefore take their width from one place and nothing is truncated.
  *
- * The stride stays NDIM on purpose. Writing at stride g_ndim while the caller
- * still allocates NDIM would overrun its buffer -- worse than truncation --
- * and the matching change on the managed side cannot be verified from here
- * (the WinUI project needs the AppxPackage targets, which this SDK does not
- * ship). So the layout contract is left alone and the situation is reported
- * instead of hidden.
- *
- * To lift the truncation, both halves have to move together: allocate and
- * stride by a runtime `ipa2v_ndim()` in Core.cs, and copy g_ndim here. */
-static void warn_truncation_once (void)
+ * There is deliberately no check here that the caller's buffer is wide enough:
+ * the wrapper cannot see it, and a check against the compiled NDIM would fire
+ * on every correct load -- a warning that always goes off is a warning people
+ * learn to ignore. If Core.cs ever stops using ipa2v_ndim(), that is what
+ * tools/test_winui_core.py is for. */
+EXPORT int ipa2v_ndim(void)
 {
-    static int warned = 0;
-    if (warned || g_ndim <= NDIM) return;
-    warned = 1;
-    fprintf(stderr,
-            "ipa2vec (winui): scheme has %d axes but the wrapper hands the UI "
-            "%d per segment; axes %d..%d are dropped ("
-            "constriction_pos, constriction_gap on the tongue scheme). This is "
-            "the buffer contract in Core.cs, not a parsing problem.\n",
-            g_ndim, NDIM, NDIM, g_ndim - 1);
+    return g_ndim;
 }
 
 EXPORT int ipa2v_forward(const char *str, char *err, size_t errsz,
-                         double *out /* NDIM * MAX_TOKS */,
+                         double *out /* ndim * MAX_TOKS */,
                          int *airstream /* MAX_TOKS */,
                          char *names /* MAX_TOKS * 48 */)
 {
@@ -69,10 +54,9 @@ EXPORT int ipa2v_forward(const char *str, char *err, size_t errsz,
         snprintf(err, errsz, "too many segments");
         return -1;
     }
-    warn_truncation_once();
     for (int s = 0; s < po.nsegs && s < MAX_TOKS; s++) {
-        for (int i = 0; i < NDIM; i++)
-            out[s * NDIM + i] = po.segs[s].v[i];
+        for (int i = 0; i < g_ndim; i++)
+            out[s * g_ndim + i] = po.segs[s].v[i];
         airstream[s] = po.segs[s].airstream;
         if (names) {
             char *d = names + s * 48;
@@ -85,7 +69,7 @@ EXPORT int ipa2v_forward(const char *str, char *err, size_t errsz,
 /* forward + tone extra vectors: tone[3][3] per segment (NAN = unset),
  * tkind[3] per segment (0 none, 1 contour, 2 = 3-D vector) */
 EXPORT int ipa2v_forward_tone(const char *str, char *err, size_t errsz,
-                              double *out /* NDIM * MAX_TOKS */,
+                              double *out /* ndim * MAX_TOKS */,
                               double *tone /* 9 * MAX_TOKS */,
                               int *tkind /* 3 * MAX_TOKS */)
 {
@@ -97,10 +81,9 @@ EXPORT int ipa2v_forward_tone(const char *str, char *err, size_t errsz,
         snprintf(err, errsz, "too many segments");
         return -1;
     }
-    warn_truncation_once();
     for (int s = 0; s < po.nsegs && s < MAX_TOKS; s++) {
-        for (int i = 0; i < NDIM; i++)
-            out[s * NDIM + i] = po.segs[s].v[i];
+        for (int i = 0; i < g_ndim; i++)
+            out[s * g_ndim + i] = po.segs[s].v[i];
         for (int g = 0; g < 3; g++) {
             tkind[s * 3 + g] = po.segs[s].tkind[g];
             for (int k = 0; k < 3; k++)
@@ -115,8 +98,12 @@ EXPORT int ipa2v_reverse(const double *v, int width,
                          char *out /* 512 */, size_t outsz)
 {
     double vv[MAXDIM];
-    memset(vv, 0, sizeof(vv));   /* scheme may use more dims than NDIM */
-    for (int i = 0; i < NDIM; i++) vv[i] = v[i];
+    /* width is the loaded scheme's, and it is already validated by the
+     * caller side (Core.cs passes ipa2v_ndim()). The clamp keeps a stale
+     * width from walking past the array if the scheme changed underneath. */
+    memset(vv, 0, sizeof(vv));
+    int w = (width > 0 && width <= g_ndim) ? width : g_ndim;
+    for (int i = 0; i < w; i++) vv[i] = v[i];
 
     /* guard: NaN/Inf would make nearest_base index out of bounds */
     for (int i = 0; i < NDIM; i++) {
@@ -740,9 +727,15 @@ EXPORT int ipa2v_ir_export(const char *str, const char *base,
 /* dimension names, one per line (for feature-name output view) */
 EXPORT int ipa2v_dim_names(char *out, size_t outsz)
 {
+    /* The LOADED scheme's names, not the compiled array. Under an 18-dim
+     * scheme DIM_NAMES has 16 entries and stopped two short, so the managed
+     * side labelled the two derived axes with the wrong names -- or, since
+     * they were not written at all, printed nothing for them. */
+    metric_ensure();
     size_t L = 0;
-    for (int i = 0; i < NDIM; i++) {
-        int n = snprintf(out + L, outsz - L, "%s\n", DIM_NAMES[i]);
+    for (int i = 0; i < g_ndim; i++) {
+        const char *nm = g_dimname[i] ? g_dimname[i] : DIM_NAMES[i];
+        int n = snprintf(out + L, outsz - L, "%s\n", nm);
         if (n < 0 || (size_t)n >= outsz - L) break;
         L += n;
     }

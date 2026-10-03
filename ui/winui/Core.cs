@@ -10,7 +10,21 @@ namespace Vec4ipaUI
     /// ui/winui/core_wrap.c + src/ipa2vec_core.h).</summary>
     internal static class Core
     {
-        public const int NDIM = 16;
+        /// <summary>Width of the loaded scheme's vector space.</summary>
+        /// <remarks>
+        /// Was a compile-time const, which is what silently truncated every
+        /// --scheme FILE wider than the compiled 16 axes: under the tongue
+        /// scheme that dropped constriction_pos and constriction_gap, the two
+        /// the redesign exists for. core_wrap.c now strides by this same
+        /// value, so the two halves have to agree and both read it from one
+        /// source. Query it AFTER ipa2v_set_args, because that is where a
+        /// scheme is loaded.
+        /// </remarks>
+        public static int NDim => ipa2v_ndim();
+
+        [DllImport("ipa2vec_core.dll", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int ipa2v_ndim();
+
         public const int MAX_TOKS = 512;
         public const int MAX_KBTEXT = 65536;
 
@@ -265,19 +279,20 @@ namespace Vec4ipaUI
             }
         }
 
-        /// <summary>Raw segment vectors (each NDIM long) for an IPA string.</summary>
+        /// <summary>Raw segment vectors (each NDim long) for an IPA string.</summary>
         public static double[][]? ForwardRaw(string ipa)
         {
             var err = new StringBuilder(256);
-            var vecs = new double[NDIM * MAX_TOKS];
+            int nd = NDim;
+            var vecs = new double[nd * MAX_TOKS];
             var air = new int[MAX_TOKS];
             int n = ipa2v_forward(ipa, err, 256, vecs, air, IntPtr.Zero);
             if (n < 0) return null;
             var rows = new double[n][];
             for (int s = 0; s < n; s++)
             {
-                rows[s] = new double[NDIM];
-                Array.Copy(vecs, s * NDIM, rows[s], 0, NDIM);
+                rows[s] = new double[nd];
+                Array.Copy(vecs, s * nd, rows[s], 0, nd);
             }
             return rows;
         }
@@ -292,7 +307,10 @@ namespace Vec4ipaUI
             for (int s = 0; s < rows.Length; s++)
             {
                 sb.Append($"[{s}] (");
-                for (int i = 0; i < NDIM; i++)
+                // rows[s].Length is the scheme's width; DimNames matches it
+                // because both come from the loaded scheme.
+                int nd = rows[s].Length;
+                for (int i = 0; i < nd; i++)
                     sb.Append(i == 0 ? $"{names[i]}={rows[s][i]:F4}"
                                      : $", {names[i]}={rows[s][i]:F4}");
                 sb.AppendLine(")");
@@ -356,7 +374,8 @@ namespace Vec4ipaUI
         {
             error = null;
             var err = new StringBuilder(256);
-            var vecs = new double[NDIM * MAX_TOKS];
+            int nd = NDim;
+            var vecs = new double[nd * MAX_TOKS];
             var tone = new double[9 * MAX_TOKS];
             var tkind = new int[3 * MAX_TOKS];
             int n = ipa2v_forward_tone(ipa, err, 256, vecs, tone, tkind);
@@ -365,9 +384,9 @@ namespace Vec4ipaUI
             for (int s = 0; s < n; s++)
             {
                 sb.Append($"[{s}] (");
-                for (int i = 0; i < NDIM; i++)
-                    sb.Append(i == 0 ? $"{vecs[s * NDIM + i]:F4}"
-                                     : $", {vecs[s * NDIM + i]:F4}");
+                for (int i = 0; i < nd; i++)
+                    sb.Append(i == 0 ? $"{vecs[s * nd + i]:F4}"
+                                     : $", {vecs[s * nd + i]:F4}");
                 sb.Append(')');
                 string t = ToneText(tone, tkind, s);
                 if (t.Length > 0)
@@ -428,7 +447,8 @@ namespace Vec4ipaUI
         {
             error = null;
             var err = new StringBuilder(256);
-            var vecs = new double[NDIM * MAX_TOKS];
+            int nd = NDim;
+            var vecs = new double[nd * MAX_TOKS];
             var tone = new double[9 * MAX_TOKS];
             var tkind = new int[3 * MAX_TOKS];
             int n = ipa2v_forward_tone(ipa, err, 256, vecs, tone, tkind);
@@ -437,9 +457,9 @@ namespace Vec4ipaUI
             for (int s = 0; s < n; s++)
             {
                 var sb = new StringBuilder();
-                for (int i = 0; i < NDIM; i++)
-                    sb.Append(i == 0 ? $"{vecs[s * NDIM + i]:F4}"
-                                     : $",{vecs[s * NDIM + i]:F4}");
+                for (int i = 0; i < nd; i++)
+                    sb.Append(i == 0 ? $"{vecs[s * nd + i]:F4}"
+                                     : $",{vecs[s * nd + i]:F4}");
                 rows[s] = (sb.ToString(), ToneAnnotation(tone, tkind, s));
             }
             return rows;
@@ -484,8 +504,25 @@ namespace Vec4ipaUI
         }
 
         /// <summary>Example vector repeated in the error hints.</summary>
-        private const string VectorExample =
-            "-0.45,0,0,0,1,0,0,0,0,0.9,0,0,0,0,0,1";
+        /// <remarks>
+        /// Was a fixed 16-value string, so under a wider scheme the hint told
+        /// the user to type a vector the parser would then reject. Built from
+        /// the loaded scheme instead: the first base segment of the current
+        /// table, which is by construction a vector of the right width.
+        /// </remarks>
+        private static string VectorExample
+        {
+            get
+            {
+                var sb = new StringBuilder(512);
+                var rows = ForwardRaw("t");
+                if (rows == null || rows.Length == 0 || rows[0].Length == 0)
+                    return string.Empty;
+                for (int i = 0; i < rows[0].Length; i++)
+                    sb.Append(i == 0 ? $"{rows[0][i]:F2}" : $",{rows[0][i]:F2}");
+                return sb.ToString();
+            }
+        }
 
         /// <summary>Warning suffix in Chinese (UI display language for
         /// these messages is zh; do not localise into English).</summary>
@@ -535,13 +572,13 @@ namespace Vec4ipaUI
                 if ((echoPre + echoPost).Length > 0 || echoWarn.Length > 0)
                     return echoPre + echoPost + (echoWarn.Length > 0
                         ? ToneWarnPrefix + echoWarn + ToneWarnSuffix : "");
-                return "I need 16 comma-separated numbers (I found " +
+                return "I need " + NDim + " comma-separated numbers (I found " +
                        head.Split(new[] { ',', ' ', '\t', ';', '?' },
                            StringSplitOptions.RemoveEmptyEntries).Length +
                        " outside the groups).\n" +
                        "Example: " + VectorExample;
             }
-            for (int i = 0; i < NDIM; i++)
+            for (int i = 0; i < v.Length; i++)
                 if (!double.IsFinite(v[i]))
                     return $"Value #{i + 1} must be finite (no NaN or Infinity).";
 
@@ -571,7 +608,7 @@ namespace Vec4ipaUI
             return result;
         }
 
-        /* 16 comma-separated numbers -> vector; null on any parse problem.
+        /* comma-separated numbers -> vector; null on any parse problem.
          * '?' is also a separator: a tone annotation glued directly to
          * the vector ("...1.0000??(0,0,1)") would otherwise stick to the
          * last number and fail to parse */
@@ -579,9 +616,9 @@ namespace Vec4ipaUI
         {
             var nums = head.Split(new[] { ',', ' ', '\t', ';', '?' },
                 StringSplitOptions.RemoveEmptyEntries);
-            if (nums.Length != NDIM) return null;
-            var v = new double[NDIM];
-            for (int i = 0; i < NDIM; i++)
+            if (nums.Length != NDim) return null;
+            var v = new double[NDim];
+            for (int i = 0; i < NDim; i++)
                 if (!double.TryParse(nums[i],
                         System.Globalization.NumberStyles.Float,
                         System.Globalization.CultureInfo.InvariantCulture,
