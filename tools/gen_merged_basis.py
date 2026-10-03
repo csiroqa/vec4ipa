@@ -29,6 +29,7 @@ import numpy as np
 
 import gen_tongue_model as tm
 import gen_tongue_table as tt
+import gen_tongue_modifiers as M
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'tools', 'data')
@@ -310,6 +311,72 @@ def main():
     with io.open(upath, 'w', encoding='utf-8') as f:
         f.write(json.dumps(uout, ensure_ascii=False, indent=1))
     print('\nwrote %s' % upath)
+
+    # --- uniform tongue-body height ----------------------------------------
+    # summary_height used dorsum_y and collapsed Gate 1 to 0.304; that axis IS
+    # the contact height, so it moves with place. The MEAN of the four
+    # control-point heights is not: measured r = -0.098 against constriction_pos
+    # overall and -0.065 on consonants. And 48 of 100 consonants fall inside
+    # the vowel height range, so consonants really do have a height here --
+    # summary_vheight denied that by pinning them to a constant, which is why
+    # it violated J6. This is the uniform version J6 actually asks for.
+    uk = keep + ['tongue_height']
+    urows2 = {s: srows[s] + [raw[s]] for s in syms}
+    U2 = np.array([urows2[s] for s in syms], float)
+    print('\n== summary + uniform tongue height (%d dims) ==' % len(uk))
+    print('  rank %d   distinct rows %d of %d'
+          % (np.linalg.matrix_rank(U2),
+             len({tuple(urows2[s]) for s in syms}), len(syms)))
+    print('  every segment gets its own value: %d distinct over %d segments'
+          % (len({round(raw[s], 6) for s in syms}), len(syms)))
+    hp = os.path.join(DATA, 'summary_uheight.json')
+    with io.open(hp, 'w', encoding='utf-8') as f:
+        f.write(json.dumps({'dims': uk, 'table': urows2,
+                            'derived_from': 'merged_basis.json',
+                            'note': 'mean of the four control-point heights, '
+                                    'same definition for every segment'},
+                           ensure_ascii=False, indent=1))
+    print('\nwrote %s' % hp)
+
+    # --- summary + tongue ROOT ---------------------------------------------
+    # ATR and RTR displace the root and nothing else. With no root coordinate
+    # in the summary, apply_mod left the 10-dim vector BIT-IDENTICAL, so /k/,
+    # /k'+ATR and /k'+RTR were one point. That is not precision loss, it is
+    # information set to zero, and IPA's most common secondary articulation was
+    # invisible. The 8 tongue coordinates are near-orthogonal to the
+    # constriction summary (|r| <= 0.482), so they are not a duplicate of it.
+    rk = keep + ['root_x', 'root_y']
+    rrows = {s: srows[s] + [contour[s]['tongue']['root'][0],
+                           contour[s]['tongue']['root'][1]] for s in syms}
+    R = np.array([rrows[s] for s in syms], float)
+    print('\n== summary + tongue root (%d dims) ==' % len(rk))
+    print('  rank %d   distinct rows %d of %d'
+          % (np.linalg.matrix_rank(R),
+             len({tuple(rrows[s]) for s in syms}), len(syms)))
+    for mod, op in (('atr', M.DISPLACE['atr']), ('rtr', M.DISPLACE['rtr'])):
+        vis = []
+        for s in syms:
+            if contour[s]['anchor'] != 'velar':
+                continue
+            cfg = {p: tuple(contour[s]['tongue'][p]) for p in PARTS}
+            cfg['lip_open'] = contour[s]['lip_open']
+            cfg['lip_round'] = contour[s]['lip_round']
+            c2 = M.apply_mod(dict(cfg), mod)
+            moved = sum(1 for j in range(len(keep))
+                        if abs(float(np.mean([c2[p][1] for p in PARTS]))
+                               - srows[s][j]) > 1e-9)
+            vis.append(moved)
+            break
+        print('  %s applied to /k/: changes %d of %d summary dims'
+              % (mod, vis[0] if vis else 0, len(keep)))
+    rp = os.path.join(DATA, 'summary_root.json')
+    with io.open(rp, 'w', encoding='utf-8') as f:
+        f.write(json.dumps({'dims': rk, 'table': rrows,
+                            'derived_from': 'merged_basis.json',
+                            'note': 'adds the tongue root, the only carrier of '
+                                    'ATR and RTR'},
+                           ensure_ascii=False, indent=1))
+    print('\nwrote %s' % rp)
 
 
 if __name__ == '__main__':
