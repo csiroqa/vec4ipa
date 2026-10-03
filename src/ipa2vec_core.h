@@ -387,6 +387,33 @@ static IPA2VEC_MAYBE_UNUSED int dim_of (const char *name)
 static struct { const char *name; int idx; } g_dimcache[32];
 static int g_dimcache_n = 0;
 
+/* Names that resolved to nothing AND had a real compile-time fallback. That
+ * combination is the dangerous one: the caller believes it wrote axis N, but
+ * N is DIM_*'s enum position under the CURRENT scheme, which is a different
+ * coordinate. Loading the tongue scheme under the old modifier code is the
+ * concrete case — mod_nasal resolves "vel_open" to DIM_VEL_OPEN = 6, which in
+ * that scheme is root_x, so a nasal silently retracts the tongue root.
+ *
+ * A fallback of -1 is a caller saying "absent is fine, I handle it"
+ * (mod_set_aperture does), so it is not reported.
+ *
+ * Reported once per distinct name, on the cache miss that first discovers it.
+ * The committed scheme resolves every name, so this prints nothing and the
+ * existing test suites are unaffected. */
+static void dim_report_unresolved (const char *name, int fallback)
+{
+    static const char *seen[32];
+    static int seen_n = 0;
+    if (fallback < 0) return;
+    for (int i = 0; i < seen_n; i++)
+        if (seen[i] == name) return;
+    if (seen_n < (int)(sizeof(seen) / sizeof(seen[0]))) seen[seen_n++] = name;
+    fprintf(stderr,
+            "ipa2vec: warning: axis \"%s\" is not in the loaded scheme; "
+            "falling back to compile-time index %d, which names a different "
+            "coordinate under this scheme.\n", name, fallback);
+}
+
 static IPA2VEC_MAYBE_UNUSED int dim_of_ok (const char *name, int fallback)
 {
     if (g_dimname[0] == NULL) metric_sync_defaults();   /* lazy init */
@@ -394,6 +421,7 @@ static IPA2VEC_MAYBE_UNUSED int dim_of_ok (const char *name, int fallback)
         if (g_dimcache[i].name == name)
             return g_dimcache[i].idx >= 0 ? g_dimcache[i].idx : fallback;
     int idx = dim_of(name);
+    if (idx < 0) dim_report_unresolved(name, fallback);
     if (g_dimcache_n < (int)(sizeof(g_dimcache) / sizeof(g_dimcache[0]))) {
         g_dimcache[g_dimcache_n].name = name;
         g_dimcache[g_dimcache_n].idx = idx;
