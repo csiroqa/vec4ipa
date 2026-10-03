@@ -106,4 +106,11 @@ endif
 clean:
 	-$(DEL_CMD) $(DEL_TARGETS)
 
-.PHONY: all clean gen test
+# `make test` builds the WORKING TREE, so a green run says nothing about
+# whether the commit is sound -- a commit here once shipped a call into
+# ipa2vec_core.h without the definition in tongue_contour.h, and every suite
+# stayed green throughout. This target extracts the commit and builds it.
+verify-commit:
+	$(PYTHON) tools/verify_commit.py
+
+.PHONY: all clean gen test verify-commit

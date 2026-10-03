@@ -631,6 +631,26 @@ make: *** [Makefile:96: test] Error 1。
 
 当前 **133 符号 0 问题**，make test 八套件共 1635 项全通过。
 
+#### 0.9.15 提交本身从未被验证过（本轮最严重的错误）
+
+make test 构建的是**工作区**，不是提交。本仓确实出过这个缺陷：
+10388e 把 	ongue_axes_resolve() 的**调用方**加进了 ipa2vec_core.h，却没有同时提交定义它的
+	ongue_contour.h。**自那次提交起仓库在提交处编译失败**，而全部测试一直绿——
+因为它们测的是工作区。用 git archive HEAD | tar -x 抽到临时目录重建才看见。
+
+已补提交（2675512），并新增 	ools/verify_commit.py 与 make verify-commit：抽出提交、在那里构建、
+并跑四套快检。**它的有效性是用那个坏提交证的**：
+
+`
+python tools/verify_commit.py --rev e10388e
+BUILD FAILED for e10388e
+src/ipa2vec_core.h:1299: error: implicit declaration of function 'tongue_axes_resolve'
+exit 1
+`
+
+一条绿测试不能取代“提交可以构建”这个判断，现在有了可执行的差异。
+
+
 #### 0.9.12 五个近音的部位授权（3 → 2）
 
 §0.9.9 的判据当时判为「加了会让上限反降」，因为源表给 `j w ɥ ɰ ʍ` 的
