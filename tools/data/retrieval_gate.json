@@ -125,33 +125,13 @@
           }
         },
         "dead_coords_over_133": 0
-      },
-      "old/old-fitted": {
-        "hit_at_1": 0.203125,
-        "hit_at_3": 0.640625,
-        "hit_at_5": 0.78125,
-        "mrr": 0.4513135302197802,
-        "nll_nats_per_response": 2.5676184390572745,
-        "n_cells": 64,
-        "cell_split": {
-          "voicing": {
-            "hit_at_1": 0.1111111111111111,
-            "n_cells": 18
-          },
-          "place_or_manner": {
-            "hit_at_1": 0.2391304347826087,
-            "n_cells": 46
-          }
-        },
-        "dead_coords_over_133": 0
       }
     },
     "spearman_rho_distance_vs_negated_confusion": {
       "old/z-euclid": 0.47995104868314126,
       "old/z-whiten": 0.4648370178422042,
       "new/z-euclid": 0.28824677443908614,
-      "new/z-whiten": 0.3130737680195588,
-      "old/old-fitted": 0.40219297147181227
+      "new/z-whiten": 0.3130737680195588
     },
     "uniform_nll_nats": 2.772588722239781,
     "circular_variants": [
@@ -1261,11 +1241,7 @@
     "gate1_hit_at_1_new_z-whiten_new_minus_old": 0.296875,
     "gate1_hit_at_3_new_z-whiten_new_minus_old": 0.125,
     "gate1_hit_at_5_new_z-whiten_new_minus_old": 0.125,
-    "gate1_mrr_new_z-whiten_new_minus_old": 0.205021194083694,
-    "gate1_hit_at_1_old_old-fitted_new_minus_old": 0.109375,
-    "gate1_hit_at_3_old_old-fitted_new_minus_old": 0.078125,
-    "gate1_hit_at_5_old_old-fitted_new_minus_old": 0.0625,
-    "gate1_mrr_old_old-fitted_new_minus_old": 0.08908617424242421
+    "gate1_mrr_new_z-whiten_new_minus_old": 0.205021194083694
   },
   "limitations": [
     "SUBSTITUTE, NOT BDPA. No number here estimates reference-alignment accuracy; the six published percentages are unreachable without the BDPA corpus.",
@@ -1278,7 +1254,7 @@
     "No significance test is reported. With 9 folds the per-fold spread is the honest uncertainty statement, and it is printed."
   ],
   "runtime_note": {
-    "cpu_seconds": 6.64
+    "cpu_seconds": 6.92
   },
   "verdict": {
     "question": "Does the new tongue basis beat the old 16-dim basis on identical ground? Answer: not yet, and the pooled Gate-1 hit@1 of 0.39 vs 0.09 that looks like a win is an artefact worth naming.",
