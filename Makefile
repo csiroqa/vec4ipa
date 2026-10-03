@@ -94,6 +94,10 @@ test: all
 	# so a slip like ɔ losing its lip_round fails the build rather than
 	# silently merging two symbols.
 	$(PYTHON) tools/audit_symbol_assignments.py
+	# The document is where the conclusions live, and every generator change
+	# moves the numbers under it. This is the check that keeps a conclusion
+	# from outliving its evidence.
+	$(PYTHON) tools/check_doc_numbers.py
 
 ifeq ($(OS),Windows_NT)
 DEL_CMD = cmd /c del /Q /F
