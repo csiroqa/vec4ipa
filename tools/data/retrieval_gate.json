@@ -1270,7 +1270,7 @@
     "No significance test is reported. With 9 folds the per-fold spread is the honest uncertainty statement, and it is printed."
   ],
   "runtime_note": {
-    "cpu_seconds": 2.78
+    "cpu_seconds": 3.34
   },
   "verdict": {
     "question": "Does the new tongue basis beat the old 16-dim basis on identical ground? Answer: not yet, and the pooled Gate-1 hit@1 of 0.39 vs 0.09 that looks like a win is an artefact worth naming.",

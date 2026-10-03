@@ -183,6 +183,58 @@ def main():
         f.write(json.dumps(sout, ensure_ascii=False, indent=1))
     print('\nwrote %s' % spath)
 
+    # --- summary + height: the collapse was one step too far ----------------
+    # Dropping the tongue coordinates also dropped vowel HEIGHT, which is not
+    # redundant with constriction_pos. constriction_gap mixes height with the
+    # roof slope (roof(x) falls toward the pharynx), so /i/ and /u/ -- both
+    # close -- land far apart on it. One coordinate that is height alone is
+    # not fitted to any feature key; it is read straight off the contour.
+    hk = keep + ['height']
+    hrows = {s: srows[s] + [contour[s]['tongue']['dorsum'][1]] for s in syms}
+    H = np.array([hrows[s] for s in syms], float)
+    print('\n== summary + height ==')
+    print('  dimensions %d   rank %d   distinct rows %d of %d'
+          % (len(hk), np.linalg.matrix_rank(H),
+             len({tuple(hrows[s]) for s in syms}), len(syms)))
+    # Height must order the vowel triangle; check it does rather than assume.
+    for a, b in [('i', 'a'), ('u', 'a'), ('i', 'u'), ('ɨ', 'a')]:
+        if a in hrows and b in hrows:
+            print('  height %-2s %.3f   %-2s %.3f   %s'
+                  % (a, hrows[a][-1], b, hrows[b][-1],
+                     'higher' if hrows[a][-1] > hrows[b][-1] else 'lower'))
+    hout = {'dims': hk, 'table': hrows,
+            'derived_from': 'merged_basis.json',
+            'note': 'height is dorsum_y from the contour, not fitted'}
+    hpath = os.path.join(DATA, 'summary_height.json')
+    with io.open(hpath, 'w', encoding='utf-8') as f:
+        f.write(json.dumps(hout, ensure_ascii=False, indent=1))
+    print('\nwrote %s' % hpath)
+
+    # --- summary with BOTH glottal axes kept ------------------------------
+    # Merging glottal_aperture and glottal_tension into one source_tilt was
+    # justified by r = -0.775, but a correlation that is strong and NEGATIVE
+    # means the two axes carry the same information with opposite sign, so
+    # averaging cancels whatever the pair does not agree on. That residual is
+    # not noise: it is where creaky and tense phonation live, and it is the
+    # single largest feature-recall deficit in the audit (tense, +0.421).
+    gk = keep + ['source_tension']
+    grows = {s: srows[s] + [table[s][OI['glottal_tension']]] for s in syms}
+    Gr = np.array([grows[s] for s in syms], float)
+    print('\n== summary with both glottal axes ==')
+    print('  dimensions %d   rank %d   distinct rows %d of %d'
+          % (len(gk), np.linalg.matrix_rank(Gr),
+             len({tuple(grows[s]) for s in syms}), len(syms)))
+    print('  source_tilt vs source_tension r = %.3f (the cancelled residual)'
+          % np.corrcoef(Gr[:, gk.index('source_tilt')],
+                        Gr[:, gk.index('source_tension')])[0, 1])
+    gout = {'dims': gk, 'table': grows,
+            'derived_from': 'merged_basis.json',
+            'note': 'keeps glottal_aperture and glottal_tension separate'}
+    gpath = os.path.join(DATA, 'summary_both_glottal.json')
+    with io.open(gpath, 'w', encoding='utf-8') as f:
+        f.write(json.dumps(gout, ensure_ascii=False, indent=1))
+    print('\nwrote %s' % gpath)
+
 
 if __name__ == '__main__':
     main()
