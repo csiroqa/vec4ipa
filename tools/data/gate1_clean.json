@@ -1,0 +1,28 @@
+{
+ "kept": {
+  "new": [
+   "tip_y",
+   "blade_y",
+   "dorsum_x",
+   "dorsum_y",
+   "lip_open",
+   "lip_round",
+   "constriction_pos",
+   "constriction_gap"
+  ],
+  "old": [
+   "body",
+   "lips_rounded",
+   "tongue_root",
+   "effective_oral_area"
+  ]
+ },
+ "hit1_clean": {
+  "new/z-euclid": 0.2812,
+  "old/z-euclid": 0.2344
+ },
+ "hit1_full": {
+  "new/z-euclid": 0.3906,
+  "old/z-euclid": 0.0938
+ }
+}
