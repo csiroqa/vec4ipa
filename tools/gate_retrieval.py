@@ -99,7 +99,7 @@ CORPUS = os.path.join(DATA, 'corpus')
 OUT = os.path.join(DATA, 'retrieval_gate.json')
 
 OLD_JSON = os.path.join(DATA, 'vec_table_16.json')
-NEW_JSON = os.path.join(DATA, 'summary_root.json')
+NEW_JSON = os.path.join(DATA, 'merged_basis.json')
 METRIC16 = os.path.join(DATA, 'metric16.json')
 PHATAK = os.path.join(DATA, 'phatak08_cm.json')
 PHOIBLE = os.path.join(DATA, 'phoible.csv')

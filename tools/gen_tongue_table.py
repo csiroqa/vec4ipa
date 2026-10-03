@@ -26,6 +26,7 @@ OUT = os.path.join(ROOT, 'tools', 'data', 'tongue_table.json')
 VEC = os.path.join(ROOT, 'tools', 'data', 'vec_table_16.json')
 
 TONGUE = tm.TONGUE
+LIP_SITES = tm.LIP_SITES
 
 # gap below the roof at the constrictor; 0.00 is full contact.
 PROFILES = {
@@ -151,12 +152,25 @@ def derived_site(cfg, anchor, manner):
     the roof, there is no constriction to derive and the site is a parameter.
     """
     part = CONSTRICTOR[anchor]
+    if part is None:
+        # No tongue makes this constriction. Reporting the resting tongue's
+        # closest approach instead would name the pharyngeal wall as the site:
+        # the root sits 0.402 from the roof at rest, which is neither a lip
+        # aperture nor a closure, and it gave the stop /p̪/ a 0.402 gap.
+        if anchor in LIP_SITES:
+            return LIP_SITES[anchor][0], PROFILES[manner]['gap'], None, 'assigned'
+        # Glottal: no constriction anywhere. The profile gap still describes the
+        # glottis, so /ʔ/ closes at 0.0 while /h/ stays open.
+        return None, PROFILES[manner]['gap'], None, 'none'
+
     x, gap, _ = tm.derived_constriction(cfg)
     if gap < 0.05:
         return round(x, 4), round(gap, 4), part, 'derived'
-    if part is not None:
-        return round(cfg[part][0], 4), round(gap, 4), part, 'assigned'
-    return None, round(gap, 4), None, 'none'
+    # The gap MUST be read at the assigned part. Taking it from the argmin gave
+    # /ʐ/ a site of x=0.28 (its blade) paired with the gap of the resting root,
+    # so the two fields described two different organs.
+    return round(cfg[part][0], 4), round(tm.roof(cfg[part][0]) - cfg[part][1],
+                                         4), part, 'assigned'
 
 
 def main():

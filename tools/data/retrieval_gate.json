@@ -20,11 +20,17 @@
   "symbols": 133,
   "basis_dims": {
     "old": 16,
-    "new": 12
+    "new": 18
   },
   "new_basis_coords": [
-    "constriction_pos",
-    "constriction_gap",
+    "tip_x",
+    "tip_y",
+    "blade_x",
+    "blade_y",
+    "dorsum_x",
+    "dorsum_y",
+    "root_x",
+    "root_y",
     "lip_open",
     "lip_round",
     "velum",
@@ -33,8 +39,8 @@
     "periodic",
     "source_tilt",
     "duration",
-    "root_x",
-    "root_y"
+    "constriction_pos",
+    "constriction_gap"
   ],
   "metric_definitions": {
     "z-euclid": "per-coordinate z-score over the reference symbol set, unweighted Euclidean, then rescaled so the mean off-diagonal distance is 1 (unit_scale)",
@@ -83,38 +89,38 @@
         "dead_coords_over_133": 0
       },
       "new/z-euclid": {
-        "hit_at_1": 0.375,
-        "hit_at_3": 0.75,
-        "hit_at_5": 0.921875,
-        "mrr": 0.5897941468253968,
-        "nll_nats_per_response": 2.5297861651669566,
+        "hit_at_1": 0.296875,
+        "hit_at_3": 0.609375,
+        "hit_at_5": 0.78125,
+        "mrr": 0.48975503663003667,
+        "nll_nats_per_response": 2.5168495824408126,
         "n_cells": 64,
         "cell_split": {
           "voicing": {
-            "hit_at_1": 0.0,
+            "hit_at_1": 0.1111111111111111,
             "n_cells": 18
           },
           "place_or_manner": {
-            "hit_at_1": 0.5217391304347826,
+            "hit_at_1": 0.3695652173913043,
             "n_cells": 46
           }
         },
         "dead_coords_over_133": 0
       },
       "new/z-whiten": {
-        "hit_at_1": 0.3125,
-        "hit_at_3": 0.703125,
-        "hit_at_5": 0.859375,
-        "mrr": 0.5358010912698413,
-        "nll_nats_per_response": 2.5502386002211312,
+        "hit_at_1": 0.171875,
+        "hit_at_3": 0.5625,
+        "hit_at_5": 0.78125,
+        "mrr": 0.4142962072649573,
+        "nll_nats_per_response": 2.345537104191143,
         "n_cells": 64,
         "cell_split": {
           "voicing": {
-            "hit_at_1": 0.0,
+            "hit_at_1": 0.1111111111111111,
             "n_cells": 18
           },
           "place_or_manner": {
-            "hit_at_1": 0.43478260869565216,
+            "hit_at_1": 0.1956521739130435,
             "n_cells": 46
           }
         },
@@ -143,8 +149,8 @@
     "spearman_rho_distance_vs_negated_confusion": {
       "old/z-euclid": 0.47995104868314126,
       "old/z-whiten": 0.4648370178422042,
-      "new/z-euclid": 0.39112242619190996,
-      "new/z-whiten": 0.3849085893642671,
+      "new/z-euclid": 0.3080760109312255,
+      "new/z-whiten": 0.3290713172963009,
       "old/old-fitted": 0.40219297147181227
     },
     "uniform_nll_nats": 2.772588722239781,
@@ -168,9 +174,9 @@
           "v"
         ],
         "new/z-whiten": [
-          "t",
+          "b",
           "f",
-          "b"
+          "v"
         ],
         "old/old-fitted": [
           "b",
@@ -193,9 +199,9 @@
           "k"
         ],
         "new/z-whiten": [
-          "k",
-          "ʃ",
-          "s"
+          "s",
+          "d",
+          "ʃ"
         ],
         "old/old-fitted": [
           "d",
@@ -218,9 +224,9 @@
           "f"
         ],
         "new/z-whiten": [
+          "g",
           "t",
-          "ʃ",
-          "g"
+          "s"
         ],
         "old/old-fitted": [
           "g",
@@ -243,8 +249,8 @@
           "ð"
         ],
         "new/z-whiten": [
-          "θ",
-          "s",
+          "v",
+          "p",
           "ʃ"
         ],
         "old/old-fitted": [
@@ -269,8 +275,8 @@
         ],
         "new/z-whiten": [
           "s",
-          "f",
-          "ʃ"
+          "ð",
+          "z"
         ],
         "old/old-fitted": [
           "f",
@@ -295,7 +301,7 @@
         "new/z-whiten": [
           "ʃ",
           "θ",
-          "f"
+          "t"
         ],
         "old/old-fitted": [
           "ʃ",
@@ -319,8 +325,8 @@
         ],
         "new/z-whiten": [
           "s",
-          "θ",
-          "f"
+          "ʒ",
+          "t"
         ],
         "old/old-fitted": [
           "s",
@@ -343,9 +349,9 @@
           "ð"
         ],
         "new/z-whiten": [
-          "d",
+          "p",
           "v",
-          "p"
+          "d"
         ],
         "old/old-fitted": [
           "p",
@@ -368,9 +374,9 @@
           "g"
         ],
         "new/z-whiten": [
-          "g",
-          "ʒ",
-          "z"
+          "z",
+          "t",
+          "ʒ"
         ],
         "old/old-fitted": [
           "t",
@@ -393,9 +399,9 @@
           "v"
         ],
         "new/z-whiten": [
+          "k",
           "d",
-          "ʒ",
-          "k"
+          "z"
         ],
         "old/old-fitted": [
           "k",
@@ -418,8 +424,8 @@
           "b"
         ],
         "new/z-whiten": [
-          "ð",
-          "z",
+          "f",
+          "b",
           "ʒ"
         ],
         "old/old-fitted": [
@@ -444,8 +450,8 @@
         ],
         "new/z-whiten": [
           "z",
-          "v",
-          "ʒ"
+          "θ",
+          "s"
         ],
         "old/old-fitted": [
           "v",
@@ -470,7 +476,7 @@
         "new/z-whiten": [
           "ʒ",
           "ð",
-          "v"
+          "d"
         ],
         "old/old-fitted": [
           "ʒ",
@@ -494,8 +500,8 @@
         ],
         "new/z-whiten": [
           "z",
-          "ð",
-          "v"
+          "ʃ",
+          "d"
         ],
         "old/old-fitted": [
           "z",
@@ -519,8 +525,8 @@
         ],
         "new/z-whiten": [
           "n",
-          "v",
-          "f"
+          "p",
+          "v"
         ],
         "old/old-fitted": [
           "n",
@@ -555,7 +561,7 @@
       }
     },
     {
-      "summary_new_top1_voicing_counterpart": 0,
+      "summary_new_top1_voicing_counterpart": 6,
       "n_stimuli": 16
     }
   ],
@@ -568,9 +574,9 @@
       "mrr": 0.2250316577953297
     },
     "random_same_width_new": {
-      "hit_at_1": 0.0546875,
-      "hit_at_1_sd_over_runs": 0.0390625,
-      "mrr": 0.21205762011426071
+      "hit_at_1": 0.048828125,
+      "hit_at_1_sd_over_runs": 0.029684929987442703,
+      "mrr": 0.20115325212981464
     },
     "one_hot_orthographic": {
       "hit_at_1": 0.078125,
@@ -605,25 +611,25 @@
             }
           },
           "new": {
-            "n_live_coords": 11,
-            "train_nll": 0.27825674578445286,
+            "n_live_coords": 17,
+            "train_nll": 0.3025721865213661,
             "weights_top": {
-              "root_x": 1.507923216485156,
-              "periodic": 1.1771428341318615,
-              "lateral": 1.0,
-              "velum": 0.9818827814172622,
-              "lip_open": 0.7889420558530367
+              "lateral": 0.9998826734853516,
+              "periodic": 0.8255953670907422,
+              "lip_open": 0.6211204055829925,
+              "root_x": 0.47477623241181316,
+              "root_y": 0.294067042081266
             },
             "soft": {
-              "feat_acc": 0.9292397660818712,
-              "act_prec": 0.6502148104420832,
-              "top1_acc": 0.9210526315789473,
+              "feat_acc": 0.9257309941520467,
+              "act_prec": 0.6568624557260921,
+              "top1_acc": 0.9105263157894736,
               "n_query": 45
             },
             "strict": {
-              "feat_acc": 0.9239766081871343,
-              "act_prec": 0.569218155581792,
-              "top1_acc": 0.9128654970760233,
+              "feat_acc": 0.9222222222222223,
+              "act_prec": 0.5755214482487209,
+              "top1_acc": 0.8959064327485379,
               "n_query": 45
             }
           }
@@ -655,25 +661,25 @@
             }
           },
           "new": {
-            "n_live_coords": 12,
-            "train_nll": 0.2896822853734834,
+            "n_live_coords": 18,
+            "train_nll": 0.2571503053630069,
             "weights_top": {
-              "root_x": 1.8933448801411927,
-              "velum": 0.9999903681550941,
-              "lateral": 0.9935883097396904,
-              "periodic": 0.8993746695811426,
-              "lip_open": 0.857661605431371
+              "velum": 0.99718370456538,
+              "blade_y": 0.29550337941582583,
+              "constriction_gap": 0.2526157469477385,
+              "dorsum_y": 0.2256779591893264,
+              "blade_x": 0.21420061966922238
             },
             "soft": {
-              "feat_acc": 0.9256292906178492,
-              "act_prec": 0.6206603371376099,
-              "top1_acc": 0.9147597254004577,
+              "feat_acc": 0.9416475972540045,
+              "act_prec": 0.7177202216974945,
+              "top1_acc": 0.9239130434782609,
               "n_query": 46
             },
             "strict": {
-              "feat_acc": 0.9130434782608697,
-              "act_prec": 0.5041273120818576,
-              "top1_acc": 0.8987414187643021,
+              "feat_acc": 0.9124713958810069,
+              "act_prec": 0.4847804342122524,
+              "top1_acc": 0.9004576659038903,
               "n_query": 46
             }
           }
@@ -705,25 +711,25 @@
             }
           },
           "new": {
-            "n_live_coords": 12,
-            "train_nll": 0.2558414616158994,
+            "n_live_coords": 18,
+            "train_nll": 0.2230835182716014,
             "weights_top": {
-              "lip_open": 1.1693387417781247,
-              "periodic": 0.8129264015620941,
-              "root_x": 0.541208395041571,
-              "duration": 0.4745610745400354,
-              "root_y": 0.3464320807177024
+              "duration": 1.0040715513437228,
+              "blade_y": 0.47344271218825457,
+              "dorsum_y": 0.4663690138669313,
+              "lip_open": 0.28619320409587345,
+              "larynx": 0.22430630807525914
             },
             "soft": {
-              "feat_acc": 0.9313501144164761,
-              "act_prec": 0.6465218959784177,
-              "top1_acc": 0.9193363844393593,
+              "feat_acc": 0.9284897025171625,
+              "act_prec": 0.6425803061672627,
+              "top1_acc": 0.9096109839816934,
               "n_query": 46
             },
             "strict": {
-              "feat_acc": 0.8947368421052633,
-              "act_prec": 0.42022319467971636,
-              "top1_acc": 0.8970251716247138,
+              "feat_acc": 0.9004576659038901,
+              "act_prec": 0.4831804065499718,
+              "top1_acc": 0.8935926773455377,
               "n_query": 46
             }
           }
@@ -755,25 +761,25 @@
             }
           },
           "new": {
-            "n_live_coords": 12,
-            "train_nll": 0.3055165204127495,
+            "n_live_coords": 18,
+            "train_nll": 0.2461643582702735,
             "weights_top": {
-              "root_x": 5.1673790038333784,
-              "periodic": 2.307146619656217,
-              "lip_open": 1.0102122703117788,
-              "lateral": 0.9999426387623427,
-              "velum": 0.9991505204630827
+              "blade_y": 0.4433139082039655,
+              "blade_x": 0.4126777573922364,
+              "dorsum_y": 0.3989636535332372,
+              "larynx": 0.2562125999551035,
+              "tip_y": 0.1639414692892237
             },
             "soft": {
-              "feat_acc": 0.9252631578947367,
-              "act_prec": 0.6892588498971478,
-              "top1_acc": 0.9189473684210526,
+              "feat_acc": 0.9263157894736842,
+              "act_prec": 0.6954484050228732,
+              "top1_acc": 0.9126315789473685,
               "n_query": 50
             },
             "strict": {
-              "feat_acc": 0.9068421052631579,
-              "act_prec": 0.5311235454852475,
-              "top1_acc": 0.9063157894736843,
+              "feat_acc": 0.8957894736842106,
+              "act_prec": 0.5166190783212059,
+              "top1_acc": 0.8942105263157896,
               "n_query": 50
             }
           }
@@ -805,25 +811,25 @@
             }
           },
           "new": {
-            "n_live_coords": 12,
-            "train_nll": 0.2723836523231188,
+            "n_live_coords": 18,
+            "train_nll": 0.2467822005390331,
             "weights_top": {
-              "periodic": 0.9212425572676344,
-              "root_x": 0.6440218274983851,
-              "lip_open": 0.6232946382800187,
-              "root_y": 0.3771639627486943,
-              "constriction_gap": 0.2682618110631504
+              "blade_y": 0.5700686876685566,
+              "dorsum_y": 0.49697237269205363,
+              "larynx": 0.25942858615236103,
+              "dorsum_x": 0.23931513234596252,
+              "blade_x": 0.21848834132017297
             },
             "soft": {
-              "feat_acc": 0.9286549707602337,
-              "act_prec": 0.6770365997638724,
-              "top1_acc": 0.9204678362573098,
+              "feat_acc": 0.9251461988304092,
+              "act_prec": 0.7054727469500196,
+              "top1_acc": 0.9269005847953218,
               "n_query": 45
             },
             "strict": {
-              "feat_acc": 0.8959064327485379,
-              "act_prec": 0.5069510035419126,
-              "top1_acc": 0.8929824561403507,
+              "feat_acc": 0.8807017543859649,
+              "act_prec": 0.3896702413747869,
+              "top1_acc": 0.8929824561403509,
               "n_query": 45
             }
           }
@@ -855,25 +861,25 @@
             }
           },
           "new": {
-            "n_live_coords": 12,
-            "train_nll": 0.17230686768090192,
+            "n_live_coords": 18,
+            "train_nll": 0.11406050855469235,
             "weights_top": {
-              "constriction_pos": 6.088224603328679,
-              "periodic": 0.6679804150149113,
-              "duration": 0.5926750439109673,
-              "lip_round": 0.4480857982945616,
-              "lateral": 0.37725766724815046
+              "dorsum_x": 23.516407900295697,
+              "duration": 16.36702503931752,
+              "larynx": 2.8787412729923725,
+              "periodic": 2.3678006877914624,
+              "source_tilt": 1.5071338141868982
             },
             "soft": {
-              "feat_acc": 0.9106487148102813,
-              "act_prec": 0.5588866400554712,
-              "top1_acc": 0.8999388004895958,
+              "feat_acc": 0.9179926560587514,
+              "act_prec": 0.5722376829519686,
+              "top1_acc": 0.9023867809057524,
               "n_query": 86
             },
             "strict": {
-              "feat_acc": 0.8745410036719704,
-              "act_prec": 0.23268023462828652,
-              "top1_acc": 0.8580171358629128,
+              "feat_acc": 0.8601591187270499,
+              "act_prec": 0.13774666891550008,
+              "top1_acc": 0.8681150550795591,
               "n_query": 86
             }
           }
@@ -905,25 +911,25 @@
             }
           },
           "new": {
-            "n_live_coords": 12,
-            "train_nll": 0.2627376515821504,
+            "n_live_coords": 18,
+            "train_nll": 0.23971994336036234,
             "weights_top": {
-              "root_x": 1.9423804478661224,
-              "lip_open": 1.7665313761458064,
-              "periodic": 1.1706898468579081,
-              "lateral": 1.0002201194287565,
-              "velum": 0.9999954316146796
+              "duration": 0.3922490691766368,
+              "blade_y": 0.38606146483764986,
+              "dorsum_y": 0.3129313692644437,
+              "lip_open": 0.18995340736065827,
+              "larynx": 0.17574986433243145
             },
             "soft": {
-              "feat_acc": 0.9244482173174872,
-              "act_prec": 0.5732527657527657,
-              "top1_acc": 0.9134125636672324,
+              "feat_acc": 0.9329371816638367,
+              "act_prec": 0.640899470899471,
+              "top1_acc": 0.9176570458404073,
               "n_query": 31
             },
             "strict": {
-              "feat_acc": 0.9142614601018676,
-              "act_prec": 0.44190355940355935,
-              "top1_acc": 0.9049235993208827,
+              "feat_acc": 0.9142614601018677,
+              "act_prec": 0.4814129389129389,
+              "top1_acc": 0.9040747028862478,
               "n_query": 31
             }
           }
@@ -955,25 +961,25 @@
             }
           },
           "new": {
-            "n_live_coords": 11,
-            "train_nll": 0.23027940686104506,
+            "n_live_coords": 17,
+            "train_nll": 0.2224480508268248,
             "weights_top": {
-              "periodic": 1.1347122603777458,
-              "lip_open": 1.117137965843094,
-              "velum": 0.9999924705280746,
-              "root_x": 0.8895404116707,
-              "duration": 0.4022595235263259
+              "duration": 1.3875715202751087,
+              "velum": 0.9995731805560684,
+              "lip_open": 0.3343628503664172,
+              "constriction_gap": 0.33224852850054387,
+              "root_x": 0.33133577325125113
             },
             "soft": {
-              "feat_acc": 0.9251644736842105,
-              "act_prec": 0.6247677669552669,
-              "top1_acc": 0.9177631578947368,
+              "feat_acc": 0.9292763157894737,
+              "act_prec": 0.6810436958874458,
+              "top1_acc": 0.9210526315789475,
               "n_query": 32
             },
             "strict": {
-              "feat_acc": 0.8922697368421053,
-              "act_prec": 0.4157151875901876,
-              "top1_acc": 0.9185855263157895,
+              "feat_acc": 0.9021381578947368,
+              "act_prec": 0.5057539682539682,
+              "top1_acc": 0.9120065789473684,
               "n_query": 32
             }
           }
@@ -1005,25 +1011,25 @@
             }
           },
           "new": {
-            "n_live_coords": 12,
-            "train_nll": 0.26448745289434683,
+            "n_live_coords": 18,
+            "train_nll": 0.23983307131378506,
             "weights_top": {
-              "lip_open": 0.9797316172845215,
-              "periodic": 0.9029358405133,
-              "root_x": 0.46428013244749233,
-              "constriction_gap": 0.34999561594485773,
-              "duration": 0.287953793038824
+              "duration": 0.5804091800562048,
+              "dorsum_y": 0.3494558574833655,
+              "blade_y": 0.3287004167275828,
+              "lip_open": 0.1925687693169524,
+              "tip_y": 0.17127831663682996
             },
             "soft": {
-              "feat_acc": 0.9398496240601502,
-              "act_prec": 0.6956923734701513,
-              "top1_acc": 0.9163533834586464,
+              "feat_acc": 0.9360902255639098,
+              "act_prec": 0.6427395649617872,
+              "top1_acc": 0.9276315789473683,
               "n_query": 28
             },
             "strict": {
-              "feat_acc": 0.93796992481203,
-              "act_prec": 0.6324207685318797,
-              "top1_acc": 0.9182330827067667,
+              "feat_acc": 0.9332706766917293,
+              "act_prec": 0.6343020148575704,
+              "top1_acc": 0.925751879699248,
               "n_query": 28
             }
           }
@@ -1032,99 +1038,99 @@
     ],
     "summary": {
       "new/soft/act_prec": {
-        "mean": 0.6373657821614206,
-        "sd_across_folds": 0.048250419621536506,
-        "mean_excl_thin_folds": 0.6471756749246644,
+        "mean": 0.6616671722516017,
+        "sd_across_folds": 0.04437351847382279,
+        "mean_excl_thin_folds": 0.6728458584140558,
         "per_fold": [
-          0.6502,
-          0.6207,
-          0.6465,
-          0.6893,
-          0.677,
-          0.5589,
-          0.5733,
-          0.6248,
-          0.6957
+          0.6569,
+          0.7177,
+          0.6426,
+          0.6954,
+          0.7055,
+          0.5722,
+          0.6409,
+          0.681,
+          0.6427
         ]
       },
       "new/soft/feat_acc": {
-        "mean": 0.9266942588492552,
-        "sd_across_folds": 0.007690019986646627,
-        "mean_excl_thin_folds": 0.9286999518541268,
+        "mean": 0.9292918512559196,
+        "sd_across_folds": 0.0068848507910135364,
+        "mean_excl_thin_folds": 0.9307042506555658,
         "per_fold": [
-          0.9292,
-          0.9256,
-          0.9314,
-          0.9253,
-          0.9287,
-          0.9106,
-          0.9244,
-          0.9252,
-          0.9398
+          0.9257,
+          0.9416,
+          0.9285,
+          0.9263,
+          0.9251,
+          0.918,
+          0.9329,
+          0.9293,
+          0.9361
         ]
       },
       "new/soft/top1_acc": {
-        "mean": 0.9157813168452598,
-        "sd_across_folds": 0.006464397987572396,
-        "mean_excl_thin_folds": 0.9177616313897178,
+        "mean": 0.9169233938071771,
+        "sd_across_folds": 0.008694684838119793,
+        "mean_excl_thin_folds": 0.9187404704198551,
         "per_fold": [
+          0.9105,
+          0.9239,
+          0.9096,
+          0.9126,
+          0.9269,
+          0.9024,
+          0.9177,
           0.9211,
-          0.9148,
-          0.9193,
-          0.9189,
-          0.9205,
-          0.8999,
-          0.9134,
-          0.9178,
-          0.9164
+          0.9276
         ]
       },
       "new/strict/act_prec": {
-        "mean": 0.4727069957249377,
-        "sd_across_folds": 0.1145423437733597,
-        "mean_excl_thin_folds": 0.502710340862019,
+        "mean": 0.46766524440521284,
+        "sd_across_folds": 0.1409344434247222,
+        "mean_excl_thin_folds": 0.508905066341427,
         "per_fold": [
-          0.5692,
-          0.5041,
-          0.4202,
-          0.5311,
-          0.507,
-          0.2327,
-          0.4419,
-          0.4157,
-          0.6324
+          0.5755,
+          0.4848,
+          0.4832,
+          0.5166,
+          0.3897,
+          0.1377,
+          0.4814,
+          0.5058,
+          0.6343
         ]
       },
       "new/strict/feat_acc": {
-        "mean": 0.9059497324436596,
-        "sd_across_folds": 0.018943041747662665,
-        "mean_excl_thin_folds": 0.9098758235401208,
+        "mean": 0.9023857694991864,
+        "sd_across_folds": 0.02205303492733888,
+        "mean_excl_thin_folds": 0.9076641008457036,
         "per_fold": [
-          0.924,
-          0.913,
-          0.8947,
-          0.9068,
-          0.8959,
-          0.8745,
+          0.9222,
+          0.9125,
+          0.9005,
+          0.8958,
+          0.8807,
+          0.8602,
           0.9143,
-          0.8923,
-          0.938
+          0.9021,
+          0.9333
         ]
       },
       "new/strict/top1_acc": {
-        "mean": 0.9008544085872696,
-        "sd_across_folds": 0.01844989648564065,
-        "mean_excl_thin_folds": 0.9062090676778141,
+        "mean": 0.8985664416740587,
+        "sd_across_folds": 0.01566388688541367,
+        "mean_excl_thin_folds": 0.9023728649983713,
         "per_fold": [
-          0.9129,
-          0.8987,
-          0.897,
-          0.9063,
+          0.8959,
+          0.9005,
+          0.8936,
+          0.8942,
           0.893,
-          0.858,
-          0.9049,
-          0.9186,
-          0.9182
+          0.8681,
+          0.9041,
+          0.912,
+          0.9258
         ]
       },
       "old/soft/act_prec": {
@@ -1234,12 +1240,12 @@
     "lambda": 5.5
   },
   "headline_delta": {
-    "strict_feat_acc_new_minus_old": -0.01097907813389254,
-    "soft_feat_acc_new_minus_old": -0.01921229624653087,
-    "strict_act_prec_new_minus_old": -0.11888411636171081,
-    "soft_act_prec_new_minus_old": -0.14504445334787996,
-    "strict_top1_acc_new_minus_old": -0.016409777159080985,
-    "soft_top1_acc_new_minus_old": -0.02231608067247237,
+    "strict_feat_acc_new_minus_old": -0.014543041078365793,
+    "soft_feat_acc_new_minus_old": -0.016614703839866407,
+    "strict_act_prec_new_minus_old": -0.12392586768143565,
+    "soft_act_prec_new_minus_old": -0.1207430632576989,
+    "strict_top1_acc_new_minus_old": -0.018697744072291855,
+    "soft_top1_acc_new_minus_old": -0.021174003710555,
     "gate1_hit_at_1_old_z-euclid_new_minus_old": 0.0,
     "gate1_hit_at_3_old_z-euclid_new_minus_old": 0.015625,
     "gate1_hit_at_5_old_z-euclid_new_minus_old": 0.0625,
@@ -1248,14 +1254,14 @@
     "gate1_hit_at_3_old_z-whiten_new_minus_old": 0.0,
     "gate1_hit_at_5_old_z-whiten_new_minus_old": 0.0,
     "gate1_mrr_old_z-whiten_new_minus_old": 0.0,
-    "gate1_hit_at_1_new_z-euclid_new_minus_old": 0.28125,
-    "gate1_hit_at_3_new_z-euclid_new_minus_old": 0.1875,
-    "gate1_hit_at_5_new_z-euclid_new_minus_old": 0.203125,
-    "gate1_mrr_new_z-euclid_new_minus_old": 0.22756679084804077,
-    "gate1_hit_at_1_new_z-whiten_new_minus_old": 0.21875,
-    "gate1_hit_at_3_new_z-whiten_new_minus_old": 0.140625,
-    "gate1_hit_at_5_new_z-whiten_new_minus_old": 0.140625,
-    "gate1_mrr_new_z-whiten_new_minus_old": 0.17357373529248532,
+    "gate1_hit_at_1_new_z-euclid_new_minus_old": 0.203125,
+    "gate1_hit_at_3_new_z-euclid_new_minus_old": 0.046875,
+    "gate1_hit_at_5_new_z-euclid_new_minus_old": 0.0625,
+    "gate1_mrr_new_z-euclid_new_minus_old": 0.12752768065268066,
+    "gate1_hit_at_1_new_z-whiten_new_minus_old": 0.078125,
+    "gate1_hit_at_3_new_z-whiten_new_minus_old": 0.0,
+    "gate1_hit_at_5_new_z-whiten_new_minus_old": 0.0625,
+    "gate1_mrr_new_z-whiten_new_minus_old": 0.0520688512876013,
     "gate1_hit_at_1_old_old-fitted_new_minus_old": 0.109375,
     "gate1_hit_at_3_old_old-fitted_new_minus_old": 0.078125,
     "gate1_hit_at_5_old_old-fitted_new_minus_old": 0.0625,
@@ -1272,7 +1278,7 @@
     "No significance test is reported. With 9 folds the per-fold spread is the honest uncertainty statement, and it is printed."
   ],
   "runtime_note": {
-    "cpu_seconds": 2.47
+    "cpu_seconds": 5.36
   },
   "verdict": {
     "question": "Does the new tongue basis beat the old 16-dim basis on identical ground? Answer: not yet, and the pooled Gate-1 hit@1 of 0.39 vs 0.09 that looks like a win is an artefact worth naming.",
@@ -1281,6 +1287,6 @@
     "likelihood_and_rank_metrics": "Gate 1 NLL and Spearman both favour the old basis (2.40 vs 2.80 nats, rho 0.46 vs 0.29), so the new basis does not win Gate 1 uniformly either.",
     "loco": "Gate 3 LOCO over 9 SVMCC languages, held-out segments removed from the candidate pool: old act_prec 0.649 vs new 0.443 (excluding the degenerate ielex fold). The old basis wins.",
     "what_the_new_basis_does_win": "Voicing separation, and 38 PhonoLib feature geometry only in the soft-pool variant where its own symbols are reachable.",
-    "what_this_says_about_the_known_gaps": "Gap 1 (a palatal GROOVE to separate ɕ from ʃ) is confirmed as load-bearing: in the retrieval audit the new basis top-1 is the voicing counterpart for 0 of the 16 Phatak stimuli, and where it is not, it reaches only a coronal sibilant, never a second place. Gap 3 (no consonant acoustics) cannot be tested here at all. This gate adds a fourth: the tongue contour as generated separates voicing well and place poorly, which the generators did not report."
+    "what_this_says_about_the_known_gaps": "Gap 1 (a palatal GROOVE to separate ɕ from ʃ) is confirmed as load-bearing: in the retrieval audit the new basis top-1 is the voicing counterpart for 6 of the 16 Phatak stimuli, and where it is not, it reaches only a coronal sibilant, never a second place. Gap 3 (no consonant acoustics) cannot be tested here at all. This gate adds a fourth: the tongue contour as generated separates voicing well and place poorly, which the generators did not report."
   }
 }

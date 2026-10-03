@@ -116,7 +116,7 @@ ANCHOR_CFG = {
     'postalveolar': {'tip': (0.19, 0.25), 'blade': (0.25, 0.925), 'dorsum': (0.33, 0.30), 'root': (0.72, 0.25), 'lip_open': 0.35, 'lip_round': 0.0},
     'palatoalveol': {'tip': (0.20, 0.22), 'blade': (0.30, 0.979), 'dorsum': (0.33, 0.35), 'root': (0.72, 0.25), 'lip_open': 0.32, 'lip_round': 0.0},
     'retroflex':    {'tip': (0.30, 0.20), 'blade': (0.28, 0.60), 'dorsum': (0.33, 0.28), 'root': (0.72, 0.25), 'lip_open': 0.35, 'lip_round': 0.0},
-    'palatal':      {'tip': (0.18, 0.22), 'blade': (0.26, 0.55), 'dorsum': (0.25, 0.925), 'root': (0.72, 0.25), 'lip_open': 0.32, 'lip_round': 0.0},
+    'palatal':      {'tip': (0.18, 0.22), 'blade': (0.30, 0.55), 'dorsum': (0.36, roof(0.36)), 'root': (0.72, 0.25), 'lip_open': 0.32, 'lip_round': 0.0},
     'velar':        {'tip': (0.20, 0.12), 'blade': (0.24, 0.15), 'dorsum': (0.45, 0.86), 'root': (0.72, 0.28), 'lip_open': 0.35, 'lip_round': 0.0},
     'uvular':       {'tip': (0.20, 0.12), 'blade': (0.24, 0.15), 'dorsum': (0.52, 0.678), 'root': (0.72, 0.30), 'lip_open': 0.35, 'lip_round': 0.0},
     'pharyngeal':   {'tip': (0.20, 0.12), 'blade': (0.24, 0.15), 'dorsum': (0.40, 0.30), 'root': (0.70, 0.62), 'lip_open': 0.40, 'lip_round': 0.0},
@@ -129,6 +129,14 @@ ANCHOR_CFG = {
 # legitimately says nothing about them -- that is a result, not a gap.
 TONGUE_ANCHORS = ['dental', 'alveolar', 'postalveolar', 'palatoalveol',
                   'palatal', 'velar', 'uvular', 'pharyngeal', 'epiglottal']
+
+# Where the LIP constricts, for the two lip anchors. The tongue contour cannot
+# carry this: with the tongue at rest the nearest point to the roof is the
+# tongue ROOT at x=0.72, so scanning the contour for a lip segment reported the
+# pharyngeal wall as the constriction site and a 0.402 aperture for every
+# labiodental -- including the stop /p̪/, which then had no closure at all.
+# /f/ measured 0.402 against the fricative profile's 0.14 for the same reason.
+LIP_SITES = {'bilabial': (0.00, 0.00), 'labiodental': (0.05, 0.10)}
 
 VOWELS = [
     # name, dorsum x, dorsum y, lip_round   (blade/tip/root stay near rest)

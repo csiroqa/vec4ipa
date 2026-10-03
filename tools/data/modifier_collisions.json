@@ -1,0 +1,46 @@
+{
+ "modifiers": [
+  "advanced",
+  "apical",
+  "atr",
+  "centralized",
+  "dental",
+  "labialized",
+  "laminal",
+  "midcent",
+  "palatalized",
+  "pharyngeal",
+  "retracted",
+  "rtr",
+  "velarized"
+ ],
+ "rows": [
+  {
+   "basis": "merged_basis.json",
+   "dims": 18,
+   "contour_pairs": 2412,
+   "basis_pairs": 219,
+   "lost": -2193,
+   "bases_affected": 0,
+   "n_bases": 133
+  },
+  {
+   "basis": "summary_root.json",
+   "dims": 12,
+   "contour_pairs": 2412,
+   "basis_pairs": 1265,
+   "lost": -1147,
+   "bases_affected": 133,
+   "n_bases": 133
+  },
+  {
+   "basis": "summary_basis.json",
+   "dims": 10,
+   "contour_pairs": 2412,
+   "basis_pairs": 3689,
+   "lost": 1277,
+   "bases_affected": 133,
+   "n_bases": 133
+  }
+ ]
+}
