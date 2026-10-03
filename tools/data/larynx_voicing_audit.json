@@ -1,0 +1,26 @@
+{
+ "kept_baseline": [
+  "tip_y",
+  "blade_y",
+  "dorsum_x",
+  "dorsum_y",
+  "lip_open",
+  "lip_round",
+  "constriction_pos",
+  "constriction_gap"
+ ],
+ "kept_variant": [
+  "tip_y",
+  "blade_y",
+  "dorsum_x",
+  "dorsum_y",
+  "lip_open",
+  "lip_round",
+  "constriction_pos",
+  "constriction_gap"
+ ],
+ "loco_baseline": 0.5635109849661574,
+ "loco_variant": 0.5635109849661574,
+ "difference": 0.0,
+ "verdict": "does NOT survive -- the raw gain was a category offset"
+}

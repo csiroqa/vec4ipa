@@ -1,0 +1,86 @@
+{
+ "kept_dims": [
+  "tip_y",
+  "blade_y",
+  "dorsum_x",
+  "dorsum_y",
+  "lip_open",
+  "lip_round",
+  "constriction_pos",
+  "constriction_gap"
+ ],
+ "dropped": [
+  [
+   "tip_x",
+   "vowel"
+  ],
+  [
+   "blade_x",
+   "vowel"
+  ],
+  [
+   "root_x",
+   "vowel"
+  ],
+  [
+   "root_y",
+   "vowel"
+  ],
+  [
+   "velum",
+   "vowel"
+  ],
+  [
+   "lateral",
+   "vowel"
+  ],
+  [
+   "larynx",
+   "vowel"
+  ],
+  [
+   "periodic",
+   "vowel"
+  ],
+  [
+   "source_tilt",
+   "vowel"
+  ],
+  [
+   "duration",
+   "vowel"
+  ]
+ ],
+ "loco": {
+  "mean": 0.5426389276192829,
+  "sd_across_folds": 0.10141686607773612,
+  "mean_excl_thin_folds": 0.5635109849661574,
+  "per_fold": [
+   0.5327,
+   0.5526,
+   0.5303,
+   0.5348,
+   0.4399,
+   0.3757,
+   0.5683,
+   0.7375,
+   0.612
+  ]
+ },
+ "old_clean_loco": {
+  "mean": 0.4640899670075147,
+  "sd_across_folds": 0.1426160602516967,
+  "mean_excl_thin_folds": 0.5039502575977585,
+  "per_fold": [
+   0.504,
+   0.6171,
+   0.3685,
+   0.4522,
+   0.4781,
+   0.1452,
+   0.4849,
+   0.5068,
+   0.6199
+  ]
+ }
+}
