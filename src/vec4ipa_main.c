@@ -303,7 +303,9 @@ static void print_stats(void)
     printf("implicit affricates:         %d\n", NNOLIG);
     /* g_ndim, not NDIM: NDIM is the compiled-in scheme's width, and a
      * --scheme FILE can replace it. Reporting NDIM here would claim 16
-     * dimensions while the loaded scheme has 18. */
+     * dimensions while the loaded scheme has 18 -- and tools/
+     * test_scheme_portability.py fails on exactly that, which is what keeps
+     * this from silently regressing. */
     printf("dimensions:                  %d\n", g_ndim);
     metric_ensure();
     printf("lambda:                      %.2f\n", g_metric_lambda);
