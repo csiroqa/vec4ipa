@@ -45,7 +45,7 @@ LIP_SITES = tm.LIP_SITES
 # Labial-palatal and labial-velar are coarticulated segments: the constrictor
 # is the palatal or velar one respectively, and the labial element is a lip
 # gesture, which LIP_GESTURES below applies separately.
-GLIDE_PLACE = {'j': 'palatal', 'ɥ': 'palatal',
+PLACE_FIX = {'j': 'palatal', 'ɥ': 'palatal',
                'w': 'velar', 'ɰ': 'velar', 'ʍ': 'velar'}
 
 # ɺ is the seventh transcription slip of the same kind: the old table gives it
@@ -56,14 +56,24 @@ GLIDE_PLACE = {'j': 'palatal', 'ɥ': 'palatal',
 # Routing it to retroflex separates the two because that anchor retracts the
 # tip (0.30 vs alveolar 0.15) and raises the blade (0.28 vs 0.18) even though
 # both anchors share a dorsum at (0.33, 0.28).
-GLIDE_PLACE['ɺ'] = 'retroflex'
+PLACE_FIX['ɺ'] = 'retroflex'
 
 # ɽ is the same slip in the other direction. The place = +0.000 bucket holds
 # the 28 central-ish vowels, the retroflex series, and -- among the consonants
 # -- only this one. Every other alveolar consonant in the table (t d n s z ɬ ɮ
 # t͡s d͡z ɹ l r ɾ ɗ) sits at -0.450, and r, which is the same sound, does
 # too. So +0.000 here is not an alternative encoding of anything.
-GLIDE_PLACE['ɽ'] = 'alveolar'
+PLACE_FIX['ɽ'] = 'alveolar'
+
+# ɧ is a third transcription slip, and the only fricative in the table that
+# does not sit exactly on an anchor: every other one is 0.000 from its nearest
+# anchor, this one is 0.075 from postalveolar. Its -0.225 is the midpoint
+# between postalveolar (-0.300) and palatoalveolar (-0.150), and no other
+# segment in the table uses that value. Its body is -0.400, the most posterior
+# of the whole fricative series (χ -0.290, ɣ and x -0.200, ʃ 0.000, ħ ʕ -0.390),
+# and its voiced pair ɣ is at +0.300 velar. So it routes to velar, which also
+# separates it from ʃ -- at the cost recorded in §0.6.
+PLACE_FIX['ɧ'] = 'velar'
 
 # ɽ carries the flap's duration and oral area (0.30 / 0.00) while r, which is
 # the same sound, carries the trill's (0.50 / 0.20). The old table therefore
@@ -81,13 +91,13 @@ MANNER_FIX = {'ɽ': 'trill'}
 # not the constriction x (0.36, 0.45) that ANCHOR_CFG carries. Hard-coding
 # the wrong pair routed j to velar and w to uvular -- still wrong, just wrong
 # in a way that looked plausible.
-GLIDE_PLACE_VALUE = {n: v for n, v, _ in tm.ANCHORS}
+PLACE_FIX_VALUE = {n: v for n, v, _ in tm.ANCHORS}
 
 
 def place_override(seg, vec, I):
     """Anchor place for a segment, corrected for the five glides."""
-    a = GLIDE_PLACE.get(seg)
-    return GLIDE_PLACE_VALUE[a] if a else vec[I['place']]
+    a = PLACE_FIX.get(seg)
+    return PLACE_FIX_VALUE[a] if a else vec[I['place']]
 
 
 # Lip protrusion added for a secondary labialised segment. Same constant the
@@ -327,7 +337,7 @@ def main():
         # (w ɰ ʍ). Until those places are authored there is no correct place
         # to route them to, so the guard stays out; see docs §0.9.9.
         no_place_gesture = (abs(place) < 1e-9 and tip < 0.5
-                            and seg not in GLIDE_PLACE)
+                            and seg not in PLACE_FIX)
 
         if no_place_gesture:
             dx, dy, lr = VOWEL_CFG.get(seg, (0.35, 0.30, vec[I['lips_rounded']]))

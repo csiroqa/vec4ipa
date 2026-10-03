@@ -46,6 +46,7 @@ PLACE_ORDER = ['bilabial', 'labiodental', 'dental', 'alveolar',
 # an allowlist entry is a claim about the inventory, and it has to be one.
 HOMOPHONES = {
     ('r', 'ɽ'): 'both are the alveolar trill',
+    ('x', 'ɧ'): 'both are the voiceless velar fricative',
 }
 
 CONTACTS = {'stop': 0.0, 'affricate': 0.0, 'trill': 0.0,
@@ -185,7 +186,7 @@ def main():
               % (ck, len(sel), len({p['symbol'] for p in sel}),
                  ' '.join(sorted({p['symbol'] for p in sel})[:18])))
     if not problems:
-        print('  every symbol passes all six checks')
+        print('  every symbol passes all seven checks')
 
     with io.open(OUT, 'w', encoding='utf-8') as f:
         f.write(json.dumps({'n_symbols': len(table),
@@ -194,7 +195,11 @@ def main():
                             'problems': problems}, ensure_ascii=False,
                            indent=1))
     print('wrote %s' % OUT)
+    # Non-zero on a blocking problem, so `make test` fails on one. Without
+    # this the audit only ever prints, and wiring it into `make test` would
+    # guard nothing -- it would just add a line of output.
+    return 1 if blocking else 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

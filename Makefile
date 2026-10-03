@@ -89,6 +89,11 @@ test: all
 	# They must run on every `make test` or they stop guarding anything.
 	$(PYTHON) tools/test_tongue_contour.py
 	$(PYTHON) tools/test_scheme_portability.py
+	# Check 7 forbids two base segments from sharing a vector, which no
+	# downstream metric can undo. It exits non-zero on a blocking problem,
+	# so a slip like ɔ losing its lip_round fails the build rather than
+	# silently merging two symbols.
+	$(PYTHON) tools/audit_symbol_assignments.py
 
 ifeq ($(OS),Windows_NT)
 DEL_CMD = cmd /c del /Q /F

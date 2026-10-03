@@ -2592,28 +2592,28 @@
     "duration": 0.9
   },
   "ɧ": {
-    "anchor": "postalveolar",
+    "anchor": "velar",
     "manner": "fricative",
-    "derived_x": 0.25,
+    "derived_x": 0.45,
     "gap": 0.14,
-    "constrictor": "blade",
+    "constrictor": "dorsum",
     "site_from": "assigned",
     "tongue": {
       "tip": [
-        0.19,
-        0.25
+        0.2,
+        0.12
       ],
       "blade": [
-        0.25,
-        0.785
+        0.24,
+        0.15
       ],
       "dorsum": [
-        0.33,
-        0.3
+        0.45,
+        0.72
       ],
       "root": [
         0.72,
-        0.25
+        0.28
       ]
     },
     "lip_open": 0.35,
