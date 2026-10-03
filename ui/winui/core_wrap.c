@@ -27,6 +27,35 @@ static void set_width_global(int level)
 
 /* forward: IPA string -> N segments. Returns segment count or -1 on
  * parse error (err filled). Buffer sizes are fixed (MAX_TOKS etc.). */
+/* Buffer stride is NDIM, fixed at compile time, because the managed side
+ * allocates `NDIM * MAX_TOKS` and reads back with the same stride (Core.cs,
+ * `public const int NDIM = 16`). A --scheme FILE wider than that therefore
+ * cannot be copied out in full, and the axes past NDIM would be dropped with
+ * no sign anywhere: under the 18-dim tongue scheme that is exactly
+ * constriction_pos and constriction_gap, the two the redesign exists for.
+ *
+ * The stride stays NDIM on purpose. Writing at stride g_ndim while the caller
+ * still allocates NDIM would overrun its buffer -- worse than truncation --
+ * and the matching change on the managed side cannot be verified from here
+ * (the WinUI project needs the AppxPackage targets, which this SDK does not
+ * ship). So the layout contract is left alone and the situation is reported
+ * instead of hidden.
+ *
+ * To lift the truncation, both halves have to move together: allocate and
+ * stride by a runtime `ipa2v_ndim()` in Core.cs, and copy g_ndim here. */
+static void warn_truncation_once (void)
+{
+    static int warned = 0;
+    if (warned || g_ndim <= NDIM) return;
+    warned = 1;
+    fprintf(stderr,
+            "ipa2vec (winui): scheme has %d axes but the wrapper hands the UI "
+            "%d per segment; axes %d..%d are dropped ("
+            "constriction_pos, constriction_gap on the tongue scheme). This is "
+            "the buffer contract in Core.cs, not a parsing problem.\n",
+            g_ndim, NDIM, NDIM, g_ndim - 1);
+}
+
 EXPORT int ipa2v_forward(const char *str, char *err, size_t errsz,
                          double *out /* NDIM * MAX_TOKS */,
                          int *airstream /* MAX_TOKS */,
@@ -40,6 +69,7 @@ EXPORT int ipa2v_forward(const char *str, char *err, size_t errsz,
         snprintf(err, errsz, "too many segments");
         return -1;
     }
+    warn_truncation_once();
     for (int s = 0; s < po.nsegs && s < MAX_TOKS; s++) {
         for (int i = 0; i < NDIM; i++)
             out[s * NDIM + i] = po.segs[s].v[i];
@@ -67,6 +97,7 @@ EXPORT int ipa2v_forward_tone(const char *str, char *err, size_t errsz,
         snprintf(err, errsz, "too many segments");
         return -1;
     }
+    warn_truncation_once();
     for (int s = 0; s < po.nsegs && s < MAX_TOKS; s++) {
         for (int i = 0; i < NDIM; i++)
             out[s * NDIM + i] = po.segs[s].v[i];
