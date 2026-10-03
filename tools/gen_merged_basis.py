@@ -154,6 +154,35 @@ def main():
         f.write(json.dumps(out, ensure_ascii=False, indent=1))
     print('\nwrote %s' % BASIS)
 
+    # --- summary basis: the same rows, geometry left out -------------------
+    # The fitted metric never gave constriction_pos real weight, because it is
+    # a FUNCTION of the tongue coordinates sitting beside it in the same
+    # vector -- collinear by construction, so it cannot add information and the
+    # optimiser routes around it. That is not a reason to drop the axis; it is
+    # a reason to stop measuring on the primitives. Geometry explains and
+    # drives the forward model; the summary is what distance runs on.
+    keep = ['constriction_pos', 'constriction_gap', 'lip_open', 'lip_round',
+            'velum', 'lateral', 'larynx', 'periodic', 'source_tilt',
+            'duration']
+    idx = [dims.index(k) for k in keep]
+    srows = {s: [rows[s][j] for j in idx] for s in syms}
+    S = np.array([srows[s] for s in syms], float)
+    print('\n== summary basis (geometry excluded) ==')
+    print('  dimensions %d   rank %d   distinct rows %d of %d'
+          % (len(keep), np.linalg.matrix_rank(S),
+             len({tuple(srows[s]) for s in syms}), len(syms)))
+    for a, b in [('p', 'b'), ('t', 'd'), ('k', 'ɡ'), ('s', 'z'),
+                 ('ɕ', 'ʃ'), ('ʈ', 't'), ('k', 't'), ('i', 'ʈ')]:
+        if a in srows and b in srows:
+            d = [keep[j] for j in range(len(keep)) if srows[a][j] != srows[b][j]]
+            print('  %-3s vs %-3s  %d axes: %s'
+                  % (a, b, len(d), ' '.join(d[:4])))
+    sout = {'dims': keep, 'table': srows, 'derived_from': 'merged_basis.json'}
+    spath = os.path.join(DATA, 'summary_basis.json')
+    with io.open(spath, 'w', encoding='utf-8') as f:
+        f.write(json.dumps(sout, ensure_ascii=False, indent=1))
+    print('\nwrote %s' % spath)
+
 
 if __name__ == '__main__':
     main()
