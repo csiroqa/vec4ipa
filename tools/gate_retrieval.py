@@ -531,8 +531,13 @@ def gate1(syms, bases, cons, snrs, counts):
             variants[(name, mname)] = unit_scale(
                 dfn(X, ref=np.arange(len(X)))[0])
     m16 = json.load(io.open(METRIC16, encoding='utf-8'))
-    variants[('old', 'old-fitted')] = unit_scale(
-        fitted_old_distance(bases['old'][1], m16['weights']))
+    # The old-fitted variant applies the compiled 16-axis metric weights, so it
+    # only means anything for a 16-axis basis. Guarding on the width rather
+    # than assuming it lets a caller grade a cleaned old basis -- which is
+    # 4 axes after the J6 strip -- without crashing on a shape mismatch.
+    if 'old' in bases and bases['old'][0] == len(m16['weights']):
+        variants[('old', 'old-fitted')] = unit_scale(
+            fitted_old_distance(bases['old'][1], m16['weights']))
 
     res = {}
     for (name, mname), d in variants.items():
