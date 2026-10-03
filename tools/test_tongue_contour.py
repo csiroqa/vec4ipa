@@ -50,6 +50,24 @@ int main(void)
         tongue_constriction(&c, &x, &g, &part);
         printf("C %.10f %.17g %d\n", x, g, part);
     }
+    /* One line per (segment, modifier): the full contour after application. */
+    int nm;
+    if (scanf("%d", &nm) != 1) return 3;
+    for (int i = 0; i < nm; i++) {
+        char name[32];
+        TongueContour c;
+        for (int p = 0; p < 4; p++) scanf("%lf %lf", &c.pt[p][0], &c.pt[p][1]);
+        scanf("%lf %lf %lf %lf %lf %lf %lf %lf", &c.lip_open, &c.lip_round,
+              &c.velum, &c.lateral, &c.periodic, &c.larynx,
+              &c.source_tilt, &c.duration);
+        scanf("%31s", name);
+        if (!tongue_apply_mod(&c, name)) { printf("X\n"); continue; }
+        printf("M");
+        for (int p = 0; p < 4; p++) printf(" %.17g %.17g", c.pt[p][0], c.pt[p][1]);
+        printf(" %.17g %.17g %.17g %.17g %.17g %.17g %.17g %.17g\n",
+               c.lip_open, c.lip_round, c.velum, c.lateral, c.periodic,
+               c.larynx, c.source_tilt, c.duration);
+    }
     return 0;
 }
 '''
@@ -78,6 +96,28 @@ def main():
                 payload.append('%.17g %.17g' % (e['tongue'][p][0],
                                                 e['tongue'][p][1]))
             payload.append('%.17g %.17g' % (e['lip_open'], e['lip_round']))
+
+        import gen_tongue_modifiers as M
+        basis = json.load(io.open(os.path.join(ROOT, 'tools', 'data',
+                                               'merged_basis.json'),
+                                  encoding='utf-8'))
+        bdims = {d: i for i, d in enumerate(basis['dims'])}
+        mods = sorted(M.DISPLACE) + sorted(M.SCALAR)
+        payload.append('%d' % (len(syms) * len(mods)))
+        for s in syms:
+            e = table[s]
+            bv = basis['table'][s]
+            per, tilt = (bv[bdims['periodic']], bv[bdims['source_tilt']]
+                         if 'source_tilt' in bdims else 0.0)
+            for name in mods:
+                payload.append(' '.join(
+                    ['%.17g %.17g' % tuple(e['tongue'][p])
+                     for p in ('tip', 'blade', 'dorsum', 'root')] +
+                    ['%.17g %.17g' % (e['lip_open'], e['lip_round']),
+                     '%.17g %.17g' % (e['velum'], e['lateral']),
+                     '%.17g %.17g %.17g %.17g' % (per, e['larynx'],
+                                                  tilt, e['duration']),
+                     name]))
         r = subprocess.run([exe], input='\n'.join(payload) + '\n',
                            capture_output=True, text=True)
         if r.returncode != 0:
@@ -127,7 +167,49 @@ def main():
     for ln in first:
         print(ln)
 
-    ok = bad_roof == 0 and bad_c == 0 and bad_g == 0 and bad_p == 0
+    # --- modifier replay: every segment against every rule ------------------
+    mods = sorted(M.DISPLACE) + sorted(M.SCALAR)
+    basis = json.load(io.open(os.path.join(ROOT, 'tools', 'data',
+                                           'merged_basis.json'), encoding='utf-8'))
+    bdims = {d: i for i, d in enumerate(basis['dims'])}
+    mod_rows = [ln.split() for ln in lines if ln.startswith('M ')]
+    PARTS = ('tip', 'blade', 'dorsum', 'root')
+    bad_mod = 0
+    shown = 0
+    max_md = 0.0
+    pairs = [(s, m) for s in syms for m in mods]
+    for (s, m), row in zip(pairs, mod_rows):
+        e = table[s]
+        bv = basis['table'][s]
+        cfg = {p: tuple(e['tongue'][p]) for p in PARTS}
+        cfg.update(lip_open=e['lip_open'], lip_round=e['lip_round'],
+                   velum=e['velum'], lateral=e['lateral'],
+                   periodic=bv[bdims['periodic']], larynx=e['larynx'],
+                   source_tilt=bv[bdims['source_tilt']],
+                   duration=e['duration'])
+        want = M.apply_mod(cfg, m)
+        got = [float(x) for x in row[1:]]
+        flat = []
+        for p in PARTS:
+            flat += list(want[p])
+        flat += [want['lip_open'], want['lip_round'], want['velum'],
+                 want['lateral'], want['periodic'], want['larynx'],
+                 want['source_tilt'], want['duration']]
+        diffs = [abs(a - b) for a, b in zip(flat, got)]
+        d = max(diffs)
+        max_md = max(max_md, d)
+        if d > 1e-12:
+            bad_mod += 1
+            if shown < 6:
+                shown += 1
+                worst = diffs.index(d)
+                print('  MISMATCH %s + %-13s field %d: C=%.17g PY=%.17g'
+                      % (s, m, worst, got[worst], flat[worst]))
+    print('modifiers(): %d (segment, rule) pairs, max abs difference %.3g, '
+          'mismatches %d' % (len(pairs), max_md, bad_mod))
+
+    ok = (bad_roof == 0 and bad_c == 0 and bad_g == 0 and bad_p == 0
+          and bad_mod == 0)
     print('\n%s' % ('PASS: the C port and the Python model agree exactly'
                     if ok else 'FAIL: the port has diverged'))
     return 0 if ok else 1

@@ -57,6 +57,11 @@ DISPLACE = {
     # as a dorsum placement collapsed them into one, which the collision check
     # below caught.
     'centralized': {'dorsum': ('~', 0.33, 0.5)},
+    # Kept as the absolute assignment. Changing it to a scale-to-centre was
+    # justified by audit_modifier_visibility.py reporting 0.0000 on every base,
+    # but that audit cannot separate the two: no segment's constriction sits at
+    # the tip (constrictor counts are dorsum 63, blade 46, lips/larynx 19,
+    # root 5, tip 0), so tip-only modifiers are invisible under BOTH forms.
     'midcent':     {'tip': ('=', 0.16, None)},
 }
 
@@ -88,8 +93,18 @@ SCALAR = {   # modifiers that are not tongue displacement
 
 
 def clamp_cfg(cfg):
-    """Keep the contour physical: no part above the roof, nothing off the tract."""
-    fixed = {}
+    """Keep the contour physical: no part above the roof, nothing off the tract.
+
+    The scalar modifiers write velum, lateral, periodic, larynx, source_tilt and
+    duration. This rebuilt the dict from the tongue points and the two lip
+    fields alone, so every one of those writes was discarded on the way out and
+    all 13 scalar modifiers were silent no-ops -- `nasal` set velum=0.6 and the
+    result had no velum key at all. Carrying the non-tongue fields through is
+    the fix; they are passed through unclamped because they are states, not
+    coordinates, and clamping them here would be a second, different
+    normalisation nobody asked for.
+    """
+    fixed = {k: v for k, v in cfg.items() if k not in TONGUE}
     for p in TONGUE:
         x, y = cfg[p]
         x = min(max(x, 0.02), 0.90)
