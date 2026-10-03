@@ -346,17 +346,67 @@ static int tongue_apply_mod (TongueContour *c, const char *name)
     return 0;
 }
 
-/* --- vector round trip ---------------------------------------------------
- * The scheme stores the contour flat. Rebuilding it needs the axis INDICES,
- * not names: the deployed scheme is 16 axes and has none of these, which is
- * why none of this runs until a tongue scheme is actually loaded. Passing
- * indices rather than a global keeps that fact visible at the call site. */
+/* Axis index map. Declared ahead of tongue_axes_resolve() because that
+ * function fills one, and the struct has to exist before it can be used. */
 typedef struct {
     int tip_x, tip_y, blade_x, blade_y, dorsum_x, dorsum_y, root_x, root_y;
     int lip_open, lip_round;
     int velum, lateral, periodic, larynx, source_tilt, duration;
     int constriction_pos, constriction_gap;
 } TongueAxes;
+
+/* --- scheme resolution --------------------------------------------------
+ * The contour path is only valid when the loaded scheme actually carries the
+ * eight tongue coordinates AND the two derived site axes. The deployed 16-dim
+ * scheme has none of them, and the runtime's dim_of_ok() fallback would map
+ * the modifiers onto whatever happened to sit at those indices -- that is the
+ * silent-corruption case, so the gate here is "every axis present or nothing".
+ *
+ * Returns 1 and fills ax on success, 0 otherwise. It never partially
+ * succeeds: half a contour is worse than none, because the derived site would
+ * then be recomputed from a partly wrong shape.
+ *
+ * dim_names[i] may be NULL for i >= count, and the name array is not
+ * required to match the order -- everything is resolved by name, which is the
+ * only way this survives a scheme that reorders its axes. */
+static int tongue_axes_resolve (const char *const *dim_names, int count,
+        TongueAxes *ax)
+{
+    int need[18];
+    static const char *REQ[18] = {
+        "tip_x", "tip_y", "blade_x", "blade_y", "dorsum_x", "dorsum_y",
+        "root_x", "root_y", "lip_open", "lip_round", "velum", "lateral",
+        "larynx", "periodic", "source_tilt", "duration",
+        "constriction_pos", "constriction_gap",
+    };
+    int i, j;
+    for (i = 0; i < 18; i++) {
+        need[i] = -1;
+        for (j = 0; j < count; j++)
+            if (dim_names[j] && strcmp(dim_names[j], REQ[i]) == 0) {
+                need[i] = j;
+                break;
+            }
+        if (need[i] < 0) return 0;
+    }
+    ax->tip_x = need[0];   ax->tip_y = need[1];
+    ax->blade_x = need[2]; ax->blade_y = need[3];
+    ax->dorsum_x = need[4];ax->dorsum_y = need[5];
+    ax->root_x = need[6];  ax->root_y = need[7];
+    ax->lip_open = need[8];ax->lip_round = need[9];
+    ax->velum = need[10];  ax->lateral = need[11];
+    ax->larynx = need[12]; ax->periodic = need[13];
+    ax->source_tilt = need[14]; ax->duration = need[15];
+    ax->constriction_pos = need[16]; ax->constriction_gap = need[17];
+    return 1;
+}
+
+/* --- vector round trip ---------------------------------------------------
+ * The scheme stores the contour flat. Rebuilding it needs the axis INDICES,
+ * not names: the deployed scheme is 16 axes and has none of these, which is
+ * why none of this runs until a tongue scheme is actually loaded. Passing
+ * indices rather than a global keeps that fact visible at the call site. */
+#define AX_NONE (-1)
 
 /* Sentinel for an axis the scheme does not carry. Reading one would index
  * another coordinate, which is the silent-corruption case the runtime now
