@@ -29,22 +29,37 @@
 
 static void print_table(void)
 {
+    /* g_seg_table / g_ndim / g_name_table, not SEG_TABLE / NDIM / NAME_TABLE:
+     * this dump is the inventory of whatever scheme is LOADED, and using the
+     * compiled tables made `vec4ipa -D tongue.scheme -t` print the old
+     * sixteen-axis inventory under a header naming place / lips_closed /
+     * tip_shape -- a dump that silently ignored the scheme it was asked for.
+     *
+     * EXTRA_BASE has no runtime counterpart: a --scheme FILE carries no
+     * extIPA rows, so those stay on the compiled table and are labelled as
+     * such below. */
     printf("# ipa\tlatin\t");
-    for (int j = 0; j < NDIM; j++)
-        printf("%s%s", j ? " " : "", DIM_NAMES[j]);
+    for (int j = 0; j < g_ndim; j++)
+        printf("%s%s", j ? " " : "", g_dimname[j] ? g_dimname[j] : DIM_NAMES[j]);
     printf("\tairstream\n");
-    for (int i = 0; i < NSEG; i++) {
-        printf("%s\t%s\t", SEG_TABLE[i].ipa, NAME_TABLE[i]);
-        for (int j = 0; j < NDIM; j++)
-            printf("%s%.4f", j ? " " : "", SEG_TABLE[i].v[j]);
-        printf("\t%s\n", AIRSTREAM_LABELS[SEG_TABLE[i].airstream]);
+    for (int i = 0; i < g_nseg; i++) {
+        printf("%s\t%s\t", g_seg_table[i].ipa, g_name_table[i]);
+        for (int j = 0; j < g_ndim; j++)
+            printf("%s%.4f", j ? " " : "", g_seg_table[i].v[j]);
+        printf("\t%s\n", AIRSTREAM_LABELS[g_seg_table[i].airstream]);
     }
-    printf("# extIPA bases (EXTRA_BASE):\n");
-    for (int i = 0; i < N_EXTRA; i++) {
-        printf("%s\t%s\t", EXTRA_BASE[i].ipa, EXTRA_NAMES[i]);
-        for (int j = 0; j < NDIM; j++)
-            printf("%s%.4f", j ? " " : "", EXTRA_BASE[i].v[j]);
-        printf("\t%s\n", AIRSTREAM_LABELS[EXTRA_BASE[i].airstream]);
+    if (g_ndim == NDIM) {
+        printf("# extIPA bases (EXTRA_BASE):\n");
+        for (int i = 0; i < N_EXTRA; i++) {
+            printf("%s\t%s\t", EXTRA_BASE[i].ipa, EXTRA_NAMES[i]);
+            for (int j = 0; j < NDIM; j++)
+                printf("%s%.4f", j ? " " : "", EXTRA_BASE[i].v[j]);
+            printf("\t%s\n", AIRSTREAM_LABELS[EXTRA_BASE[i].airstream]);
+        }
+    } else {
+        printf("# extIPA bases: not available -- a --scheme FILE carries no "
+               "extIPA rows, so they would not fit the %d loaded axes\n",
+               g_ndim);
     }
 }
 
@@ -235,15 +250,21 @@ static void describe_segments(const ParseOut *po)
 
 static void query_symbol(const char *sym)
 {
-    for (int i = 0; i < NSEG; i++) {
-        if (strcmp(SEG_TABLE[i].ipa, sym) == 0) {
-            printf("base: /%s/  %s  (%s)\n  (", SEG_TABLE[i].ipa,
-                   NAME_TABLE[i], AIRSTREAM_LABELS[SEG_TABLE[i].airstream]);
-            for (int j = 0; j < NDIM; j++)
-                printf("%s%.4f", j ? ", " : "", SEG_TABLE[i].v[j]);
+    /* The loaded scheme's table, for the same reason as print_table(). */
+    for (int i = 0; i < g_nseg; i++) {
+        if (strcmp(g_seg_table[i].ipa, sym) == 0) {
+            printf("base: /%s/  %s  (%s)\n  (", g_seg_table[i].ipa,
+                   g_name_table[i], AIRSTREAM_LABELS[g_seg_table[i].airstream]);
+            for (int j = 0; j < g_ndim; j++)
+                printf("%s%.4f", j ? ", " : "", g_seg_table[i].v[j]);
             printf(")\n");
             return;
         }
+    }
+    if (g_ndim != NDIM) {
+        printf("extIPA bases need the compiled scheme: a --scheme FILE "
+               "carries no extIPA rows.\n");
+        return;
     }
     for (int i = 0; i < N_EXTRA; i++) {
         if (strcmp(EXTRA_BASE[i].ipa, sym) == 0) {

@@ -147,7 +147,31 @@ def main():
                   '%s: --metric of the wrong width is rejected' % name,
                   err2.strip()[:80])
 
-    print('%d/%d checks passed' % (checks - len(fails), checks))
+    # 6. The inventory dump must follow the loaded scheme. It used to read
+        # the compiled SEG_TABLE/NDIM/NAME_TABLE, so `-D tongue.scheme -t`
+        # printed the old sixteen-axis inventory under a header naming place /
+        # lips_closed / tip_shape -- a dump that ignored the very scheme it was
+        # asked for. Same for -q, which is how anyone inspects a scheme.
+        out, _ = run(['-D', path, '-t'])
+        hdr = out.splitlines()[0] if out.splitlines() else ''
+        head_axes = hdr.split('\t')[2].split() if '\t' in hdr else []
+        check(head_axes == dims, '%s: -t header lists the loaded axes' % name,
+              'got %r' % (head_axes[:4],))
+        first = out.splitlines()[2] if len(out.splitlines()) > 2 else ''
+        vals = first.split('\t')[2].split() if '\t' in first else []
+        check(len(vals) == ndim, '%s: -t rows are %d wide' % (name, ndim),
+              'row has %d' % len(vals))
+        out, _ = run(['-D', path, '-q', 't'])
+        # The vector is the second parenthesised group: the first is the
+        # airstream label ("(pulmonic)"), which is one token wide.
+        groups = re.findall(r'\(([^)]*)\)', out)
+        if check(len(groups) >= 2, '%s: -q prints a vector' % name,
+                 out.strip()[:70]):
+            n = len([x for x in groups[1].split(',') if x.strip()])
+            check(n == ndim, '%s: -q vector width' % name,
+                  'printed %d, expected %d' % (n, ndim))
+
+        print('%d/%d checks passed' % (checks - len(fails), checks))
     for f in fails:
         print('  FAIL  %s' % f)
     return 1 if fails else 0
