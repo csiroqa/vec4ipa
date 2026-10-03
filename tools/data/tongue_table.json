@@ -321,9 +321,9 @@
   },
   "fʼ": {
     "anchor": "labiodental",
-    "manner": "ejective",
+    "manner": "ejective_fricative",
     "derived_x": 0.05,
-    "gap": 0.0,
+    "gap": 0.14,
     "constrictor": null,
     "site_from": "assigned",
     "tongue": {
@@ -349,7 +349,7 @@
     "velum": 0.0,
     "lateral": 0.0,
     "larynx": 1.0,
-    "duration": 0.1
+    "duration": 0.6
   },
   "h": {
     "anchor": "glottal",
@@ -545,11 +545,11 @@
   },
   "k͡x": {
     "anchor": "velar",
-    "manner": "fricative",
+    "manner": "affricate",
     "derived_x": 0.45,
-    "gap": 0.14,
+    "gap": 0.0,
     "constrictor": "dorsum",
-    "site_from": "assigned",
+    "site_from": "derived",
     "tongue": {
       "tip": [
         0.2,
@@ -561,7 +561,7 @@
       ],
       "dorsum": [
         0.45,
-        0.72
+        0.86
       ],
       "root": [
         0.72,
@@ -573,7 +573,7 @@
     "velum": 0.0,
     "lateral": 0.0,
     "larynx": 0.0,
-    "duration": 0.6
+    "duration": 0.7
   },
   "l": {
     "anchor": "alveolar",
@@ -897,11 +897,11 @@
   },
   "q͡χ": {
     "anchor": "uvular",
-    "manner": "fricative",
+    "manner": "affricate",
     "derived_x": 0.52,
-    "gap": 0.14,
+    "gap": 0.0,
     "constrictor": "dorsum",
-    "site_from": "assigned",
+    "site_from": "derived",
     "tongue": {
       "tip": [
         0.2,
@@ -913,7 +913,7 @@
       ],
       "dorsum": [
         0.52,
-        0.538
+        0.678
       ],
       "root": [
         0.72,
@@ -925,7 +925,7 @@
     "velum": 0.0,
     "lateral": 0.0,
     "larynx": 0.0,
-    "duration": 0.6
+    "duration": 0.7
   },
   "r": {
     "anchor": "alveolar",
@@ -993,7 +993,7 @@
   },
   "sʼ": {
     "anchor": "alveolar",
-    "manner": "ejective",
+    "manner": "ejective_affricate",
     "derived_x": 0.18,
     "gap": 0.0,
     "constrictor": "blade",
@@ -1021,7 +1021,7 @@
     "velum": 0.0,
     "lateral": 0.0,
     "larynx": 1.0,
-    "duration": 0.1
+    "duration": 0.7
   },
   "t": {
     "anchor": "alveolar",
@@ -1217,7 +1217,7 @@
   },
   "t͡ʃʼ": {
     "anchor": "postalveolar",
-    "manner": "ejective",
+    "manner": "ejective_affricate",
     "derived_x": 0.25,
     "gap": 0.0,
     "constrictor": "blade",
@@ -1245,7 +1245,7 @@
     "velum": 0.0,
     "lateral": 0.0,
     "larynx": 1.0,
-    "duration": 0.1
+    "duration": 0.7
   },
   "u": {
     "anchor": "vowel",
@@ -1377,11 +1377,11 @@
   },
   "xʼ": {
     "anchor": "velar",
-    "manner": "ejective",
+    "manner": "ejective_fricative",
     "derived_x": 0.45,
-    "gap": 0.0,
+    "gap": 0.14,
     "constrictor": "dorsum",
-    "site_from": "derived",
+    "site_from": "assigned",
     "tongue": {
       "tip": [
         0.2,
@@ -1393,7 +1393,7 @@
       ],
       "dorsum": [
         0.45,
-        0.86
+        0.72
       ],
       "root": [
         0.72,
@@ -1405,7 +1405,7 @@
     "velum": 0.0,
     "lateral": 0.0,
     "larynx": 1.0,
-    "duration": 0.1
+    "duration": 0.6
   },
   "y": {
     "anchor": "vowel",
@@ -4161,11 +4161,11 @@
   },
   "θʼ": {
     "anchor": "dental",
-    "manner": "ejective",
+    "manner": "ejective_fricative",
     "derived_x": 0.1,
-    "gap": 0.0,
+    "gap": 0.14,
     "constrictor": "blade",
-    "site_from": "derived",
+    "site_from": "assigned",
     "tongue": {
       "tip": [
         0.1,
@@ -4173,7 +4173,7 @@
       ],
       "blade": [
         0.1,
-        0.62
+        0.48
       ],
       "dorsum": [
         0.33,
@@ -4189,7 +4189,7 @@
     "velum": 0.0,
     "lateral": 0.0,
     "larynx": 1.0,
-    "duration": 0.1
+    "duration": 0.6
   },
   "χ": {
     "anchor": "uvular",

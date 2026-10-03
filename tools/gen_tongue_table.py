@@ -44,6 +44,14 @@ PROFILES = {
     # not the tongue shape. Duration is short -- a click is brief by nature.
     'click':       {'gap': 0.00, 'dur': 0.15, 'velum': 0.0, 'lat': 0.0, 'larynx': 0.0},
     'ejective':    {'gap': 0.00, 'dur': 0.10, 'velum': 0.0, 'lat': 0.0, 'larynx': 1.0},
+    # The ejective branch used to return one profile for every glottalic
+    # stop, which swallowed the manner underneath: sʼ (jet_focus 0.95, an
+    # affricate) and tʼ (a plain stop) came out identical, as did kʼ
+    # (effective_oral_area 0.00, dur 0.00 -- exactly k) and xʼ (0.09, 0.85
+    # -- exactly x). The glottal event rides on top of a closure class, so the
+    # class is decided first and the larynx value rides along with it.
+    'ejective_affricate': {'gap': 0.00, 'dur': 0.70, 'velum': 0.0, 'lat': 0.0, 'larynx': 1.0},
+    'ejective_fricative': {'gap': 0.14, 'dur': 0.60, 'velum': 0.0, 'lat': 0.0, 'larynx': 1.0},
     'implosive':   {'gap': 0.00, 'dur': 0.10, 'velum': 0.0, 'lat': 0.0, 'larynx': -1.0},
 }
 
@@ -120,7 +128,9 @@ def classify(vec, I):
     flow = vec[I['airflow_direction']]
 
     if larynx > 0.5:
-        return anchor, 'ejective'
+        return anchor, ('ejective_affricate' if (jets > 0.0 or dur >= 1.2)
+                        else 'ejective_fricative' if eoa > 0.01
+                        else 'ejective')
     if larynx < -0.5:
         return anchor, 'implosive'
     if vel >= 0.7:
@@ -140,7 +150,13 @@ def classify(vec, I):
     # An affricate has duration 0 in the old table -- the table records only
     # the closure -- and took the stop branch, so k͡p and ɡ͡b were generated
     # as stops and ended up with vectors identical to k and ɡ.
-    if jets > 0.0:
+    #
+    # `or dur >= 1.2` catches the two affricates the old table records with
+    # jet_focus = 0: ǂ's neighbours k͡x (1.35) and q͡χ (1.50). A fricative
+    # tops out at 0.60, so across the whole table these are the only two
+    # segments with jets = 0 and dur >= 1.2 -- the duration alone identifies
+    # them, which is what they were generated as stops without.
+    if jets > 0.0 or dur >= 1.2:
         return anchor, 'affricate' if dur >= 1.2 else 'fricative'
     if dur == 0.0:
         return anchor, 'stop'

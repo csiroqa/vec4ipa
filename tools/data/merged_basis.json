@@ -236,7 +236,7 @@
    1.0,
    1.0,
    -0.2,
-   0.1,
+   0.6,
    0.05,
    0.1
   ],
@@ -366,7 +366,7 @@
    0.24,
    0.15,
    0.45,
-   0.72,
+   0.86,
    0.72,
    0.28,
    0.35,
@@ -376,9 +376,9 @@
    0.0,
    1.0,
    0.2,
-   0.6,
+   0.7,
    0.45,
-   0.14
+   0.0
   ],
   "l": [
    0.15,
@@ -586,7 +586,7 @@
    0.24,
    0.15,
    0.52,
-   0.538,
+   0.678,
    0.72,
    0.3,
    0.35,
@@ -596,9 +596,9 @@
    0.0,
    1.0,
    0.2,
-   0.6,
+   0.7,
    0.52,
-   0.14
+   0.0
   ],
   "r": [
    0.15,
@@ -656,7 +656,7 @@
    1.0,
    1.0,
    -0.2,
-   0.1,
+   0.7,
    0.18,
    0.0
   ],
@@ -796,7 +796,7 @@
    1.0,
    1.0,
    -0.2,
-   0.1,
+   0.7,
    0.25,
    0.0
   ],
@@ -886,7 +886,7 @@
    0.24,
    0.15,
    0.45,
-   0.86,
+   0.72,
    0.72,
    0.28,
    0.35,
@@ -896,9 +896,9 @@
    1.0,
    1.0,
    -0.2,
-   0.1,
+   0.6,
    0.45,
-   0.0
+   0.14
   ],
   "y": [
    0.2,
@@ -2624,7 +2624,7 @@
    0.1,
    0.3,
    0.1,
-   0.62,
+   0.48,
    0.33,
    0.28,
    0.72,
@@ -2636,9 +2636,9 @@
    1.0,
    1.0,
    -0.2,
+   0.6,
    0.1,
-   0.1,
-   0.0
+   0.14
   ],
   "χ": [
    0.2,
@@ -2745,7 +2745,7 @@
   "fʼ": {
    "site_from": "assigned",
    "anchor": "labiodental",
-   "manner": "ejective",
+   "manner": "ejective_fricative",
    "constrictor": "lips"
   },
   "h": {
@@ -2785,9 +2785,9 @@
    "constrictor": "dorsum"
   },
   "k͡x": {
-   "site_from": "assigned",
+   "site_from": "derived",
    "anchor": "velar",
-   "manner": "fricative",
+   "manner": "affricate",
    "constrictor": "dorsum"
   },
   "l": {
@@ -2851,9 +2851,9 @@
    "constrictor": "dorsum"
   },
   "q͡χ": {
-   "site_from": "assigned",
+   "site_from": "derived",
    "anchor": "uvular",
-   "manner": "fricative",
+   "manner": "affricate",
    "constrictor": "dorsum"
   },
   "r": {
@@ -2871,7 +2871,7 @@
   "sʼ": {
    "site_from": "derived",
    "anchor": "alveolar",
-   "manner": "ejective",
+   "manner": "ejective_affricate",
    "constrictor": "blade"
   },
   "t": {
@@ -2913,7 +2913,7 @@
   "t͡ʃʼ": {
    "site_from": "derived",
    "anchor": "postalveolar",
-   "manner": "ejective",
+   "manner": "ejective_affricate",
    "constrictor": "blade"
   },
   "u": {
@@ -2941,9 +2941,9 @@
    "constrictor": "dorsum"
   },
   "xʼ": {
-   "site_from": "derived",
+   "site_from": "assigned",
    "anchor": "velar",
-   "manner": "ejective",
+   "manner": "ejective_fricative",
    "constrictor": "dorsum"
   },
   "y": {
@@ -3463,9 +3463,9 @@
    "constrictor": "blade"
   },
   "θʼ": {
-   "site_from": "derived",
+   "site_from": "assigned",
    "anchor": "dental",
-   "manner": "ejective",
+   "manner": "ejective_fricative",
    "constrictor": "blade"
   },
   "χ": {

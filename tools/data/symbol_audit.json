@@ -1,34 +1,13 @@
 {
  "n_symbols": 133,
- "n_problems": 11,
- "n_blocking": 11,
+ "n_problems": 7,
+ "n_blocking": 7,
  "problems": [
   {
    "symbol": "k͡p",
    "check": 7,
    "severity": "blocking",
    "detail": "与 k 的基向量逐位相同",
-   "evidence": "两者的 18 维坐标完全一致"
-  },
-  {
-   "symbol": "tʼ",
-   "check": 7,
-   "severity": "blocking",
-   "detail": "与 sʼ 的基向量逐位相同",
-   "evidence": "两者的 18 维坐标完全一致"
-  },
-  {
-   "symbol": "x",
-   "check": 7,
-   "severity": "blocking",
-   "detail": "与 k͡x 的基向量逐位相同",
-   "evidence": "两者的 18 维坐标完全一致"
-  },
-  {
-   "symbol": "xʼ",
-   "check": 7,
-   "severity": "blocking",
-   "detail": "与 kʼ 的基向量逐位相同",
    "evidence": "两者的 18 维坐标完全一致"
   },
   {
@@ -71,13 +50,6 @@
    "check": 7,
    "severity": "blocking",
    "detail": "与 ɧ 的基向量逐位相同",
-   "evidence": "两者的 18 维坐标完全一致"
-  },
-  {
-   "symbol": "χ",
-   "check": 7,
-   "severity": "blocking",
-   "detail": "与 q͡χ 的基向量逐位相同",
    "evidence": "两者的 18 维坐标完全一致"
   }
  ]
