@@ -28,9 +28,51 @@ VEC = os.path.join(ROOT, 'tools', 'data', 'vec_table_16.json')
 TONGUE = tm.TONGUE
 LIP_SITES = tm.LIP_SITES
 
+# The old table gives these five `place = 0.00`, which is not their place --
+# 0.00 is the neutral value the table uses for central vowels and for
+# retroflex stops. Left uncorrected they were read as vowels (and then given
+# schwa's coordinates by the VOWEL_CFG fallback), and with the vowel branch
+# excluded they snapped to the retroflex anchor, whose place value is exactly
+# 0.00, so all five shared one contour: achievable reconstruction fell 122 ->
+# 119. The values below are the anchor places these segments actually have.
+#
+#   j  palatal, plain approximant            -> palatal
+#   ɥ  labial-palatal, palatalised           -> palatal (same constrictor)
+#   w  labial-velar                         -> velar
+#   ɰ  velar, plain approximant             -> velar
+#   ʍ  labial-velar fricative               -> velar
+#
+# Labial-palatal and labial-velar are coarticulated segments: the constrictor
+# is the palatal or velar one respectively, and the labial element is a lip
+# gesture, which LIP_GESTURES below applies separately.
+GLIDE_PLACE = {'j': 'palatal', 'ɥ': 'palatal',
+               'w': 'velar', 'ɰ': 'velar', 'ʍ': 'velar'}
+
+# Anchor places come from tm.ANCHORS by name rather than being written out
+# here: ANCHORS stores the place VALUE (palatal 0.15, velar 0.30), which is
+# not the constriction x (0.36, 0.45) that ANCHOR_CFG carries. Hard-coding
+# the wrong pair routed j to velar and w to uvular -- still wrong, just wrong
+# in a way that looked plausible.
+GLIDE_PLACE_VALUE = {n: v for n, v, _ in tm.ANCHORS}
+
+
+def place_override(seg, vec, I):
+    """Anchor place for a segment, corrected for the five glides."""
+    a = GLIDE_PLACE.get(seg)
+    return GLIDE_PLACE_VALUE[a] if a else vec[I['place']]
+
+
 # Lip protrusion added for a secondary labialised segment. Same constant the
 # `labialized` modifier adds in gen_tongue_modifiers.py.
 LABIAL_LIP_ROUND = 0.30
+
+# The labial element of ɥ (labial-palatal) and w / ʍ (labial-velar): not a lip
+# closure, so lips_closed stays 0 and these need the protrusion added
+# explicitly. It is a weaker gesture than primary rounding -- the same +0.30
+# the `labialized` modifier applies -- because the coronal constriction is
+# what makes the segment, and the lips only accompany it.
+LIP_GESTURES = {'ɥ': LABIAL_LIP_ROUND, 'w': LABIAL_LIP_ROUND,
+                'ʍ': LABIAL_LIP_ROUND}
 
 # gap below the roof at the constrictor; 0.00 is full contact.
 PROFILES = {
@@ -113,7 +155,7 @@ def apply_manner(anchor, manner):
     return cfg, prof
 
 
-def classify(vec, I):
+def classify(vec, I, seg=None):
     """Recover (anchor, manner) for one committed segment from the old table.
 
     Precedence follows the encoding the old table actually uses, verified
@@ -122,7 +164,7 @@ def classify(vec, I):
     flap test keys on an intermediate duration, never on `place` -- keying it
     on place made every zero-duration retroflex stop look like a flap.
     """
-    place = vec[I['place']]
+    place = vec[I['place']] if seg is None else place_override(seg, vec, I)
     anchor = min(tm.ANCHOR_CFG, key=lambda a: abs(anchor_place(a) - place))
     dur = vec[I['duration']]
     vel = vec[I['vel_open']]
@@ -256,7 +298,8 @@ def main():
         # five consonants whose real places are palatal (j ɥ) and velar
         # (w ɰ ʍ). Until those places are authored there is no correct place
         # to route them to, so the guard stays out; see docs §0.9.9.
-        no_place_gesture = abs(place) < 1e-9 and tip < 0.5
+        no_place_gesture = (abs(place) < 1e-9 and tip < 0.5
+                            and seg not in GLIDE_PLACE)
 
         if no_place_gesture:
             dx, dy, lr = VOWEL_CFG.get(seg, (0.35, 0.30, vec[I['lips_rounded']]))
@@ -276,8 +319,17 @@ def main():
                 vowel_seen.add(seg)
             continue
 
-        anchor, manner = classify(vec, I)
+        anchor, manner = classify(vec, I, seg)
         cfg, prof = apply_manner(anchor, manner)
+
+        # Lip gestures on top of the closure: labialised consonants, and the
+        # labial element of the five glides (ɥ w ʍ). Neither closes the lips,
+        # so neither is visible in lips_closed.
+        labial = vec[I['lips_closed']] > 0.5 and anchor != 'bilabial'
+        if labial or seg in LIP_GESTURES:
+            cfg = dict(cfg)
+            add = LABIAL_LIP_ROUND if labial else LIP_GESTURES[seg]
+            cfg['lip_round'] = min(cfg['lip_round'] + add, 1.0)
 
         # Secondary labialisation is not a manner: it is a lip gesture on top of
         # whatever closure the segment already has. The old table records it on
