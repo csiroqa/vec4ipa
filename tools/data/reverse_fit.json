@@ -1,0 +1,82 @@
+{
+ "new 18-dim@0.01": {
+  "n": 133,
+  "exact": 93.98,
+  "place_class": 100.0,
+  "anchor": 98.5,
+  "manner": 100.0,
+  "voicing": 100.0,
+  "misses": [
+   "c->ɟ",
+   "d͡ʑ->t͡ɕ",
+   "kʼ->qʼ",
+   "sʼ->t͡ʃʼ",
+   "ɧ->x"
+  ]
+ },
+ "old 16-dim@0.01": {
+  "n": 133,
+  "exact": 99.25,
+  "place_class": 100.0,
+  "anchor": 100.0,
+  "manner": 99.25,
+  "voicing": 100.0,
+  "misses": [
+   "t͡s->d"
+  ]
+ },
+ "new 18-dim@0.02": {
+  "n": 133,
+  "exact": 90.23,
+  "place_class": 99.25,
+  "anchor": 97.74,
+  "manner": 100.0,
+  "voicing": 100.0,
+  "misses": [
+   "d͡ʑ->t͡ɕ",
+   "j->ɻ",
+   "kʼ->qʼ",
+   "p->b",
+   "t͡ʃ->d͡ʒ"
+  ]
+ },
+ "old 16-dim@0.02": {
+  "n": 133,
+  "exact": 100.0,
+  "place_class": 100.0,
+  "anchor": 100.0,
+  "manner": 100.0,
+  "voicing": 100.0,
+  "misses": []
+ },
+ "new 18-dim@0.05": {
+  "n": 133,
+  "exact": 76.69,
+  "place_class": 98.5,
+  "anchor": 90.23,
+  "manner": 94.74,
+  "voicing": 96.99,
+  "misses": [
+   "a->æ",
+   "d͡z->d͡ʑ",
+   "k͡x->x",
+   "p->p̪",
+   "pʼ->b"
+  ]
+ },
+ "old 16-dim@0.05": {
+  "n": 133,
+  "exact": 94.74,
+  "place_class": 98.5,
+  "anchor": 98.5,
+  "manner": 97.74,
+  "voicing": 100.0,
+  "misses": [
+   "b->β",
+   "i->j",
+   "ɐ->a",
+   "ɛ->æ",
+   "ɜ->ɐ"
+  ]
+ }
+}
