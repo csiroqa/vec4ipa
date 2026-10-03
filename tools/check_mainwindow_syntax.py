@@ -23,6 +23,13 @@ import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, 'ui', 'winui', 'MainWindow.xaml.cs')
+XAML = os.path.join(ROOT, 'ui', 'winui', 'MainWindow.xaml')
+
+# A literal "<n>-D vector" in the XAML is wrong for every scheme but the
+# compiled one, and it is what the XAML designer shows. The code-behind
+# overwrites it from Core.NDim at startup, so the stale value survives review
+# -- it is only wrong in the window before that runs.
+XAML_WIDTH = re.compile(r'\b\d+-D vector|\b\d+ \u7ef4|\b\d+-D vectors')
 
 CSPROJ = r'''<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
@@ -83,9 +90,23 @@ def main():
         print('\nFAIL: expected missing-WinUI diagnostics; the file may not '
               'have been compiled at all, so this proved nothing')
         return 1
-    print('\nPASS: only missing-reference diagnostics. The edits did not '
-          'break the syntax; whether the WinUI project builds still needs a '
-          'machine with the Windows SDK.')
+
+    xaml = io.open(XAML, encoding='utf-8').read()
+    stale = []
+    for n, line in enumerate(xaml.splitlines(), 1):
+        if XAML_WIDTH.search(line):
+            stale.append('  MainWindow.xaml:%d  %s' % (n, line.strip()[:90]))
+    if stale:
+        print('\nFAIL: MainWindow.xaml declares a vector width as a literal. '
+              'A --scheme FILE can change it, and the code-behind overwrites '
+              'this at startup, so the stale text survives review:')
+        for s in stale:
+            print(s)
+        return 1
+
+    print('\nPASS: only missing-reference diagnostics, and no literal width in '
+          'the XAML. The edits did not break the syntax; whether the WinUI '
+          'project builds still needs a machine with the Windows SDK.')
     return 0
 
 

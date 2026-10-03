@@ -212,7 +212,11 @@
             </Grid>
 
             <Grid Grid.Row="2">
-                <TextBlock x:Name="LblVec" Text="16-D vector (comma separated) → reverse fit:" FontSize="15"/>
+                <!-- Width is filled in at runtime from Core.NDim, because a
+                     scheme file can change it. A literal here would be wrong
+                     for every scheme but the compiled one, and the designer
+                     would show the wrong thing too. -->
+                <TextBlock x:Name="LblVec" Text="vector (comma separated) → reverse fit:" FontSize="15"/>
             </Grid>
             <Grid Grid.Row="3" ColumnSpacing="6">
                 <Grid.ColumnDefinitions>
