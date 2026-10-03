@@ -3104,20 +3104,20 @@
     "duration": 0.9
   },
   "ɺ": {
-    "anchor": "alveolar",
+    "anchor": "retroflex",
     "manner": "flap",
-    "derived_x": 0.18,
-    "gap": 0.05,
+    "derived_x": 0.28,
+    "gap": 0.45,
     "constrictor": "blade",
     "site_from": "assigned",
     "tongue": {
       "tip": [
-        0.15,
-        0.28
+        0.3,
+        0.2
       ],
       "blade": [
-        0.18,
-        0.8
+        0.28,
+        0.507
       ],
       "dorsum": [
         0.33,
@@ -3168,20 +3168,20 @@
     "duration": 0.9
   },
   "ɽ": {
-    "anchor": "retroflex",
-    "manner": "flap",
-    "derived_x": 0.28,
-    "gap": 0.45,
+    "anchor": "alveolar",
+    "manner": "trill",
+    "derived_x": 0.18,
+    "gap": 0.0,
     "constrictor": "blade",
-    "site_from": "assigned",
+    "site_from": "derived",
     "tongue": {
       "tip": [
-        0.3,
-        0.2
+        0.15,
+        0.28
       ],
       "blade": [
-        0.28,
-        0.507
+        0.18,
+        0.85
       ],
       "dorsum": [
         0.33,
@@ -3197,7 +3197,7 @@
     "velum": 0.0,
     "lateral": 0.0,
     "larynx": 0.0,
-    "duration": 0.25
+    "duration": 0.5
   },
   "ɾ": {
     "anchor": "alveolar",

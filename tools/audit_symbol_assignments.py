@@ -41,6 +41,13 @@ PLACE_ORDER = ['bilabial', 'labiodental', 'dental', 'alveolar',
                'postalveolar', 'retroflex', 'palatoalveol', 'palatal',
                'velar', 'uvular', 'pharyngeal', 'epiglottal', 'glottal']
 
+# Pairs check 7 must NOT flag, because they are one phoneme written twice.
+# Anything that merely ought to be similar goes in the defect report instead:
+# an allowlist entry is a claim about the inventory, and it has to be one.
+HOMOPHONES = {
+    ('r', 'ɽ'): 'both are the alveolar trill',
+}
+
 CONTACTS = {'stop': 0.0, 'affricate': 0.0, 'trill': 0.0,
             'ejective': 0.0, 'implosive': 0.0, 'nasal': 0.0}
 
@@ -147,11 +154,20 @@ def main():
     # This is the single check that would have caught ɔ being authored with
     # lip_round 0.00 (colliding with ʌ), the click branch reading no airflow
     # direction (ǂ == c), and ɪ / ʏ / ə falling through to schwa's cell.
+    #
+    # The allowlist is not a suppression switch. Each entry is a pair that
+    # MUST be identical, with the reason recorded next to it, and every other
+    # pair still fails. r and ɽ are both the alveolar trill -- two characters
+    # for one phoneme -- so collapsing them is the correct outcome, not a lost
+    # distinction. A pair that merely ought to be similar does not belong here.
     seen_vec = {}
     for seg in sorted(table):
         key = tuple(round(x, 6) for x in basis['table'][seg])
         if key in seen_vec:
-            flag(seg, 7, '与 %s 的基向量逐位相同' % seen_vec[key],
+            other = seen_vec[key]
+            if tuple(sorted((other, seg))) in HOMOPHONES:
+                continue
+            flag(seg, 7, '与 %s 的基向量逐位相同' % other,
                  '两者的 18 维坐标完全一致', 'blocking')
         else:
             seen_vec[key] = seg

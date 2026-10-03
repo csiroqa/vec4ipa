@@ -48,6 +48,34 @@ LIP_SITES = tm.LIP_SITES
 GLIDE_PLACE = {'j': 'palatal', 'ɥ': 'palatal',
                'w': 'velar', 'ɰ': 'velar', 'ʍ': 'velar'}
 
+# ɺ is the seventh transcription slip of the same kind: the old table gives it
+# place = -0.450 and tip_shape = 0.90, both identical to ɾ, even though ɺ is
+# the retroflex flap and ɾ the alveolar tap. The evidence is inside the same
+# table -- every other retroflex segment (ʈ ɖ ɳ ʂ ʐ ɭ ɻ) sits at
+# place = +0.000, so -0.450 is a slip rather than a different encoding.
+# Routing it to retroflex separates the two because that anchor retracts the
+# tip (0.30 vs alveolar 0.15) and raises the blade (0.28 vs 0.18) even though
+# both anchors share a dorsum at (0.33, 0.28).
+GLIDE_PLACE['ɺ'] = 'retroflex'
+
+# ɽ is the same slip in the other direction. The place = +0.000 bucket holds
+# the 28 central-ish vowels, the retroflex series, and -- among the consonants
+# -- only this one. Every other alveolar consonant in the table (t d n s z ɬ ɮ
+# t͡s d͡z ɹ l r ɾ ɗ) sits at -0.450, and r, which is the same sound, does
+# too. So +0.000 here is not an alternative encoding of anything.
+GLIDE_PLACE['ɽ'] = 'alveolar'
+
+# ɽ carries the flap's duration and oral area (0.30 / 0.00) while r, which is
+# the same sound, carries the trill's (0.50 / 0.20). The old table therefore
+# files ɽ as a flap and leaves it colliding with ɾ. The trill verdict is
+# corrected here rather than in the profile table, because the evidence is the
+# disagreement between two rows of the same table for the same segment.
+#
+# After this ɽ and r share a vector. That is CORRECT, not a lost distinction:
+# they are the same phoneme, written with two characters. check 7 carries an
+# explicit allowlist for it rather than being taught to ignore duplicates.
+MANNER_FIX = {'ɽ': 'trill'}
+
 # Anchor places come from tm.ANCHORS by name rather than being written out
 # here: ANCHORS stores the place VALUE (palatal 0.15, velar 0.30), which is
 # not the constriction x (0.36, 0.45) that ANCHOR_CFG carries. Hard-coding
@@ -279,7 +307,7 @@ def main():
     VOWEL_CFG = {n: (dx, dy, lr) for n, dx, dy, lr in tm.VOWELS}
     for seg in sorted(table):
         vec = table[seg]
-        place = vec[I['place']]
+        place = place_override(seg, vec, I)
         tip = vec[I['tip_shape']]
         # `place = 0.00` is overloaded in the old table: it is the neutral value
         # for central vowels and glides AND the value retroflex stops use. Only
@@ -320,6 +348,7 @@ def main():
             continue
 
         anchor, manner = classify(vec, I, seg)
+        manner = MANNER_FIX.get(seg, manner)
         cfg, prof = apply_manner(anchor, manner)
 
         # Lip gestures on top of the closure: labialised consonants, and the

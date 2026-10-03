@@ -1,15 +1,8 @@
 {
  "n_symbols": 133,
- "n_problems": 2,
- "n_blocking": 2,
+ "n_problems": 1,
+ "n_blocking": 1,
  "problems": [
-  {
-   "symbol": "ɾ",
-   "check": 7,
-   "severity": "blocking",
-   "detail": "与 ɺ 的基向量逐位相同",
-   "evidence": "两者的 18 维坐标完全一致"
-  },
   {
    "symbol": "ʃ",
    "check": 7,
