@@ -23,22 +23,38 @@
 （`gate_retrieval.py`、`fit_metric_full.py`、`audit_loco_features.py`），
 结论与初稿不同，**以本节为准**。
 
-### 0.1 两层分工
+### 0.1 距离度量跑在哪一层：已改判
 
 ```
-18 维几何层  merged_basis.json   解释 + 正向模型（F3 R²=0.690）
-     ↓ 派生收缩点
-10 维摘要层  summary_basis.json  距离度量实际跑在这里
+18 维几何层  merged_basis.json   **距离度量实际跑在这里**
+10 维摘要层  summary_basis.json  已弃用，见下
 ```
 
-**为什么拆开**：把派生轴 `constriction_pos` 加进几何层同一向量时，拟合
-权重在 9 个折里**一次都没给它实质权重**——它是同一向量内舌面坐标的函数，
-共线，优化器绕开它走。教训是「派生量不该和它的原料同处一个度量空间」。
-故几何负责解释，摘要负责距离。舌面轮廓是**推导手段**，不是距离轴。
+**这一节在 2025 年被推翻过一次，理由要留着。** 最初的拆法是：几何层只负责解释，
+摘要层负责距离，因为把派生轴 `constriction_pos` 加进几何层同一向量时，拟合权重在
+9 个折里一次都没给它实质权重——它是同一向量内舌面坐标的函数，共线，优化器绕开它走。
+
+**但这个理由只证明「优化器不需要它」，不证明「它没有信息」。** 后来逐符号审核时量到：
+
+```
+tools/audit_modifier_collisions.py，同一基音上不同修饰符的碰撞对
+基线                     维数   轮廓碰撞   基线碰撞    丢失
+merged_basis.json         18      2412      219   -2193   ← 零丢失
+summary_root.json         12      2412     1265   -1147
+summary_basis.json        10      2412     3689    1277
+```
+
+`atr`/`rtr` 只动舌根，摘要层没有舌根坐标，施加后向量**逐位相同**——不是精度损失，
+是信息归零。补回 `root_x/root_y` 后，Gate 1 部位格与清浊误取一分未变，LOCO 0.4986 →
+0.5027。**代价为零**，于是补回。剩下 tip/blade/dorsum 的问题是同一回事，只是补不补
+已经不影响主结论：完整几何零丢失。
+
+**教训：把「优化器给它零权重」读成「它没有信息」，是我这一轮犯的第三次同类错误。**
+优化器只说明**在那个目标函数下**不需要，不说明**没有**。
 
 摘要 10 维：`constriction_pos, constriction_gap, lip_open, lip_round,
-velum, lateral, larynx, periodic, source_tilt, duration`。秩 10/10，
-唯一向量 117/133，`k` vs `t` 只差一根轴。
+velum, lateral, larynx, periodic, source_tilt, duration`。**已弃用**：丢 1277 个
+同基音修饰符区分对，133 个基音全部受损。
 
 **选轴的判据（J6）：一根轴必须对每个音素都有同一个定义。** 凡是「对
 元音取 A、对辅音取常量」或「对辅音取 A、对元音取常量」的轴，一律不收——
@@ -47,25 +63,39 @@ velum, lateral, larynx, periodic, source_tilt, duration`。秩 10/10，
 
 ### 0.2 部位轴不再手调
 
-`derived_constriction` 早已算出收缩部位，但只被记成标签 `site_from`
-（derived 57 / assigned 66 / none 10）。现在它进向量了，**与它声称描述的
-几何不可能脱节**——改舌面，部位轴自动跟着动。卷舌 0.28 与央元音
-{0.22, 0.30, 0.38, 0.42, 0.44} 仍零重叠。
+`derived_constriction` 早已算出收缩部位，但只被记成标签 `site_from`。
+现在它进向量了，**与它声称描述的几何不可能脱节**——改舌面，部位轴自动跟着动。
+
+修复生成器缺陷后实测分布为 **derived 48 / assigned 82 / none 3**，`none` 只剩
+`h ɦ ʔ`（确实没有口腔收缩）。部位序列现已严格递增：
+
+```
+0.00 双唇 → 0.05 唇齿 → 0.10 齿 → 0.18 齿龈 → 0.25 龈后
+→ 0.28 卷舌 → 0.30 龈龈 → 0.36 硬腭 → 0.45 软腭 → 0.52 小舌
+→ 0.70 咽 → 0.80 会厌
+```
 
 ### 0.3 实测成绩（`retrieval_gate.json`）
 
-| 指标 | 旧 16 维 | 摘要 10 维 |
-|------|----------|------------|
-| 部位/手法格 hit@1（未拟合，Phatak 真人混淆） | 0.2391（自身拟合）/ 0.0870（z-euclid） | **0.5217** |
-| Phatak 池化 hit@1（z-euclid，未拟合） | 0.2031（自身拟合，**循环**） | **0.3750** |
-| 清浊对应误取 | — | **0/16** |
-| LOCO act_prec（留一语言，拟合） | 0.6488 | 0.4986 |
-| 合并前 14 维基线的清浊误取 | 14/16 | 0/16 |
+| 指标 | 旧 16 维 | 几何 18 维（当前部署） |
+|------|----------|---------------------|
+| 部位/手法格 hit@1（未拟合，Phatak 真人混淆） | 0.2391（自身拟合）/ 0.0870（z-euclid） | 0.3696 |
+| Phatak 池化 hit@1（z-euclid，未拟合） | 0.2031（自身拟合，**循环**） | 0.2969 |
+| 清浊对应误取 | — | 6/16 |
+| LOCO act_prec（留一语言，拟合） | 0.6488 | 0.5089 |
+| 同基音修饰符区分丢失 | — | **0** |
 
-**部位检索领先两倍多，LOCO 仍落后 0.150。**
+**两处落后都要说清楚，不要只报好看的那个。**
 
-`summary_vheight.json`（11 维，多一根类别特判的元音舌高轴）曾把 LOCO
-推到 0.5318、Gate 1 数字完全不变。**该变体已按 J6 弃用**，理由见下节。
+**部位/手法格**：几何层 0.3696 低于摘要层曾经的 0.5217，高于旧基线 0.2391。但
+**这个比较曾经被我做错过一次**：我当时拿几何层的**未拟合**数字去比旧基线的**已拟合**
+数字，得出「压缩赢了」的结论，再据此差点压掉全部舌面坐标。唯一交叉验证过的拟合指标
+是 LOCO，两者在 0.5037 / 0.5027 上是**打平的**。取舍的依据应当是 LOCO 加修饰符覆盖，
+不是 Gate 1 的原始几何距离。
+
+**LOCO 落后 0.140**：这一条是真落后，原因未解。可分解为 PhonoLib 图表标签本身的口径
+偏差（`coronal`/`dorsal`/`front` 是排版类别不是可测声学量），加上 `tense` 实为元音
+高度而未解决，加上 `strident` 0.000。
 
 ### 0.4 修掉的一个真缺陷
 
@@ -349,8 +379,13 @@ if lip_open <= 0.05 and best.gap > 0:  best = (0.0, 0.0, 'lips')
 开放手势的收缩部位离腭顶 0.45，而静息的舌根离咽壁只有 0.40，
 不设这道门，"离腭顶最近"会对每个开放手势都返回舌根。
 
-**实测三分解**：`derived` **57** / `assigned` **66** / `none` **10**（喉音）。
-即 J4 只在 **43%** 的行上真正成立，66 行（50%）的收缩点仍是**参数**而不是几何。
+**实测三分解**（修复后）：`derived` **48** / `assigned` **82** / `none` **3**（仅
+`h ɦ ʔ`）。即 J4 只在 **36%** 的行上真正成立，82 行（62%）的收缩点仍是**参数**
+而不是几何。
+
+修复前的分布是 57 / 66 / 10，差在两处，两处都是真缺陷（详见 `docs/SYMBOL-AUDIT.md`）：
+唇部锚点原会落到静息舌根（gap 0.402），使 `/p̪/ /ʔ/` 这两个塞音没有闭塞；`assigned`
+分支的 `x` 与 `gap` 取自不同器官。
 
 ### 4.3 修饰符：位移而非符号翻转（`gen_tongue_modifiers.py`）
 
@@ -586,10 +621,11 @@ root_y  ← root_x
 9 个由舌做收缩的锚点上实测：
 
 ```
-dental 0.10 → alveolar 0.18 → postalveolar 0.25 → palatoalveol 0.30
-→ palatal 0.25 → velar 0.45 → uvular 0.52 → pharyngeal 0.70 → epiglottal 0.80
-步长 = [0.08, 0.07, 0.05, 0.05, 0.20, 0.07, 0.18, 0.10]
-min 0.0500  max 0.2000  mean 0.1000  ratio 4.00
+dental 0.10 → alveolar 0.18 → postalveolar 0.25 → retroflex 0.28
+→ palatoalveol 0.30 → palatal 0.36 → velar 0.45 → uvular 0.52
+→ pharyngeal 0.70 → epiglottal 0.80
+步长 = [0.08, 0.07, 0.03, 0.02, 0.06, 0.09, 0.07, 0.18, 0.10]
+min 0.0200  max 0.1800  mean 0.0778  ratio 9.00
 ```
 
 **比值 4.00，不是链中性要求的 1.00**（v8 的手调部位链是 12.5）。
@@ -597,14 +633,15 @@ min 0.0500  max 0.2000  mean 0.1000  ratio 4.00
 （龈后到硬腭只有 0.05，硬腭到软腭有 0.20，差 4 倍）。要让比值回到 1.00，
 就得让模型对解剖说谎。本文选择保住解剖、放弃等距，**代价写在 §6 的损失清单里**。
 
-**同一段数据里还有一个更硬的缺陷，本模型没有修**：导出位置**顺序不单调**。
-按旧 `place` 排序，palatoalveol(−0.15) 应在 palatal(+0.15) 之前，
-但导出 x 是 **0.30 vs 0.25**——反了。全表按导出 x 排序得到的序列是
-`bilabial dental alveolar postalveolar palatal retroflex palatoalveol
-velar uvular glottal pharyngeal labiodental epiglottal`，
-与 place 序**不一致**。
-后果：在轮廓距离里，`palatal < palatoalveol`，而音系上相反。
-这是**已知缺陷，不是取舍**。
+**顺序不单调的缺陷已修**（原 6.5 之前的一节，此处保留记录）：
+`ANCHOR_CFG['palatal']['dorsum']` 的 x 写成 0.25，与 `postalveolar` 的 blade 同坐标，
+使 `/ç/ /c/ /ɟ/ /ɲ/ /ʄ/ /ʎ/` 与 `/ʃ/ /ʒ/` 收缩点重合，`/ɕ/` 与 `/ʃ/` 也因此重叠。
+修法是 palatal dorsum 移到 **0.36**，序列变为严格递增。这个缺陷由 136 个子代理的
+逐符号审核查出，机械复算见 `tools/audit_symbol_assignments.py`，报告见
+`docs/SYMBOL-AUDIT.md`。
+
+> 注意这**不影响** §6.5 的腭沟结论：`ɕ`(0.30) 与 `ʃ`(0.25) 本来就差 0.05，
+> 分开它们的是部位坐标，不是腭沟——加沟的分离增量仍是 0.000 cm。
 
 ### 6.5 腭沟（`ɕ` vs `ʃ`）：结论是**否定的**
 
@@ -752,7 +789,7 @@ velar uvular glottal pharyngeal labiodental epiglottal`，
 |----|------|---------------------------|---------|
 | **M0** | 补齐声源与气流：`voiced` / `glottal_aperture` / `glottal_tension` / `airflow_direction` 的新归宿。舌体模型**没有**这四类（§7.2） | 133 段的**轮廓签名 + 声源字段**能区分全部 133 行，即 §6.2 的 67 段共享必须被打破 | 中 |
 | **M1** | 决定 `larynx_height` 的家：距离坐标还是随行字段（§3.3）；统一 `gen_tongue_table` 与 `gen_tract` | 选一个，另一处改引用 | 极小 |
-| **M2** | 修 §6.4 的顺序不单调（palatal 0.25 < palatoalveol 0.30），或显式记录为永久缺陷 | 若修：13 锚点的导出序与旧 `place` 序**严格一致** | 小 |
+| ~~**M2**~~ | ~~修 §6.4 的顺序不单调~~ | **已完成**：palatal dorsum 0.25 → 0.36，13 锚点导出序严格递增，`audit_symbol_assignments.py` 零问题 | — |
 | **M3** | `jet_focus` 的去留：接受丢失（纯 J4），还是承认闸门 C 失败并保留一根咝音谱峰序轴 | ɕ/ʃ 的距离在丢失后仍**大于**相邻咝音步距（实测：丢失后 ɕ/ʃ = 0.786 cm，ʃ/t͡ʃ = 0.424 cm，相邻部位步距均值 1.332 cm —— **注意这三条互相矛盾，本步必须先决定采哪条判据**） | 小 |
 | **M4** | 度量重拟合：在新基上跑 LOCO 混淆拟合 | **新 LOCO ≤ 旧值 + 5%**（REDESIGN.md §6 闸门 D 的容忍带，5% 是先写死的） | 中 |
 | **M5** | 对齐层闸门：把 §5.4 的方差尺子在最终基上重跑，确认没有新的 tier C | 每根坐标 `n_off_modal ≥ 2`（J2） | 极小 |
@@ -801,7 +838,10 @@ velar uvular glottal pharyngeal labiodental epiglottal`，
 | `tools/gen_tract.py` → `tract_parts.json` | 颌/唇/喉三坐标、圆唇配对测量、共线性秩 | 颌/喉 |
 | `tools/gen_groove.py` → `tongue_groove.json` | 腭沟实验（否定结论）、Phatak 交叉核对 | 腭沟 |
 | `tools/fetch_consonant_data.py` → `data/consonant/` | 辅音声学数据（7 音位 / 3 语言） | 辅音数据 |
-| `tools/gen_merged_basis.py` → `merged_basis.json`、`summary_basis.json` | 18 维几何层 + 10 维摘要层；另出三个**已判负或非最优**的变体 `summary_height.json`、`summary_both_glottal.json`、`summary_vgap.json`，以及当前最优 `summary_vheight.json` | §0 |
+| `tools/gen_merged_basis.py` → `merged_basis.json`、`summary_basis.json` | 18 维几何层（**距离度量实际跑在这里**）+ 10 维摘要层（已弃用，丢 1277 个修饰符区分对）；另出 `summary_root.json`（补回舌根后零代价，验证过程）、`summary_height.json`、`summary_both_glottal.json`、`summary_vgap.json`、`summary_vheight.json`（均已判负或非最优）、`summary_uheight.json`、`geom_only.json`（16 维，去掉收缩点冗余） | §0 |
+| `tools/audit_symbol_assignments.py` → `symbol_audit.json` | 133 符号六项检查的机械复算，当前 0 问题 | `docs/SYMBOL-AUDIT.md` |
+| `tools/audit_modifier_collisions.py` → `modifier_collisions.json` | 同基音修饰符碰撞对比（轮廓 vs 各基线），几何层零丢失 | §0.1 |
+| `tools/audit_modifier_visibility.py` → `modifier_visibility.json` | 13 条修饰符在各基音上的可见距离 | §0.1 |
 | `tools/gate_retrieval.py` → `retrieval_gate.json` | 闸门 1（Phatak 真人混淆，未拟合）与闸门 3（九语种留一语言） | §0 |
 | `tools/fit_metric_full.py` → `metric_full_gate.json` | 全半正定度量 vs 对角度量，**结论为证伪** | §0.5 |
 | `tools/audit_loco_features.py` → `loco_feature_audit.json` | LOCO act_prec 逐特征维拆解 | §0.6 |
