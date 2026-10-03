@@ -2009,7 +2009,7 @@
       ]
     },
     "lip_open": 0.85,
-    "lip_round": 0.0,
+    "lip_round": 0.9,
     "velum": 0.0,
     "lateral": 0.0,
     "larynx": 0.0,
@@ -2179,7 +2179,7 @@
     "anchor": "vowel",
     "manner": "vowel",
     "derived_x": 0.35,
-    "gap": 0.6677,
+    "gap": 0.5077,
     "constrictor": "dorsum",
     "site_from": "assigned",
     "tongue": {
@@ -2193,14 +2193,14 @@
       ],
       "dorsum": [
         0.35,
-        0.3
+        0.46
       ],
       "root": [
         0.72,
         0.25
       ]
     },
-    "lip_open": 0.85,
+    "lip_open": 0.15,
     "lip_round": 0.5,
     "velum": 0.0,
     "lateral": 0.0,
@@ -2658,8 +2658,8 @@
   "ɪ": {
     "anchor": "vowel",
     "manner": "vowel",
-    "derived_x": 0.35,
-    "gap": 0.6677,
+    "derived_x": 0.225,
+    "gap": 0.3382,
     "constrictor": "dorsum",
     "site_from": "assigned",
     "tongue": {
@@ -2672,15 +2672,15 @@
         0.3
       ],
       "dorsum": [
-        0.35,
-        0.3
+        0.225,
+        0.56
       ],
       "root": [
         0.72,
         0.25
       ]
     },
-    "lip_open": 0.85,
+    "lip_open": 0.15,
     "lip_round": -0.2,
     "velum": 0.0,
     "lateral": 0.0,
@@ -3650,8 +3650,8 @@
   "ʏ": {
     "anchor": "vowel",
     "manner": "vowel",
-    "derived_x": 0.35,
-    "gap": 0.6677,
+    "derived_x": 0.225,
+    "gap": 0.3382,
     "constrictor": "dorsum",
     "site_from": "assigned",
     "tongue": {
@@ -3664,15 +3664,15 @@
         0.3
       ],
       "dorsum": [
-        0.35,
-        0.3
+        0.225,
+        0.56
       ],
       "root": [
         0.72,
         0.25
       ]
     },
-    "lip_open": 0.85,
+    "lip_open": 0.15,
     "lip_round": 0.9,
     "velum": 0.0,
     "lateral": 0.0,

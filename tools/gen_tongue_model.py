@@ -152,8 +152,22 @@ VOWELS = [
     ('ɑ', 0.42, 0.16, 0.00),
     ('ɯ', 0.44, 0.58, 0.00), ('ʊ', 0.44, 0.56, 0.70),
     ('ɤ', 0.38, 0.50, 0.00), ('o', 0.42, 0.48, 0.90),
-    ('ʌ', 0.42, 0.30, 0.00), ('ɔ', 0.42, 0.30, 0.00),
+    # ɔ was authored with lip_round 0.00, identical to ʌ, which made the two
+    # share a contour and therefore a vector. Every other pair in this table
+    # follows unrounded 0.00 / rounded 0.80-0.95 (i/y, e/ø, ɛ/œ, æ/ɶ, a/ɒ,
+    # ɤ/o, ɘ/ɵ, ɜ/ɞ); this one line broke the pattern. 0.90 matches its
+    # rounded neighbours o, ɵ and ɞ.
+    ('ʌ', 0.42, 0.30, 0.00), ('ɔ', 0.42, 0.30, 0.90),
     ('u', 0.42, 0.60, 1.00),
+    # ə, ɪ and ʏ were missing entirely, so they hit the caller's fallback --
+    # which happens to be schwa's own coordinates -- and all three came out as
+    # central unrounded vowels. They are authored here from the old table
+    # rather than invented: lips_rounded gives the third column directly
+    # (ə 0.500, ɪ -0.200, ʏ 0.900) and body places ə centrally (0.000) and
+    # ɪ / ʏ at the near-front of the i-e line, which is where near-close sits
+    # between i (0.22, 0.62) and e (0.23, 0.50).
+    ('ɪ', 0.225, 0.56, -0.20), ('ʏ', 0.225, 0.56, 0.90),
+    ('ə', 0.35, 0.46, 0.50),
 ]
 
 

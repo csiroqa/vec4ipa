@@ -31,6 +31,7 @@ import gen_tongue_table as tt          # noqa: E402
 
 DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 TABLE = os.path.join(DATA, 'tongue_table.json')
+BASIS = os.path.join(DATA, 'merged_basis.json')
 OUT = os.path.join(DATA, 'symbol_audit.json')
 
 # The IPA place order. Retroflex sits between postalveolar and palatoalveolar:
@@ -57,6 +58,7 @@ VOWEL_CARRIER = 'dorsum'
 
 def main():
     table = json.load(io.open(TABLE, encoding='utf-8'))
+    basis = json.load(io.open(BASIS, encoding='utf-8'))
     problems = []
 
     def flag(sym, check, detail, evidence, severity='minor'):
@@ -137,6 +139,22 @@ def main():
                  '%s x=%.4f, %s x=%.4f' % (a, lo, prev_anchor, prev_x),
                  'blocking')
         prev_anchor, prev_x = a, hi
+
+    # -- check 7: no two base segments may share a vector ------------------
+    # A duplicate vector is unfixable downstream: vec2ipa cannot separate two
+    # symbols whose coordinates are identical, whatever the metric says, and
+    # every gate that scores per-symbol silently reports them as one point.
+    # This is the single check that would have caught ɔ being authored with
+    # lip_round 0.00 (colliding with ʌ), the click branch reading no airflow
+    # direction (ǂ == c), and ɪ / ʏ / ə falling through to schwa's cell.
+    seen_vec = {}
+    for seg in sorted(table):
+        key = tuple(round(x, 6) for x in basis['table'][seg])
+        if key in seen_vec:
+            flag(seg, 7, '与 %s 的基向量逐位相同' % seen_vec[key],
+                 '两者的 18 维坐标完全一致', 'blocking')
+        else:
+            seen_vec[key] = seg
 
     # -- report ------------------------------------------------------------
     blocking = [p for p in problems if p['severity'] == 'blocking']
