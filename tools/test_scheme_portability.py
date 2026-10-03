@@ -153,5 +153,81 @@ def main():
     return 1 if fails else 0
 
 
+def warn_checks():
+    """The two behaviours still verified only by hand.
+
+    dim_of_ok() falls back to a compile-time enum index when an axis name is
+    missing, which under a mismatched scheme writes the right value into the
+    wrong coordinate. That is silent, so it needs a test: load a scheme that
+    declares the right WIDTH but the wrong NAMES and assert the binary says so.
+
+    The second is the positive counterpart: under the tongue scheme the
+    contour modifier path must actually engage, and it must carry the derived
+    site axis along with it. A modifier that moves the tongue without moving
+    constriction_pos is undetectable from the output, so it has to be asserted.
+    """
+    print('\n== silent-fallback and contour-path guards ==')
+
+    with tempfile.TemporaryDirectory() as td:
+        # Same width as the tongue scheme, none of its axis names.
+        wrong = os.path.join(td, 'wrong.scheme')
+        src = io.open(os.path.join(DATA, 'tongue.scheme'), encoding='utf-8')
+        ndim, dims, weights, lam = parse_scheme(
+            os.path.join(DATA, 'tongue.scheme'))
+        lines = ['ndim %d' % ndim]
+        lines += ['dim bogus_%d' % i for i in range(ndim)]
+        lines.append('weight ' + ' '.join('%.6f' % w for w in weights))
+        lines.append('lambda %.4f' % lam)
+        for ln in src:
+            t = ln.split()
+            if t and t[0] == 'seg':
+                lines.append(' '.join(t))
+        io.open(wrong, 'w', encoding='utf-8').write('\n'.join(lines) + '\n')
+
+        _, err = run(['-D', wrong, 'tˤ'])
+        check('warning' in err and 'not in the loaded scheme' in err,
+              'mismatched scheme warns instead of writing silently',
+              err.strip()[:90])
+
+        # The committed scheme must stay silent: a warning on every run would
+        # train people to ignore the ones that matter.
+        _, err2 = run(['-D', os.path.join(DATA, 'spec_next.scheme'), 'tˤ'])
+        check('not in the loaded scheme' not in err2,
+              'committed scheme warns about nothing', err2.strip()[:90])
+
+        # Contour path engaged: pharyngealised t must move the derived site.
+        def site(sym):
+            out, _ = run(['-D', os.path.join(DATA, 'tongue.scheme'), sym])
+            mv = re.search(r'^\[\d+\]\s+\(([^)]*)\)', out, re.M)
+            return [float(x) for x in mv.group(1).split(',')]
+
+        # Constriction_pos only follows when the moved part BECOMES the tightest
+        # point. On `t` the blade already closes at gap 0, so pharyngealised
+        # t moves the root without moving the site -- and asserting otherwise
+        # would be asserting a bug. On a velar base the dorsum is the
+        # constrictor, so the same modifier can genuinely shift it.
+        base, mod = site('t'), site('tˤ')
+        check(len(base) == 18 and len(mod) == 18,
+              'tongue scheme vectors are 18 wide')
+        if len(base) == 18 and len(mod) == 18:
+            check(abs(base[6] - mod[6]) > 1e-6,
+                  'a tongue modifier moves root_x',
+                  't=%r tˤ=%r' % (base[6], mod[6]))
+            check(abs(base[16] - mod[16]) < 1e-6,
+                  'constriction_pos holds when the blade stays tightest',
+                  't=%r tˤ=%r' % (base[16], mod[16]))
+            kb, km = site('k'), site('kˤ')
+            if len(kb) == 18 and len(km) == 18:
+                check(abs(kb[16] - km[16]) > 1e-6,
+                      'constriction_pos follows when the moved part wins',
+                      'k=%r kˤ=%r' % (kb[16], km[16]))
+
+    print('%d/%d checks passed (cumulative)' % (checks - len(fails), checks))
+    for f in fails:
+        print('  FAIL  %s' % f)
+    return 1 if fails else 0
+
+
 if __name__ == '__main__':
-    sys.exit(main())
+    rc = main()
+    sys.exit(warn_checks() or rc)
