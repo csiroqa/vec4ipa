@@ -1,0 +1,112 @@
+{
+ "axes": {
+  "place": {
+   "vowel_sd": 0.0,
+   "consonant_sd": 0.49395970230374053,
+   "dead_in": "vowels"
+  },
+  "body": {
+   "vowel_sd": 0.2871042211331456,
+   "consonant_sd": 0.184083975402532,
+   "dead_in": null
+  },
+  "lips_closed": {
+   "vowel_sd": 0.0,
+   "consonant_sd": 0.30244999586708543,
+   "dead_in": "vowels"
+  },
+  "lips_rounded": {
+   "vowel_sd": 0.5091630540511084,
+   "consonant_sd": 0.054486236794258416,
+   "dead_in": null
+  },
+  "tip_shape": {
+   "vowel_sd": 0.0,
+   "consonant_sd": 0.30922645423702033,
+   "dead_in": "vowels"
+  },
+  "tongue_root": {
+   "vowel_sd": 0.20018357048380298,
+   "consonant_sd": 0.0,
+   "dead_in": "consonants"
+  },
+  "vel_open": {
+   "vowel_sd": 0.0,
+   "consonant_sd": 0.2861817604250837,
+   "dead_in": "vowels"
+  },
+  "lateral_ratio": {
+   "vowel_sd": 0.0,
+   "consonant_sd": 0.2712931993250107,
+   "dead_in": "vowels"
+  },
+  "voiced": {
+   "vowel_sd": 0.17141982574219336,
+   "consonant_sd": 0.49839743177508444,
+   "dead_in": null
+  },
+  "glottal_aperture": {
+   "vowel_sd": 0.06856793029687734,
+   "consonant_sd": 0.42821256403800195,
+   "dead_in": null
+  },
+  "glottal_tension": {
+   "vowel_sd": 0.0,
+   "consonant_sd": 0.18892061825009995,
+   "dead_in": "vowels"
+  },
+  "larynx_height": {
+   "vowel_sd": 0.0,
+   "consonant_sd": 0.3720215047547655,
+   "dead_in": "vowels"
+  },
+  "duration": {
+   "vowel_sd": 0.0,
+   "consonant_sd": 0.47431107935615424,
+   "dead_in": "vowels"
+  },
+  "jet_focus": {
+   "vowel_sd": 0.0,
+   "consonant_sd": 0.3395861451826326,
+   "dead_in": "vowels"
+  },
+  "effective_oral_area": {
+   "vowel_sd": 0.2260573563825244,
+   "consonant_sd": 0.2035332650944312,
+   "dead_in": null
+  },
+  "airflow_direction": {
+   "vowel_sd": 0.0,
+   "consonant_sd": 0.6000000000000001,
+   "dead_in": "vowels"
+  }
+ },
+ "dropped": [
+  "place",
+  "lips_closed",
+  "tip_shape",
+  "tongue_root",
+  "vel_open",
+  "lateral_ratio",
+  "glottal_tension",
+  "larynx_height",
+  "duration",
+  "jet_focus",
+  "airflow_direction"
+ ],
+ "kept": [
+  "body",
+  "lips_rounded",
+  "voiced",
+  "glottal_aperture",
+  "effective_oral_area"
+ ],
+ "loco_clean": {
+  "j6_clean/soft/act_prec": 0.6290236532319021,
+  "j6_clean/soft/feat_acc": 0.923800066728298,
+  "j6_clean/soft/top1_acc": 0.915750178263125,
+  "j6_clean/strict/act_prec": 0.5039502575977585,
+  "j6_clean/strict/feat_acc": 0.9051767709472078,
+  "j6_clean/strict/top1_acc": 0.903576242517965
+ }
+}

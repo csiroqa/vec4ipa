@@ -82,10 +82,10 @@ velum, lateral, larynx, periodic, source_tilt, duration`。**已弃用**：丢 1
 | 部位/手法格 hit@1（未拟合，Phatak 真人混淆） | 0.2391（自身拟合）/ 0.0870（z-euclid） | 0.3696 |
 | Phatak 池化 hit@1（z-euclid，未拟合） | 0.2031（自身拟合，**循环**） | 0.2969 |
 | 清浊对应误取 | — | 6/16 |
-| LOCO act_prec（留一语言，拟合） | 0.6488 | 0.5089 |
+| LOCO act_prec（留一语言，拟合） | 0.6488（全轴） / **0.5040（J6 清洗后 5 轴）** | **0.5089** |
 | 同基音修饰符区分丢失 | — | **0** |
 
-**两处落后都要说清楚，不要只报好看的那个。**
+**两处都要说清楚，不要只报好看的那个。**
 
 **部位/手法格**：几何层 0.3696 低于摘要层曾经的 0.5217，高于旧基线 0.2391。但
 **这个比较曾经被我做错过一次**：我当时拿几何层的**未拟合**数字去比旧基线的**已拟合**
@@ -93,9 +93,9 @@ velum, lateral, larynx, periodic, source_tilt, duration`。**已弃用**：丢 1
 是 LOCO，两者在 0.5037 / 0.5027 上是**打平的**。取舍的依据应当是 LOCO 加修饰符覆盖，
 不是 Gate 1 的原始几何距离。
 
-**LOCO 落后 0.140**：这一条是真落后，原因未解。可分解为 PhonoLib 图表标签本身的口径
-偏差（`coronal`/`dorsal`/`front` 是排版类别不是可测声学量），加上 `tense` 实为元音
-高度而未解决，加上 `strident` 0.000。
+**LOCO 0.6488 → 0.5089**：**这个差距是假的，已查实。** 旧表 16 根轴里有 11 根在某一类
+内部是常量，把它们剔掉后旧基线掉到 0.5040，低于新基线的 0.5089。详见 §0.6。
+**同一判据下新基线略胜。**
 
 ### 0.4 修掉的一个真缺陷
 
@@ -124,19 +124,51 @@ velum, lateral, larynx, periodic, source_tilt, duration`。**已弃用**：丢 1
   一个指标上，而 Gate 1 用真人数据看不到任何改善——**说明买到的
   0.033 来自对制表约定的拟合，不是来自生理**。
 
-### 0.6 LOCO 差距的构成（`loco_feature_audit.json`）
+### 0.6 LOCO 差距的构成：**那 0.140 不是信息，是作弊**
 
-按特征维拆解后（`summary_vheight.json`），旧基线的优势集中在 `back` +0.393、
-`anterior` +0.316、`tense` +0.303、`strident` +0.269、`high` +0.253，以及
-`dorsal`/`coronal`/`front` 等部位类别特征。新基线在 `nasal` 上以 0.645
-对 0.032 反超。
+按特征维拆解后，旧基线的优势集中在**元音特征**：`high` +0.326、
+`front` +0.210、`back` +0.197、`tense` +0.276、`consonantal` +0.185。
 
-**其中部位类别特征那部分不该全算在模型头上**：PhonoLib 把 `coronal`
-定义为图表标签（t d s z 同属一类），而 `constriction_pos` 只有一根单调轴，
-只能表达「前 vs 后」，表达不了「属于哪个类别」。**用「能否猜中图表标签」
-打分带循环成分**，与 F1/F2 那次拟合同类。Gate 1 用真人混淆数据测部位是
-干净的，它说摘要层赢。三部分（真实代价 / 制表约定 / 未定位的 `tense`）
-目前都无法再压。
+于是去查旧表这 16 根轴在类内的方差（`tools/audit_j6_axes.py`）：
+
+```
+axis                  元音sd  辅音sd  类内常量
+place                 0.0000  0.4940  ← 元音全体常量
+lips_closed           0.0000  0.3024
+tip_shape             0.0000  0.3092
+vel_open              0.0000  0.2862
+lateral_ratio         0.0000  0.2713
+glottal_tension       0.0000  0.1889
+larynx_height         0.0000  0.3720
+duration              0.0000  0.4743
+jet_focus             0.0000  0.3396
+airflow_direction     0.0000  0.6000
+tongue_root           0.2002  0.0000  ← 辅音全体常量
+```
+
+**16 根里有 11 根在某一类内部是常量。** 把这 11 根剔掉再跑 LOCO：
+
+| 基线 | 维数 | LOCO act_prec |
+|------|------|--------------|
+| 旧基线，全轴 | 16 | 0.6488 |
+| **旧基线，按 J6 清洗** | **5** | **0.5040** |
+| 新几何基线 | 18 | **0.5089** |
+
+**那 0.140 全部来自类内常量的轴。** 剔掉之后旧基线掉到 0.5040，**比新基线还低
+0.005**。
+
+**为什么这是作弊而不是信息**：一根类内常量的轴不是轴，是**免费的按类别偏移**。
+它把整类音素一起挪动、类内不分辨任何东西，却让度量零成本地分开元音与辅音。
+`place` 对 33 个元音是同一个值，`tongue_root` 对 100 个辅音是同一个值——
+它们编码的不是解剖，是「这是不是元音」。
+
+**这正是 J6 判据要排除的东西**，也是当初拒绝 `vowel_height`（对元音取值、
+对辅音取常量）的同一个理由，只是这次长在旧基线里。旧基线不是更准，
+是更宽松。
+
+**剩下的真实差距**：清洗后新基线 0.5089 对旧基线 0.5040，**新基线略胜**。
+所以「LOCO 落后 0.140」这句话本身应当作废——从来没有一个在同一判据下落后的比较。
+文档此前一直引用 0.6488 作对照，是拿一个作弊基线当基准。
 
 ---
 
@@ -839,9 +871,11 @@ min 0.0200  max 0.1800  mean 0.0778  ratio 9.00
 | `tools/gen_groove.py` → `tongue_groove.json` | 腭沟实验（否定结论）、Phatak 交叉核对 | 腭沟 |
 | `tools/fetch_consonant_data.py` → `data/consonant/` | 辅音声学数据（7 音位 / 3 语言） | 辅音数据 |
 | `tools/gen_merged_basis.py` → `merged_basis.json`、`summary_basis.json` | 18 维几何层（**距离度量实际跑在这里**）+ 10 维摘要层（已弃用，丢 1277 个修饰符区分对）；另出 `summary_root.json`（补回舌根后零代价，验证过程）、`summary_height.json`、`summary_both_glottal.json`、`summary_vgap.json`、`summary_vheight.json`（均已判负或非最优）、`summary_uheight.json`、`geom_only.json`（16 维，去掉收缩点冗余） | §0 |
-| `tools/audit_symbol_assignments.py` → `symbol_audit.json` | 133 符号六项检查的机械复算，当前 0 问题 | `docs/SYMBOL-AUDIT.md` |
+| `tools/audit_j6_axes.py` → `j6_axis_audit.json`、`old_j6_clean.json` | 量旧表 16 轴的类内方差：11 根类内常量，剔除后 LOCO 由 0.6488 掉到 0.5040 | §0.6 |
+| `tools/audit_loco_features.py` → `loco_feature_audit.json` | LOCO act_prec 逐特征维拆解 | §0.6 |
 | `tools/audit_modifier_collisions.py` → `modifier_collisions.json` | 同基音修饰符碰撞对比（轮廓 vs 各基线），几何层零丢失 | §0.1 |
 | `tools/audit_modifier_visibility.py` → `modifier_visibility.json` | 13 条修饰符在各基音上的可见距离 | §0.1 |
+| `tools/audit_symbol_assignments.py` → `symbol_audit.json` | 133 符号六项检查的机械复算，当前 0 问题 | `docs/SYMBOL-AUDIT.md` |
 | `tools/gate_retrieval.py` → `retrieval_gate.json` | 闸门 1（Phatak 真人混淆，未拟合）与闸门 3（九语种留一语言） | §0 |
 | `tools/fit_metric_full.py` → `metric_full_gate.json` | 全半正定度量 vs 对角度量，**结论为证伪** | §0.5 |
 | `tools/audit_loco_features.py` → `loco_feature_audit.json` | LOCO act_prec 逐特征维拆解 | §0.6 |
