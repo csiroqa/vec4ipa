@@ -9,8 +9,85 @@
 > 另有 `tools/gen_tract.py`（颌/唇/喉三坐标）与 `tools/gen_groove.py`（腭沟实验）。
 > **本文不改动 C 运行时**；迁移路径见 §8。
 >
+> **§0 是后续新增的一节**，记录距离基与本文初稿之间的全部改动与实测；
+> 读本文先读 §0，否则 §3 与 §6 会给出过期的结论。
+>
 > 全文约定：凡是**量出来的**数字都带出处脚本与 JSON；凡是**理论或假设**的，
 > 标 `[理论]` 或 `[假设]`。没有第三种。
+
+---
+
+## 0. 现状：距离基已拆成两层（后续实测，优先于 §3）
+
+本文初稿写于「舌面 10 坐标直接当距离基」之时。此后跑通了三道闸门
+（`gate_retrieval.py`、`fit_metric_full.py`、`audit_loco_features.py`），
+结论与初稿不同，**以本节为准**。
+
+### 0.1 两层分工
+
+```
+18 维几何层  merged_basis.json   解释 + 正向模型（F3 R²=0.690）
+     ↓ 派生收缩点
+10 维摘要层  summary_basis.json  距离度量实际跑在这里
+```
+
+**为什么拆开**：把派生轴 `constriction_pos` 加进几何层同一向量时，拟合
+权重在 9 个折里**一次都没给它实质权重**——它是同一向量内舌面坐标的函数，
+共线，优化器绕开它走。教训是「派生量不该和它的原料同处一个度量空间」。
+故几何负责解释，摘要负责距离。
+
+摘要 10 维：`constriction_pos, constriction_gap, lip_open, lip_round,
+velum, lateral, larynx, periodic, source_tilt, duration`。秩 10/10，
+唯一向量 117/133，`k` vs `t` 只差一根轴。
+
+### 0.2 部位轴不再手调
+
+`derived_constriction` 早已算出收缩部位，但只被记成标签 `site_from`
+（derived 57 / assigned 66 / none 10）。现在它进向量了，**与它声称描述的
+几何不可能脱节**——改舌面，部位轴自动跟着动。卷舌 0.28 与央元音
+{0.22, 0.30, 0.38, 0.42, 0.44} 仍零重叠。
+
+### 0.3 实测成绩（`retrieval_gate.json`）
+
+| 指标 | 旧 16 维 | 摘要 10 维 |
+|------|----------|------------|
+| 部位/手法格 hit@1（未拟合，Phatak 真人混淆） | 0.2391（自身拟合）/ 0.0870（z-euclid） | **0.5217** |
+| 清浊对应误取 | — | **0/16** |
+| LOCO act_prec（留一语言，拟合） | 0.6488 | 0.4986 |
+| 合并前 14 维基线的清浊误取 | 14/16 | 0/16 |
+
+**部位检索领先两倍多，LOCO 仍落后 0.15。**
+
+### 0.4 修掉的一个真缺陷
+
+`f` `v`（脣齿擦音）曾被判为「无收缩」——`CONSTRICTOR['labiodental'] = None`
+表示没有**舌**收缩部位，但脣齿音收缩得和双脣一样紧。它们被塞进哨兵值，
+与 `h ɦ ʔ` 同格，清浊格因此从 1.000 塌到 0.111。给唇类收缩补上明确
+位置后，部位格由 0.174 升到 0.3696，摘要层再升到 0.5217。
+
+### 0.5 两条被证伪的假设（留档）
+
+- **全度量能追平对角度量**（`fit_metric_full.py`）：不成立。同折同参数下
+  差距由 0.164 扩到 0.172，且两边都变差——78 个参数对 53 个训练符号的
+  过拟合。对 18 维几何层证伪，对 10 维摘要层未测。
+- **补一根舌位高可救 `high`**：不成立。部位格由 0.522 跌到 0.304，
+  `high` 召回仅由 0.084 到 0.126。
+- **保留两根声门轴可救 `tense`**：不成立。`tense` 召回 0.500 → 0.487。
+  当初按 r = −0.775 合并声门轴，**错在没看相关性的符号**：负相关说明两轴
+  反向编码，取均值恰好抵消不一致处，而那 39% 残差正是喉化/紧喉所在。
+
+### 0.6 LOCO 差距的构成（`loco_feature_audit.json`）
+
+按特征维拆解后，旧基线的优势集中在 `tense` +0.421、`high` +0.358、
+`strident` +0.269，以及 `coronal`/`dorsal`/`anterior`/`front` 等**部位类别
+特征**。新基线在 `nasal` 上以 0.645 对 0.032 反超。
+
+**其中部位类别特征那部分不该全算在模型头上**：PhonoLib 把 `coronal`
+定义为图表标签（t d s z 同属一类），而 `constriction_pos` 只有一根单调轴，
+只能表达「前 vs 后」，表达不了「属于哪个类别」。**用「能否猜中图表标签」
+打分带循环成分**，与 F1/F2 那次拟合同类。Gate 1 用真人混淆数据测部位是
+干净的，它说摘要层赢。三部分（真实代价 / 制表约定 / 未定位的 `tense`）
+目前都无法再压。
 
 ---
 
@@ -103,7 +180,12 @@ y  绝对高度。0 = 静息舌面，1 = 接触腭顶
 
 ## 3. 维度表
 
-### 3.1 已提交的距离基（10 维，`tongue_table.json`）
+### 3.1 几何层（10 个舌面坐标，`tongue_table.json`）
+
+> **注意**：本节描述的是**几何层**，不再是距离基。距离度量跑在
+> `summary_basis.json`（§0.1）。下列 10 个坐标中，8 个（tip/blade/dorsum/root
+> 各 x,y）已从距离基中移出——它们与派生的 `constriction_pos` 共线，
+> 拟合权重从不给它们实质权重。
 
 范围是**133 行实测的 min/max**，不是设计域；`n_distinct` 与方差比取自
 `tools/data/audit_tongue_axes.json`（同一把尺子，也用来给旧 16 维打分，见 §6.1）。
@@ -288,6 +370,9 @@ syllabic / unrel`
 
 ## 5. 已验证的部分
 
+> 本节只列**独立数据**支撑的结论。检索类的对照结果见 §0.3；
+> 初稿写成时距离基尚未跑过闸门，故此处未收录。
+
 > 本节每一条都给出数字与出处 JSON。
 
 ### 5.1 F3 是唯一的非循环拟合：R² = 0.690
@@ -440,6 +525,10 @@ JSON 里同时存了 `n_distinct / n_off_modal / var / rel_var`，
   `dorfric / sib / plos / dorsal / fr / stops2` 已下载但**内容未核验**。
 
 ### 6.2 10 个坐标不是单射：133 段塌缩成 66 条轮廓
+
+> **部分已改善**（§0）：补上 `periodic` 与 `source_tilt` 后，摘要层唯一向量
+> 由 66/133 升到 **117/133**，秩满 10/10。下文「67 段共享轮廓」是**只含
+> 几何**时的数字，几何层本身仍不单射——这正是要把它移出距离基的原因。
 
 **这是比等级更严重的缺陷。**
 
@@ -693,3 +782,19 @@ velar uvular glottal pharyngeal labiodental epiglottal`，
 | `tools/gen_tract.py` → `tract_parts.json` | 颌/唇/喉三坐标、圆唇配对测量、共线性秩 | 颌/喉 |
 | `tools/gen_groove.py` → `tongue_groove.json` | 腭沟实验（否定结论）、Phatak 交叉核对 | 腭沟 |
 | `tools/fetch_consonant_data.py` → `data/consonant/` | 辅音声学数据（7 音位 / 3 语言） | 辅音数据 |
+| `tools/gen_merged_basis.py` → `merged_basis.json`、`summary_basis.json` | 18 维几何层 + 10 维摘要层；另出两个**已判负**的变体 `summary_height.json`、`summary_both_glottal.json` | §0 |
+| `tools/gate_retrieval.py` → `retrieval_gate.json` | 闸门 1（Phatak 真人混淆，未拟合）与闸门 3（九语种留一语言） | §0 |
+| `tools/fit_metric_full.py` → `metric_full_gate.json` | 全半正定度量 vs 对角度量，**结论为证伪** | §0.5 |
+| `tools/audit_loco_features.py` → `loco_feature_audit.json` | LOCO act_prec 逐特征维拆解 | §0.6 |
+
+**复现全部结论**（按顺序，每个都覆盖前一个的产出）：
+
+```
+python tools\gen_tongue_model.py
+python tools\gen_tongue_table.py
+python tools\gen_tongue_modifiers.py
+python tools\fit_tongue_forward.py
+python tools\gen_merged_basis.py
+python tools\gate_retrieval.py
+python tools\audit_loco_features.py
+```
