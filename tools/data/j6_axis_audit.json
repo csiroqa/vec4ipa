@@ -2,82 +2,82 @@
  "axes": {
   "place": {
    "vowel_sd": 0.0,
-   "consonant_sd": 0.49395970230374053,
+   "consonant_sd": 0.4828465763848084,
    "dead_in": "vowels"
   },
   "body": {
-   "vowel_sd": 0.2871042211331456,
-   "consonant_sd": 0.184083975402532,
+   "vowel_sd": 0.2622022120425379,
+   "consonant_sd": 0.19901038612808147,
    "dead_in": null
   },
   "lips_closed": {
    "vowel_sd": 0.0,
-   "consonant_sd": 0.30244999586708543,
+   "consonant_sd": 0.296228752694438,
    "dead_in": "vowels"
   },
   "lips_rounded": {
-   "vowel_sd": 0.5091630540511084,
-   "consonant_sd": 0.054486236794258416,
+   "vowel_sd": 0.4959626539182488,
+   "consonant_sd": 0.17603854453214993,
    "dead_in": null
   },
   "tip_shape": {
    "vowel_sd": 0.0,
-   "consonant_sd": 0.30922645423702033,
+   "consonant_sd": 0.3073233135439273,
    "dead_in": "vowels"
   },
   "tongue_root": {
-   "vowel_sd": 0.200183570483803,
-   "consonant_sd": 0.0,
-   "dead_in": "consonants"
+   "vowel_sd": 0.19152982396845605,
+   "consonant_sd": 0.07657048092282584,
+   "dead_in": null
   },
   "vel_open": {
    "vowel_sd": 0.0,
-   "consonant_sd": 0.2861817604250837,
+   "consonant_sd": 0.27994168488950605,
    "dead_in": "vowels"
   },
   "lateral_ratio": {
    "vowel_sd": 0.0,
-   "consonant_sd": 0.2712931993250107,
+   "consonant_sd": 0.26530263385112607,
    "dead_in": "vowels"
   },
   "voiced": {
-   "vowel_sd": 0.17141982574219336,
-   "consonant_sd": 0.49839743177508444,
-   "dead_in": null
+   "vowel_sd": 0.0,
+   "consonant_sd": 0.49724866598882334,
+   "dead_in": "vowels"
   },
   "glottal_aperture": {
-   "vowel_sd": 0.06856793029687736,
-   "consonant_sd": 0.42821256403800195,
-   "dead_in": null
+   "vowel_sd": 0.0,
+   "consonant_sd": 0.4194948911713,
+   "dead_in": "vowels"
   },
   "glottal_tension": {
    "vowel_sd": 0.0,
-   "consonant_sd": 0.18892061825009995,
+   "consonant_sd": 0.18471280643658144,
    "dead_in": "vowels"
   },
   "larynx_height": {
    "vowel_sd": 0.0,
-   "consonant_sd": 0.3720215047547655,
+   "consonant_sd": 0.36315573266547846,
    "dead_in": "vowels"
   },
   "duration": {
    "vowel_sd": 0.0,
-   "consonant_sd": 0.47431107935615424,
+   "consonant_sd": 0.4715641940559591,
    "dead_in": "vowels"
   },
   "jet_focus": {
    "vowel_sd": 0.0,
-   "consonant_sd": 0.3395861451826326,
+   "consonant_sd": 0.33343195819881954,
    "dead_in": "vowels"
   },
   "effective_oral_area": {
-   "vowel_sd": 0.2260573563825244,
-   "consonant_sd": 0.2035332650944312,
+   "vowel_sd": 0.20187261087232256,
+   "consonant_sd": 0.20314118276719378,
    "dead_in": null
   },
   "airflow_direction": {
    "vowel_sd": 0.0,
-   "consonant_sd": 0.6000000000000001,
+   "consonant_sd": 0.5870870479018073,
    "dead_in": "vowels"
   }
  },
@@ -85,9 +85,10 @@
   "place",
   "lips_closed",
   "tip_shape",
-  "tongue_root",
   "vel_open",
   "lateral_ratio",
+  "voiced",
+  "glottal_aperture",
   "glottal_tension",
   "larynx_height",
   "duration",
@@ -97,16 +98,46 @@
  "kept": [
   "body",
   "lips_rounded",
-  "voiced",
-  "glottal_aperture",
+  "tongue_root",
   "effective_oral_area"
  ],
+ "vowel_set_size": 28,
+ "vowel_set": [
+  "a",
+  "e",
+  "i",
+  "o",
+  "u",
+  "y",
+  "æ",
+  "ø",
+  "œ",
+  "ɐ",
+  "ɑ",
+  "ɒ",
+  "ɔ",
+  "ɘ",
+  "ə",
+  "ɛ",
+  "ɜ",
+  "ɞ",
+  "ɤ",
+  "ɨ",
+  "ɪ",
+  "ɯ",
+  "ɵ",
+  "ɶ",
+  "ʉ",
+  "ʊ",
+  "ʌ",
+  "ʏ"
+ ],
  "loco_clean": {
-  "j6_clean/soft/act_prec": 0.6290236532319021,
-  "j6_clean/soft/feat_acc": 0.923800066728298,
-  "j6_clean/soft/top1_acc": 0.915750178263125,
-  "j6_clean/strict/act_prec": 0.5039502575977585,
-  "j6_clean/strict/feat_acc": 0.9051767709472078,
-  "j6_clean/strict/top1_acc": 0.903576242517965
+  "j6_clean/soft/act_prec": 0.6480313764501713,
+  "j6_clean/soft/feat_acc": 0.9252809810033792,
+  "j6_clean/soft/top1_acc": 0.916548280691795,
+  "j6_clean/strict/act_prec": 0.5556371901787573,
+  "j6_clean/strict/feat_acc": 0.9139489954359368,
+  "j6_clean/strict/top1_acc": 0.9047254483325835
  }
 }

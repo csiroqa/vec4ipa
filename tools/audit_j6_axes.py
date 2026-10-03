@@ -91,10 +91,21 @@ def main():
 
     with io.open(OUT, 'w', encoding='utf-8') as f:
         f.write(json.dumps({'axes': vars_, 'dropped': dead, 'kept': live,
+                            # The vowel set decides the verdict for every axis
+                            # that is constant across vowels, and it comes
+                            # from a generated table that changes when the
+                            # model changes. An earlier run left `voiced` and
+                            # `glottal_aperture` in the kept list -- both are
+                            # constant across all 33 vowels -- because the set
+                            # it used was not recorded here and nobody could
+                            # see that it had moved. Writing the set down
+                            # makes the verdict checkable instead of trusted.
+                            'vowel_set_size': len(vowels),
+                            'vowel_set': sorted(vowels),
                             'loco_clean': {k: v['mean_excl_thin_folds']
                                            for k, v in res['summary'].items()}},
                            ensure_ascii=False, indent=1))
-    print('wrote %s' % OUT)
+    print('wrote %s  (vowel set: %d symbols)' % (OUT, len(vowels)))
 
 
 if __name__ == '__main__':

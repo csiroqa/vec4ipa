@@ -78,7 +78,8 @@ def main():
     old_act = ores['summary']['j6_clean/strict/act_prec']
 
     print('\n== LOCO, both bases stripped of class-constant axes ==')
-    print('old basis, 5 axes kept   %.4f' % old_act['mean_excl_thin_folds'])
+    print('old basis, %d axes kept   %.4f'
+          % (len(old['dims']), old_act['mean_excl_thin_folds']))
     print('new basis, %d axes kept   %.4f'
           % (len(keep), strict['mean_excl_thin_folds']))
     print('difference               %+.4f'
