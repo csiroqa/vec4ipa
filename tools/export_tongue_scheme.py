@@ -37,19 +37,28 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'tools', 'data')
 BASIS = os.path.join(DATA, 'merged_basis.json')
 VECTORS_H = os.path.join(ROOT, 'src', 'vectors.h')
+SCHEME_OLD = os.path.join(DATA, 'spec_next.scheme')
 OUT = os.path.join(DATA, 'tongue.scheme')
+NDM_OLD = 16
 
 LAM = G.LAMBDA if hasattr(G, 'LAMBDA') else 5.5
 
 
 def airstream_codes():
-    """Per-symbol airstream code from the generated table, the only authority."""
-    src = io.open(VECTORS_H, encoding='utf-8').read()
-    body = src[src.index('static const SegEntry SEG_TABLE'):]
-    body = body[:body.index('};')]
+    """Per-symbol airstream NAME, taken from the committed scheme.
+
+    src/vectors.h stores an integer index but the scheme format wants a name,
+    and this exporter previously wrote the raw digit -- the loader then
+    rejected all 133 rows with "unknown airstream '0'". Reading the names from
+    the committed scheme instead of re-deriving them from the index removes the
+    index-to-name mapping from this file entirely, so there is no order to get
+    wrong and no way to silently transpose ejective with implosive.
+    """
     out = {}
-    for m in re.finditer(r'\{\s*"([^"]+)"\s*,.*?,\s*(\d+)\s*\}', body):
-        out[m.group(1)] = m.group(2)
+    for ln in io.open(SCHEME_OLD, encoding='utf-8'):
+        t = ln.split()
+        if t and t[0] == 'seg':
+            out[t[1]] = t[2 + NDM_OLD]
     return out
 
 

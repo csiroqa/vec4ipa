@@ -42,6 +42,7 @@
 #endif
 
 #include "vectors.h"
+#include "tongue_contour.h"
 
 /* dimension indices — SPEC-NEXT order (must match DIM_NAMES in
  * vectors.h): the legacy v8 numbering differed (lips_closed was 0,
@@ -1210,10 +1211,106 @@ static IPA2VEC_MAYBE_UNUSED int has_voicing_counterpart(const SegEntry *base)
 }
 
 /* apply a voicing modifier, choosing full vs partial by contrast */
+/* Forward declarations: every mod_* body is defined below this point, and
+ * tongue_rule_for() needs the identifiers to compare against. Declaring them
+ * here rather than moving the table up keeps the diff to the wiring. */
+#define TONGUE_RULE_FWD(X) static IPA2VEC_MAYBE_UNUSED void X(double v[MAXDIM], const void *m)
+TONGUE_RULE_FWD(mod_nasal);
+TONGUE_RULE_FWD(mod_nasal_rel);
+TONGUE_RULE_FWD(mod_nasal_click);
+TONGUE_RULE_FWD(mod_lat_release);
+TONGUE_RULE_FWD(mod_raised);
+TONGUE_RULE_FWD(mod_lowered);
+TONGUE_RULE_FWD(mod_more_round);
+TONGUE_RULE_FWD(mod_less_round);
+TONGUE_RULE_FWD(mod_long);
+TONGUE_RULE_FWD(mod_half);
+TONGUE_RULE_FWD(mod_extra_short);
+TONGUE_RULE_FWD(mod_syl);
+TONGUE_RULE_FWD(mod_unrel);
+TONGUE_RULE_FWD(mod_atr);
+TONGUE_RULE_FWD(mod_rtr);
+TONGUE_RULE_FWD(mod_advanced);
+TONGUE_RULE_FWD(mod_retracted);
+TONGUE_RULE_FWD(mod_dental);
+TONGUE_RULE_FWD(mod_apical);
+TONGUE_RULE_FWD(mod_laminal);
+TONGUE_RULE_FWD(mod_centralized);
+TONGUE_RULE_FWD(mod_midcent);
+TONGUE_RULE_FWD(mod_pal);
+TONGUE_RULE_FWD(mod_velar);
+TONGUE_RULE_FWD(mod_lab);
+TONGUE_RULE_FWD(mod_phar);
+
+/* Map a modifier to its tongue-contour rule, by the same function-pointer
+ * comparison apply_voicing_mod already uses -- the MODS table dispatches on
+ * `apply`, so matching on it keeps the two dispatch paths consistent without
+ * adding a field to a struct that ~180 entries initialise positionally.
+ *
+ * Returns NULL for modifiers the contour model has no rule for (aspiration,
+ * ejectives, the superscript family). Those keep the old axis behaviour even
+ * under a tongue scheme, because the contour has nowhere to put them -- that
+ * is a known gap, not a silent fallback, and `nsyl` below is one: the old
+ * model shortened duration by 0.5 and the new scalar table has no such rule.
+ *
+ * Tiers are deliberately untouched. TIER_PLACE still sorts before TIER_MANNER
+ * and TIER_TIMING, so the application order a spelling re-parses into is the
+ * same under both models; only the effect of each step differs. */
+static IPA2VEC_MAYBE_UNUSED const char *tongue_rule_for (const ModRec *m)
+{
+    if (m->apply == mod_nasal)          return "nasal";
+    if (m->apply == mod_nasal_rel)      return "nasal_rel";
+    if (m->apply == mod_nasal_click)    return "nasal_click";
+    if (m->apply == mod_lat_release)    return "lat_release";
+    if (m->apply == mod_raised)         return "raised";
+    if (m->apply == mod_lowered)        return "lowered";
+    if (m->apply == mod_more_round)     return "rnd_more";
+    if (m->apply == mod_less_round)     return "rnd_less";
+    if (m->apply == mod_long)           return "long";
+    if (m->apply == mod_half)           return "half";
+    if (m->apply == mod_extra_short)    return "extra_short";
+    if (m->apply == mod_syl)            return "syllabic";
+    if (m->apply == mod_unrel)          return "unrel";
+    if (m->apply == mod_atr)            return "atr";
+    if (m->apply == mod_rtr)            return "rtr";
+    if (m->apply == mod_advanced)       return "advanced";
+    if (m->apply == mod_retracted)      return "retracted";
+    if (m->apply == mod_dental)         return "dental";
+    if (m->apply == mod_apical)         return "apical";
+    if (m->apply == mod_laminal)        return "laminal";
+    if (m->apply == mod_centralized)    return "centralized";
+    if (m->apply == mod_midcent)        return "midcent";
+    if (m->apply == mod_pal)            return "palatalized";
+    if (m->apply == mod_velar)          return "velarized";
+    if (m->apply == mod_lab)            return "labialized";
+    if (m->apply == mod_phar)           return "pharyngeal";
+    return NULL;
+}
+
+/* Resolve the contour axes for the loaded scheme, once per scheme change.
+ * g_tongue_axes is 0 unless the scheme carries all 18 contour axes, which is
+ * what keeps the deployed 16-dim scheme on exactly the code path it used
+ * before any of this existed. */
+static TongueAxes g_tongue_axes;
+static int g_tongue_axes_ok = -1;   /* -1 = not resolved yet */
+
+static IPA2VEC_MAYBE_UNUSED void tongue_axes_refresh (void)
+{
+    g_tongue_axes_ok = tongue_axes_resolve(g_dimname, g_ndim, &g_tongue_axes);
+}
+
 static IPA2VEC_MAYBE_UNUSED void apply_voicing_mod(double v[MAXDIM],
                                                    const ModRec *m,
                                                    const SegEntry *base)
 {
+    if (g_tongue_axes_ok < 0) tongue_axes_refresh();
+    if (g_tongue_axes_ok) {
+        const char *rule = tongue_rule_for(m);
+        /* Falls through to the old axis path when the contour has no rule,
+         * so the two models coexist rather than the contour half-covering the
+         * modifier set. */
+        if (rule && tongue_apply_mod_vector(v, &g_tongue_axes, rule)) return;
+    }
     if (m->apply == mod_voiceless)
         has_voicing_counterpart(base) ? mod_voiceless_part(v, NULL)
                                       : mod_voiceless_full(v, NULL);
@@ -5365,6 +5462,9 @@ static IPA2VEC_MAYBE_UNUSED void scheme_invalidate_caches (void)
     g_null_ready = 0;   /* the null point moves with the table */
     g_null_centroid_ready = 0;
     g_dimcache_n = 0;   /* dimension indices move with the scheme */
+    /* The contour axes are scheme-derived too; re-resolve on the next
+     * modifier application rather than trusting the previous scheme's map. */
+    g_tongue_axes_ok = -1;
 }
 
 static IPA2VEC_MAYBE_UNUSED int load_scheme_file (const char *path)
