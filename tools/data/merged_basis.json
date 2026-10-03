@@ -1116,7 +1116,7 @@
    0.0,
    0.0,
    0.2,
-   0.1,
+   0.15,
    0.1,
    0.0
   ],
@@ -1136,7 +1136,7 @@
    0.0,
    0.0,
    0.2,
-   0.1,
+   0.15,
    0.18,
    0.0
   ],
@@ -1156,7 +1156,7 @@
    0.0,
    0.0,
    0.2,
-   0.1,
+   0.15,
    0.36,
    -0.0001
   ],
@@ -1176,7 +1176,7 @@
    0.0,
    0.0,
    0.2,
-   0.1,
+   0.15,
    0.25,
    0.0
   ],
@@ -1964,21 +1964,21 @@
    0.15,
    0.28,
    0.18,
-   0.8,
+   0.45,
    0.33,
    0.28,
-   0.72,
-   0.25,
+   0.68,
    0.35,
-   0.0,
-   0.0,
+   0.35,
    0.0,
    0.0,
    1.0,
    0.0,
-   0.25,
+   1.0,
+   0.0,
+   0.9,
    0.18,
-   0.05
+   0.4
   ],
   "ɻ": [
    0.3,
@@ -2436,7 +2436,7 @@
    0.0,
    0.0,
    0.2,
-   0.1,
+   0.15,
    0.0,
    0.0
   ],
@@ -3009,25 +3009,25 @@
   "ǀ": {
    "site_from": "derived",
    "anchor": "dental",
-   "manner": "stop",
+   "manner": "click",
    "constrictor": "blade"
   },
   "ǁ": {
    "site_from": "derived",
    "anchor": "alveolar",
-   "manner": "stop",
+   "manner": "click",
    "constrictor": "blade"
   },
   "ǂ": {
    "site_from": "derived",
    "anchor": "palatal",
-   "manner": "stop",
+   "manner": "click",
    "constrictor": "dorsum"
   },
   "ǃ": {
    "site_from": "derived",
    "anchor": "postalveolar",
-   "manner": "stop",
+   "manner": "click",
    "constrictor": "blade"
   },
   "ɐ": {
@@ -3265,9 +3265,9 @@
    "constrictor": "blade"
   },
   "ɺ": {
-   "site_from": "derived",
+   "site_from": "assigned",
    "anchor": "alveolar",
-   "manner": "flap",
+   "manner": "lateral",
    "constrictor": "blade"
   },
   "ɻ": {
@@ -3405,7 +3405,7 @@
   "ʘ": {
    "site_from": "assigned",
    "anchor": "bilabial",
-   "manner": "stop",
+   "manner": "click",
    "constrictor": "lips"
   },
   "ʙ": {
@@ -3482,8 +3482,8 @@
   }
  },
  "site_provenance": {
-  "derived": 50,
-  "assigned": 80,
+  "derived": 49,
+  "assigned": 81,
   "none": 3
  },
  "no_constriction_sentinel": 0.95

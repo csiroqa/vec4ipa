@@ -38,6 +38,11 @@ PROFILES = {
     'lateral':     {'gap': 0.40, 'dur': 0.90, 'velum': 0.0, 'lat': 1.0, 'larynx': 0.0},
     'trill':       {'gap': 0.00, 'dur': 0.50, 'velum': 0.0, 'lat': 0.0, 'larynx': 0.0},
     'flap':        {'gap': 0.05, 'dur': 0.25, 'velum': 0.0, 'lat': 0.0, 'larynx': 0.0},
+    # A click closes like a stop and then releases a rarefied intraoral air
+    # impulse. Same closure geometry as a stop; it is `periodic` in the merged
+    # basis that separates them, because the airflow event is the difference,
+    # not the tongue shape. Duration is short -- a click is brief by nature.
+    'click':       {'gap': 0.00, 'dur': 0.15, 'velum': 0.0, 'lat': 0.0, 'larynx': 0.0},
     'ejective':    {'gap': 0.00, 'dur': 0.10, 'velum': 0.0, 'lat': 0.0, 'larynx': 1.0},
     'implosive':   {'gap': 0.00, 'dur': 0.10, 'velum': 0.0, 'lat': 0.0, 'larynx': -1.0},
 }
@@ -112,6 +117,7 @@ def classify(vec, I):
     eoa = vec[I['effective_oral_area']]
     larynx = vec[I['larynx_height']]
     jets = vec[I['jet_focus']]
+    flow = vec[I['airflow_direction']]
 
     if larynx > 0.5:
         return anchor, 'ejective'
@@ -119,14 +125,27 @@ def classify(vec, I):
         return anchor, 'implosive'
     if vel >= 0.7:
         return anchor, 'nasal'
+    # A click is a closure plus a rarefied intraoral air impulse. It was being
+    # read as a plain stop: airflow_direction was never consulted, so ǀ ǁ ǃ ǂ ʘ
+    # all fell through to the dur==0 branch below and came out identical to an
+    # oral stop at the same place.
+    if flow < 0.0:
+        return anchor, 'click'
+    # Lateral before the jet test: a lateral fricative (ɬ ɮ) carries BOTH a
+    # lateral airflow and frication, so testing jets first would file ɬ
+    # alongside s and ɮ alongside z and make those pairs identical.
+    if lat >= 0.5:
+        return anchor, 'lateral'
+    # This must come AFTER the lateral test but BEFORE the dur==0 stop test.
+    # An affricate has duration 0 in the old table -- the table records only
+    # the closure -- and took the stop branch, so k͡p and ɡ͡b were generated
+    # as stops and ended up with vectors identical to k and ɡ.
+    if jets > 0.0:
+        return anchor, 'affricate' if dur >= 1.2 else 'fricative'
     if dur == 0.0:
         return anchor, 'stop'
     if 0.10 <= dur <= 0.40 and eoa <= 0.01:
         return anchor, 'flap'
-    if lat >= 0.5:
-        return anchor, 'lateral'
-    if jets > 0.0:
-        return anchor, 'affricate' if dur >= 1.2 else 'fricative'
     if eoa <= 0.12:
         return anchor, 'fricative'
     if 0.40 <= dur <= 0.60 and eoa <= 0.25:

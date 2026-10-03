@@ -1729,7 +1729,7 @@
   },
   "ǀ": {
     "anchor": "dental",
-    "manner": "stop",
+    "manner": "click",
     "derived_x": 0.1,
     "gap": 0.0,
     "constrictor": "blade",
@@ -1757,11 +1757,11 @@
     "velum": 0.0,
     "lateral": 0.0,
     "larynx": 0.0,
-    "duration": 0.1
+    "duration": 0.15
   },
   "ǁ": {
     "anchor": "alveolar",
-    "manner": "stop",
+    "manner": "click",
     "derived_x": 0.18,
     "gap": 0.0,
     "constrictor": "blade",
@@ -1789,11 +1789,11 @@
     "velum": 0.0,
     "lateral": 0.0,
     "larynx": 0.0,
-    "duration": 0.1
+    "duration": 0.15
   },
   "ǂ": {
     "anchor": "palatal",
-    "manner": "stop",
+    "manner": "click",
     "derived_x": 0.36,
     "gap": 0.0,
     "constrictor": "dorsum",
@@ -1821,11 +1821,11 @@
     "velum": 0.0,
     "lateral": 0.0,
     "larynx": 0.0,
-    "duration": 0.1
+    "duration": 0.15
   },
   "ǃ": {
     "anchor": "postalveolar",
-    "manner": "stop",
+    "manner": "click",
     "derived_x": 0.25,
     "gap": 0.0,
     "constrictor": "blade",
@@ -1853,7 +1853,7 @@
     "velum": 0.0,
     "lateral": 0.0,
     "larynx": 0.0,
-    "duration": 0.1
+    "duration": 0.15
   },
   "ɐ": {
     "anchor": "vowel",
@@ -3105,9 +3105,9 @@
   },
   "ɺ": {
     "anchor": "alveolar",
-    "manner": "flap",
+    "manner": "lateral",
     "derived_x": 0.18,
-    "gap": 0.05,
+    "gap": 0.4,
     "constrictor": "blade",
     "site_from": "assigned",
     "tongue": {
@@ -3117,23 +3117,23 @@
       ],
       "blade": [
         0.18,
-        0.8
+        0.45
       ],
       "dorsum": [
         0.33,
         0.28
       ],
       "root": [
-        0.72,
-        0.25
+        0.68,
+        0.35
       ]
     },
     "lip_open": 0.35,
     "lip_round": 0.0,
     "velum": 0.0,
-    "lateral": 0.0,
+    "lateral": 1.0,
     "larynx": 0.0,
-    "duration": 0.25
+    "duration": 0.9
   },
   "ɻ": {
     "anchor": "retroflex",
@@ -3841,7 +3841,7 @@
   },
   "ʘ": {
     "anchor": "bilabial",
-    "manner": "stop",
+    "manner": "click",
     "derived_x": 0.0,
     "gap": 0.0,
     "constrictor": null,
@@ -3869,7 +3869,7 @@
     "velum": 0.0,
     "lateral": 0.0,
     "larynx": 0.0,
-    "duration": 0.1
+    "duration": 0.15
   },
   "ʙ": {
     "anchor": "bilabial",
