@@ -387,7 +387,7 @@ namespace Vec4ipaUI
                 ? "欢迎使用 vec4ipa 工作台\n" +
                   "---------------------------------\n\n" +
                   "1. 在下方输入或点击 IPA 字符串（或在 文件 > 示例 中选择）。\n" +
-                  "2. 点击 转换 - 每个音段变成 16 维向量。\n" +
+                  "2. 点击 转换 - 每个音段变成 " + Core.NDim + " 维向量。\n" +
                   "3. 粘贴向量并按 反向 拟合回 IPA，\n" +
                   "   选择转录宽度（0-4）。\n\n" +
                   "提示：悬停键盘按键可查看名称，双击查看详情；\n" +
@@ -397,7 +397,7 @@ namespace Vec4ipaUI
                   "---------------------------------\n\n" +
                   "1. Type or click an IPA string below (or pick an example\n" +
                   "   from File > Examples).\n" +
-                  "2. Press Convert - each segment becomes a 16-D vector.\n" +
+                  "2. Press Convert - each segment becomes a " + Core.NDim + "-D vector.\n" +
                   "3. Paste a vector and press Reverse to fit IPA back,\n" +
                   "   choosing the transcription width (0-4).\n\n" +
                   "Tip: hover a keyboard key for its name, double-click for\n" +
@@ -758,7 +758,7 @@ namespace Vec4ipaUI
                         "vec4ipa_ui [OPTIONS] [IPA-STRING]\n\n" +
                         "  --narrowness 0-4    reverse-fit narrowness (default 3; alias --width)\n" +
                         "  -q, --query SYM     query one symbol on startup\n" +
-                        "  -r, --reverse VEC   16-D vector -> IPA on startup\n" +
+                        "  -r, --reverse VEC   " + Core.NDim + "-D vector -> IPA on startup\n" +
                         "  --export-tools DIR  write the bundled CLI tools to DIR\n" +
                         "  -h, --help          this help\n" +
                         "  --school flags      (--americanist, --sinologist, ...)\n" +
@@ -1357,8 +1357,8 @@ namespace Vec4ipaUI
             _zh = zh;
             var lbls = new[]
             {
-                (LblVec, zh ? "16 维向量（逗号分隔）→ 反向拟合："
-                             : "16-D vector (comma separated) → reverse fit:"),
+                (LblVec, zh ? Core.NDim + " 维向量（逗号分隔）→ 反向拟合："
+                             : Core.NDim + "-D vector (comma separated) → reverse fit:"),
                 (LblDist, zh ? "两个符号之间的距离：" : "Distance between two symbols:"),
                 (LblOut, zh ? "输出：" : "Output:"),
                 (LblCons, zh ? "辅音" : "Consonants"),
@@ -1825,7 +1825,7 @@ namespace Vec4ipaUI
             {
                 var (vec, annot) = rows[s];
                 sb.AppendLine($"[{s}] vector: ({vec})");
-                /* the 16-dim vector carries no tone; pass the annotation
+                /* the vector carries no tone; pass the annotation
                  * so the fit re-emits it (p̋ -> [p˥]) */
                 sb.AppendLine($"    fit:   {Core.Reverse(vec + annot, width)}");
             }
@@ -3829,9 +3829,9 @@ namespace Vec4ipaUI
             body.Children.Add(new TextBlock
             {
                 Text = _zh
-                    ? "IPA ↔ 16 维发音特征向量的 WinUI 3 工作台。"
+                    ? $"IPA ↔ {Core.NDim} 维发音特征向量的 WinUI 3 工作台。"
                     : "WinUI 3 workbench for the vec4ipa tool suite: "
-                      + "IPA <-> 16-D articulatory vectors.",
+                      + $"IPA <-> {Core.NDim}-D articulatory vectors.",
                 TextWrapping = TextWrapping.Wrap,
             });
             body.Children.Add(new TextBlock
@@ -3875,22 +3875,28 @@ namespace Vec4ipaUI
         private async void ExportCmd_Click(object sender, RoutedEventArgs e)
         {
             string dir = AppContext.BaseDirectory;
+            // The axis list and the example vector come from the loaded
+            // scheme, not from a literal: this dialog used to spell out
+            // SPEC-NEXT's sixteen names and a sixteen-number example,
+            // which is simply wrong the moment a --scheme FILE is loaded.
+            var axisList = string.Join(", ", Core.DimNames);
+            var ex = Core.ForwardRaw("t");
+            var exampleVec = ex == null ? string.Empty
+                : string.Join(",", ex[0].Select(v => v.ToString("0.##",
+                    System.Globalization.CultureInfo.InvariantCulture)));
             string text =
                 "# vec4ipa CLI commands\n" +
                 $"# app directory: {dir}\n\n" +
-                ":: ipa2vec - IPA -> 16-D vectors\n" +
-                $"\"{Path.Combine(dir, "tools", "ipa2vec.exe")}\" --narrowness 3 -L \"\\\"\\u02c8t\\u02b0a\\\"\"\n\n" +
-                ":: vec2ipa - 16-D vector -> IPA (SPEC-NEXT order:\n" +
-                "::   place, body, lips_closed, lips_rounded, tip_shape,\n" +
-                "::   tongue_root, vel_open, lateral_ratio, voiced,\n" +
-                "::   glottal_aperture, glottal_tension, larynx_height,\n" +
-                "::   duration, jet_focus, effective_oral_area, airflow)\n" +
+                $":: ipa2vec - IPA -> {Core.NDim}-D vectors\n" +
+                $"\"{Path.Combine(dir, "tools", "ipa2vec.exe")}\" --narrowness 3 -L \"\\\"\u02c8t\u02b0a\\\"\"\n\n" +
+                $":: vec2ipa - {Core.NDim}-D vector -> IPA (axis order:\n" +
+                $"::   {axisList})\n" +
                 $"\"{Path.Combine(dir, "tools", "vec2ipa.exe")}\" --narrowness 3 " +
-                "\"-0.45,0,0,0,1,0,0,0,0,0.4,0,0,0,0,0,1\"\n\n" +
+                $"\"{exampleVec}\"\n\n" +
                 ":: vec4ipa - inventory / query / reverse\n" +
-                $"\"{Path.Combine(dir, "tools", "vec4ipa.exe")}\" -q \\u02b0\n" +
+                $"\"{Path.Combine(dir, "tools", "vec4ipa.exe")}\" -q \u02b0\n" +
                 $"\"{Path.Combine(dir, "tools", "vec4ipa.exe")}\" --narrowness 3 -r " +
-                "\"-0.45,0,0,0,1,0,0,0,0,0.4,0,0,0,0,0,1\"\n";
+                $"\"{exampleVec}\"\n";
             var dlg = new ContentDialog
             {
                 XamlRoot = Content.XamlRoot,

@@ -104,6 +104,11 @@ test: all
 	# diffs it against the CLI -- value for value, because a mis-strided wrapper
 	# fills the tail with ANOTHER segment's coordinates.
 	$(PYTHON) tools/test_winui_core.py
+	# MainWindow.xaml.cs cannot be compiled here (WinUI references), so this
+	# compiles it and requires that every diagnostic be a missing type -- a
+	# parse error means an edit broke the file.
+	$(PYTHON) tools/check_mainwindow_syntax.py
+
 
 ifeq ($(OS),Windows_NT)
 DEL_CMD = cmd /c del /Q /F
