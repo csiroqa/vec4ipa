@@ -68,6 +68,21 @@ def main():
     vd = [table[s][OI['voiced']] for s in syms]
     merge_src = bool(np.corrcoef(ap, tn)[0, 1] < -0.6)
 
+    # `periodic` was being filled from the old table's `voiced` axis, which is
+    # what made 32 of 133 symbols share a vector with their twin: the five
+    # clicks (ǀ ǁ ǃ ǂ ʘ) carry airflow_direction -1 and were indistinguishable
+    # from an oral stop at the same place -- ǂ == c, ʘ == p, ǁ == t. Reverse
+    # reconstruction cannot separate symbols whose vectors are identical, so
+    # that capped it at ~101/133 regardless of the metric.
+    #
+    # The axis is NAMED periodic, so periodicity is what belongs on it: 0 for a
+    # rarefied intraoral air impulse (click), 1 for continuous oral airflow.
+    # That is one definition applied to every phoneme -- vowels and oral
+    # consonants alike take 1 -- so it does not breach J6. Voicing is not lost:
+    # it lives on `larynx`, which is where the glottal event already is.
+    fl = [table[s][OI['airflow_direction']] for s in syms]
+    periodic = [0.0 if f < 0 else 1.0 for f in fl]
+
     dims = ([p + '_' + c for p in PARTS for c in ('x', 'y')]
             + ['lip_open', 'lip_round', 'velum', 'lateral', 'larynx',
                'periodic', 'source_tilt', 'duration',
@@ -107,7 +122,7 @@ def main():
         for p in PARTS:
             v.extend(e['tongue'][p])
         v.extend([e['lip_open'], e['lip_round'], e['velum'], e['lateral'],
-                  e['larynx'], vd[i],
+                  e['larynx'], periodic[i],
                   (ap[i] + tn[i]) / 2.0 if merge_src else ap[i],
                   e['duration'], pos, cg])
         if not merge_src:
