@@ -94,7 +94,7 @@ velum, lateral, larynx, periodic, source_tilt, duration`。**已弃用**：丢 1
 不是 Gate 1 的原始几何距离。
 
 **LOCO 0.6488 → 0.5089**：**这个差距是假的，已查实。** 旧表 16 根轴里有 11 根在某一类
-内部是常量，把它们剔掉后旧基线掉到 0.5040，低于新基线的 0.5089。详见 §0.6。
+内部是常量，把它们剔掉后旧基线掉到 0.5040，低于新基线的 0.5089。详见 §0.7。
 **同一判据下新基线略胜。**
 
 ### 0.4 修掉的一个真缺陷
@@ -124,7 +124,47 @@ velum, lateral, larynx, periodic, source_tilt, duration`。**已弃用**：丢 1
   一个指标上，而 Gate 1 用真人数据看不到任何改善——**说明买到的
   0.033 来自对制表约定的拟合，不是来自生理**。
 
-### 0.6 LOCO 差距的构成：**那 0.140 不是信息，是作弊**
+### 0.6 `strident`：**量不存在，且在本音位表内不可检验**
+
+`strident` 在当前基线上是 0.000。查过了，不是度量找不到，是这个量压根没建。
+
+`tools/audit_strident.py` 逐轴量「咝音 vs 非咝音擦音」的可分性，`blade_y` 的
+Cohen's d 高达 **3.902**、单轴 1-NN 准确率 1.000。但这个 d 是假的：
+
+```
+部位          咝音              非咝音擦音
+alveolar      s z               —
+postalveolar  ʃ ʒ              ɧ          ← 全表唯一的同部位对照
+palatoalveol  ɕ ʑ              —
+retroflex     ʂ ʐ              —
+其余八部位     —                全部在这里
+```
+
+**全表唯一的同部位咝音度对照是 `ɧ` 一个符号。** 咝音全在齿龈/龈后/龈龈/卷舌，
+非咝音擦音全在唇、齿、硬腭、软腭、小舌、咽。所以 `blade_y` 的 d=3.9 量的是**部位**，
+不是咝音度——咝音与部位在这份音位表里近乎共线。
+
+只看那唯一诚实的对照 `ʃ ʒ` vs `ɧ`：
+
+```
+18 根轴里 16 根完全相同，只差 periodic 与 source_tilt（即清浊）
+tip_x blade_x dorsum_x constriction_pos constriction_gap  全部逐位相等
+```
+
+**所以 `strident` 在模型里不存在，且无法用本仓数据检验。** 加一根咝音度轴在原理上
+可行（那是真实的声学量，不违反 J6），但要验证它只能拿 `ʃ ʒ vs ɧ` 这一个 n=3 vs n=1
+的对照，或者用 PhonoLib 的 `strident` 标签当答案——后者是拟合答案键，循环。
+
+**结论：这是一条待补的缺口，不是当前可以修的缺陷。** 补它需要独立测量的噪声谱数据，
+本仓目前只有 7 个辅音音位（`fetch_consonant_data.py`，Phatak 与 BDPA 均缺席，
+PhoneticBank 不可达）。
+
+同类的还有 `low`（旧基线清洗后 0.000、新基线 0.125）——元音高度与辅音高度在
+`dorsum_y` 上大量重叠（100 个辅音里有 48 个落在元音高度区间 0.190–0.348 内），
+一根均匀定义的舌高轴在原理上就无法把「低元音」与「低辅音」分开。这不是实现问题，
+是 J6 的必然代价：**要求一根轴对每个音素同一定义，就必然放弃那些本质依赖音类别的区分。**
+
+### 0.7 LOCO 差距的构成：**那 0.140 不是信息，是作弊**
 
 按特征维拆解后，旧基线的优势集中在**元音特征**：`high` +0.326、
 `front` +0.210、`back` +0.197、`tense` +0.276、`consonantal` +0.185。
@@ -871,14 +911,15 @@ min 0.0200  max 0.1800  mean 0.0778  ratio 9.00
 | `tools/gen_groove.py` → `tongue_groove.json` | 腭沟实验（否定结论）、Phatak 交叉核对 | 腭沟 |
 | `tools/fetch_consonant_data.py` → `data/consonant/` | 辅音声学数据（7 音位 / 3 语言） | 辅音数据 |
 | `tools/gen_merged_basis.py` → `merged_basis.json`、`summary_basis.json` | 18 维几何层（**距离度量实际跑在这里**）+ 10 维摘要层（已弃用，丢 1277 个修饰符区分对）；另出 `summary_root.json`（补回舌根后零代价，验证过程）、`summary_height.json`、`summary_both_glottal.json`、`summary_vgap.json`、`summary_vheight.json`（均已判负或非最优）、`summary_uheight.json`、`geom_only.json`（16 维，去掉收缩点冗余） | §0 |
-| `tools/audit_j6_axes.py` → `j6_axis_audit.json`、`old_j6_clean.json` | 量旧表 16 轴的类内方差：11 根类内常量，剔除后 LOCO 由 0.6488 掉到 0.5040 | §0.6 |
-| `tools/audit_loco_features.py` → `loco_feature_audit.json` | LOCO act_prec 逐特征维拆解 | §0.6 |
+| `tools/audit_j6_axes.py` → `j6_axis_audit.json`、`old_j6_clean.json` | 量旧表 16 轴的类内方差：11 根类内常量，剔除后 LOCO 由 0.6488 掉到 0.5040 | §0.7 |
+| `tools/audit_loco_features.py` → `loco_feature_audit.json` | LOCO act_prec 逐特征维拆解 | §0.7 |
 | `tools/audit_modifier_collisions.py` → `modifier_collisions.json` | 同基音修饰符碰撞对比（轮廓 vs 各基线），几何层零丢失 | §0.1 |
 | `tools/audit_modifier_visibility.py` → `modifier_visibility.json` | 13 条修饰符在各基音上的可见距离 | §0.1 |
 | `tools/audit_symbol_assignments.py` → `symbol_audit.json` | 133 符号六项检查的机械复算，当前 0 问题 | `docs/SYMBOL-AUDIT.md` |
+| `tools/audit_strident.py` → `strident_audit.json` | 逐轴量咝音可分性，并证明它与部位共线、唯一同部位对照 ɧ 与 ʃ 在 16/18 轴上逐位相等 | §0.6 |
 | `tools/gate_retrieval.py` → `retrieval_gate.json` | 闸门 1（Phatak 真人混淆，未拟合）与闸门 3（九语种留一语言） | §0 |
 | `tools/fit_metric_full.py` → `metric_full_gate.json` | 全半正定度量 vs 对角度量，**结论为证伪** | §0.5 |
-| `tools/audit_loco_features.py` → `loco_feature_audit.json` | LOCO act_prec 逐特征维拆解 | §0.6 |
+| `tools/audit_loco_features.py` → `loco_feature_audit.json` | LOCO act_prec 逐特征维拆解 | §0.7 |
 
 **复现全部结论**（按顺序，每个都覆盖前一个的产出）：
 

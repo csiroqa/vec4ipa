@@ -1,0 +1,156 @@
+{
+ "stridents": [
+  "s",
+  "sʼ",
+  "z",
+  "ʂ",
+  "ʃ",
+  "ʐ",
+  "ʒ"
+ ],
+ "others": [
+  "f",
+  "v",
+  "x",
+  "ð",
+  "ħ",
+  "ɣ",
+  "ɦ",
+  "ɸ",
+  "ʁ",
+  "ʕ",
+  "β",
+  "θ",
+  "χ"
+ ],
+ "axes": [
+  {
+   "axis": "tip_x",
+   "cohens_d": 0.3842714992158134,
+   "nn_acc": 1.0,
+   "strid_mean": 0.20428571428571426,
+   "other_mean": 0.18461538461538465
+  },
+  {
+   "axis": "tip_y",
+   "cohens_d": 1.7079438904448938,
+   "nn_acc": 1.0,
+   "strid_mean": 0.24857142857142858,
+   "other_mean": 0.16384615384615384
+  },
+  {
+   "axis": "blade_x",
+   "cohens_d": 0.21434276559471788,
+   "nn_acc": 1.0,
+   "strid_mean": 0.2285714285714286,
+   "other_mean": 0.21846153846153846
+  },
+  {
+   "axis": "blade_y",
+   "cohens_d": 3.9018187197426673,
+   "nn_acc": 1.0,
+   "strid_mean": 0.6934285714285714,
+   "other_mean": 0.22615384615384615
+  },
+  {
+   "axis": "dorsum_x",
+   "cohens_d": -1.1571070026881325,
+   "nn_acc": 0.65,
+   "strid_mean": 0.33,
+   "other_mean": 0.3884615384615385
+  },
+  {
+   "axis": "dorsum_y",
+   "cohens_d": -0.8858035417211656,
+   "nn_acc": 0.55,
+   "strid_mean": 0.2857142857142857,
+   "other_mean": 0.3904615384615385
+  },
+  {
+   "axis": "root_x",
+   "cohens_d": 0.6030226891554853,
+   "nn_acc": 0.45,
+   "strid_mean": 0.7199999999999999,
+   "other_mean": 0.716923076923077
+  },
+  {
+   "axis": "root_y",
+   "cohens_d": -0.8439475960818709,
+   "nn_acc": 0.65,
+   "strid_mean": 0.25,
+   "other_mean": 0.29769230769230764
+  },
+  {
+   "axis": "lip_open",
+   "cohens_d": 0.7575540190785708,
+   "nn_acc": 0.8,
+   "strid_mean": 0.35000000000000003,
+   "other_mean": 0.27307692307692305
+  },
+  {
+   "axis": "lip_round",
+   "cohens_d": 0.0,
+   "nn_acc": 0.35,
+   "strid_mean": 0.0,
+   "other_mean": 0.0
+  },
+  {
+   "axis": "velum",
+   "cohens_d": 0.0,
+   "nn_acc": 0.35,
+   "strid_mean": 0.0,
+   "other_mean": 0.0
+  },
+  {
+   "axis": "lateral",
+   "cohens_d": 0.0,
+   "nn_acc": 0.35,
+   "strid_mean": 0.0,
+   "other_mean": 0.0
+  },
+  {
+   "axis": "larynx",
+   "cohens_d": 0.5773502691896256,
+   "nn_acc": 0.35,
+   "strid_mean": 0.14285714285714285,
+   "other_mean": 0.0
+  },
+  {
+   "axis": "periodic",
+   "cohens_d": -0.22124110386665732,
+   "nn_acc": 0.35,
+   "strid_mean": 0.42857142857142855,
+   "other_mean": 0.5384615384615384
+  },
+  {
+   "axis": "source_tilt",
+   "cohens_d": -0.2717256170060068,
+   "nn_acc": 0.3,
+   "strid_mean": 0.05714285714285715,
+   "other_mean": 0.09038461538461538
+  },
+  {
+   "axis": "duration",
+   "cohens_d": -0.6947921371393658,
+   "nn_acc": 0.35,
+   "strid_mean": 0.5285714285714286,
+   "other_mean": 0.6230769230769229
+  },
+  {
+   "axis": "constriction_pos",
+   "cohens_d": -0.566170231106933,
+   "nn_acc": 1.0,
+   "strid_mean": 0.2285714285714286,
+   "other_mean": 0.35307692307692307
+  },
+  {
+   "axis": "constriction_gap",
+   "cohens_d": 0.5853826926493755,
+   "nn_acc": 0.4,
+   "strid_mean": 0.20859999999999998,
+   "other_mean": 0.13230769230769235
+  }
+ ],
+ "best": "blade_y",
+ "best_nn_acc": 1.0
+}
