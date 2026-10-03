@@ -5203,7 +5203,7 @@ static IPA2VEC_MAYBE_UNUSED int opt_match_val(const char *arg,
 }
 
 /* ------------------------------------------------------------------ */
-/* --metric FILE — load a metric.json (weights / lambda / full 16x16  */
+/* --metric FILE — load a metric.json (weights / lambda / full ndim x ndim  */
 /* matrix) at runtime, overriding the compiled-in defaults for this    */
 /* invocation only.  Without --metric the compiled-in METRIC_W /       */
 /* METRIC_LAMBDA are used, so no external JSON is ever required.       */
@@ -5363,8 +5363,13 @@ static IPA2VEC_MAYBE_UNUSED int load_metric_json (const char *path)
         if (c.p >= c.end) goto bad;
         if (*c.p == '}') { c.p++; break; }
         if (json_key(&c, "weights")) {
-            if (json_num_array(&c, g_metric_w, NDIM) != 0) goto bad;
-            for (int i = 0; i < NDIM; i++)
+            /* g_ndim, not NDIM: a --metric FILE describes the scheme that is
+             * loaded, and --scheme can replace the 16 compiled dimensions.
+             * Reading NDIM here would leave the extra axes on whatever the
+             * scheme gave them and accept a file that silently does not
+             * describe the space being searched. */
+            if (json_num_array(&c, g_metric_w, g_ndim) != 0) goto bad;
+            for (int i = 0; i < g_ndim; i++)
                 if (g_metric_w[i] < 0.0) {
                     fprintf(stderr, "--metric: '%s': negative weight for dim %d\n",
                             path, i);
@@ -5385,14 +5390,14 @@ static IPA2VEC_MAYBE_UNUSED int load_metric_json (const char *path)
                 while (c.p < c.end && (isalpha((unsigned char)*c.p))) c.p++;
                 g_metric_full = 0;
             } else {
-                if (json_num_array(&c, &g_metric_M[0][0], NDIM * NDIM) != 0)
+                if (json_num_array(&c, &g_metric_M[0][0], g_ndim * g_ndim) != 0)
                     goto bad;
-                /* M is MAXDIM x MAXDIM; the JSON array is NDIM x NDIM and
+                /* M is MAXDIM x MAXDIM; the JSON array is g_ndim x g_ndim and
                  * json_num_array fills it linearly, so fold it into the
-                 * top-left NDIM x NDIM block of M */
-                for (int r = NDIM; r-- > 0;)
-                    for (int cc = NDIM; cc-- > 0;)
-                        g_metric_M[r][cc] = g_metric_M[0][r * NDIM + cc];
+                 * top-left g_ndim x g_ndim block of M */
+                for (int r = g_ndim; r-- > 0;)
+                    for (int cc = g_ndim; cc-- > 0;)
+                        g_metric_M[r][cc] = g_metric_M[0][r * g_ndim + cc];
                 g_metric_full = 1;
                 have_m = 1;
             }
