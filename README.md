@@ -171,6 +171,29 @@ lips_rounded, tip_shape, tongue_root, vel_open, lateral_ratio, voiced,
 glottal_aperture, glottal_tension, larynx_height, duration, jet_focus,
 effective_oral_area, airflow_direction` (see `docs/SPEC-NEXT.md`).
 
+### An 18-D tongue-contour scheme ships in the repo
+
+`tools/data/tongue.scheme` is a ready-made scheme built on the tongue-contour
+model: eight tongue coordinates plus lips, velum, lateral, larynx, click
+periodicity, glottal tilt, duration, and the two derived axes
+`constriction_pos` / `constriction_gap`. Load it with any tool:
+
+```sh
+vec4ipa -D tools/data/tongue.scheme -q t
+vec2ipa -D tools/data/tongue.scheme "0.15,0.28,...,0.18,0.00"
+```
+
+Everything dimension-dependent follows the loaded scheme: the axis names, the
+weights, the reported width, the `-t` inventory dump and the UI. Modifiers act
+on the contour rather than on the old axes — `ʲ` moves the blade and dorsum,
+`ː` sets duration — and the two derived axes are recomputed after every
+modifier, so a modifier that moves the tongue cannot leave the site behind.
+
+It is not the default: the compiled 16-D scheme remains what you get without
+`-D`, and the two are not interchangeable in their metrics. Measurements for
+both, including where the 18-D basis is weaker, are in
+`docs/TONGUE-MODEL.md` §0.10 and §0.11.
+
 Transcription brackets: `/…/` marks the phonemic level (input /
 alignment display); the reverse fit is phonetic `[…]`, and
 `--narrowness narrowest` (level 4) prints the narrowest transcription
@@ -436,6 +459,27 @@ python3 tools/test_spec_next.py         # 124 checks: 16-dim table + metric JSON
 python3 tools/verify_modifiers.py       # modifier model sanity (design model,
                                         # no binaries needed)
 python3 tools/fuzz_metric_space.py      # random-vector fuzz over the metric
+```
+
+`make test` runs the above plus these. `make verify-commit` extracts HEAD and
+builds *there* — `make test` builds the working tree, so a green run says
+nothing about whether a commit is sound.
+
+```sh
+python3 tools/test_tongue_contour.py     # C contour port vs the Python model:
+                                         # 3458 (segment, rule) pairs, required
+                                         # to be exactly equal
+python3 tools/test_scheme_portability.py # per-scheme: reported width, axis
+                                         # names and order, weights, -t/-q output
+python3 tools/audit_symbol_assignments.py # 133 symbols x 7 checks; forbids two
+                                         # base segments sharing a vector
+python3 tools/check_doc_numbers.py       # docs/TONGUE-MODEL.md figures against
+                                         # the artifacts they cite
+python3 tools/test_winui_core.py         # compiles Core.cs against the real
+                                         # DLL and diffs it against the CLI
+python3 tools/check_mainwindow_syntax.py # MainWindow.xaml.cs must produce no
+                                         # parse-stage errors (the WinUI
+                                         # references are absent on purpose)
 ```
 
 **The clinical/extIPA stress string** — every feature in one input
