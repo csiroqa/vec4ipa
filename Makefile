@@ -83,6 +83,12 @@ test: all
 	$(PYTHON) tools/test_spec_next.py
 	$(PYTHON) tools/test_standard_chinese.py
 	$(PYTHON) tools/verify_modifiers.py
+	# The two checks below guard the scheme-swap path, which `test_spec_next`
+	# cannot see: NDIM equals g_ndim exactly when the compiled 16-dim scheme
+	# is the one loaded, so every NDIM-vs-g_ndim defect is unobservable there.
+	# They must run on every `make test` or they stop guarding anything.
+	$(PYTHON) tools/test_tongue_contour.py
+	$(PYTHON) tools/test_scheme_portability.py
 
 ifeq ($(OS),Windows_NT)
 DEL_CMD = cmd /c del /Q /F
