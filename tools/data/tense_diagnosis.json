@@ -1,0 +1,63 @@
+{
+ "tense_symbols": [
+  "e",
+  "i",
+  "j",
+  "o",
+  "u",
+  "w",
+  "y",
+  "ø",
+  "ɘ",
+  "ɤ",
+  "ɥ",
+  "ɨ",
+  "ɯ",
+  "ɰ",
+  "ɵ",
+  "ʉ",
+  "ʍ"
+ ],
+ "bases": {
+  "old": {
+   "separable": true,
+   "mean_within": 3.4944374286126134,
+   "mean_to_outside": 5.624997040634094,
+   "live_coords": [
+    "place",
+    "body",
+    "lips_closed",
+    "lips_rounded",
+    "tip_shape",
+    "tongue_root",
+    "vel_open",
+    "lateral_ratio",
+    "voiced",
+    "glottal_aperture",
+    "glottal_tension",
+    "larynx_height",
+    "duration",
+    "jet_focus",
+    "effective_oral_area",
+    "airflow_direction"
+   ]
+  },
+  "new": {
+   "separable": true,
+   "mean_within": 3.3068731909666713,
+   "mean_to_outside": 4.491199671229377,
+   "live_coords": [
+    "constriction_pos",
+    "constriction_gap",
+    "lip_open",
+    "lip_round",
+    "velum",
+    "lateral",
+    "larynx",
+    "periodic",
+    "source_tilt",
+    "duration"
+   ]
+  }
+ }
+}
