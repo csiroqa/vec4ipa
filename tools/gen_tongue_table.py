@@ -214,6 +214,17 @@ def main():
         # the distinction onto a second axis. Tongue coordinates do not need
         # the crutch: a retracted lowered tip vs a resting tip is a difference
         # in the very first coordinate.
+        #
+        # An effective_oral_area guard was tried here to keep the glides
+        # (j w ɥ ɰ ʍ) out of this branch. It works -- they are correctly
+        # classified as approximants rather than vowels -- and it makes the
+        # basis WORSE, because `place = 0.00` then snaps them to the retroflex
+        # anchor (whose place value is exactly 0.00) and all five share one
+        # contour: achievable reconstruction drops 122 -> 119. The old table
+        # does not merely overload place=0 against vowels, it assigns it to
+        # five consonants whose real places are palatal (j ɥ) and velar
+        # (w ɰ ʍ). Until those places are authored there is no correct place
+        # to route them to, so the guard stays out; see docs §0.9.9.
         no_place_gesture = abs(place) < 1e-9 and tip < 0.5
 
         if no_place_gesture:
