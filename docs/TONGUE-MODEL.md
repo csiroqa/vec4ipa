@@ -1586,7 +1586,7 @@ tip_x blade_x root_x root_y velum lateral larynx periodic source_tilt duration
 不是同一口径。两边都剔除类内常量轴后重跑（	ools/audit_j6_new_basis.py）：
 
 `
-旧基线 5 根 0.5040
+旧基线 4 根 0.5556   （原文记 5 根 0.5040，见 §0.11.6）
 新基线 8 根 0.5635
 差实         +0.0596
 `

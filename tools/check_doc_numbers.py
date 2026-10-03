@@ -43,6 +43,12 @@ def main():
     loco = gate['gate3_loco']['summary']['new/strict/act_prec'][
         'mean_excl_thin_folds']
     loco_clean = clean['loco']['mean_excl_thin_folds']
+    g1 = json.load(io.open(os.path.join(DATA, 'gate1_clean.json'),
+                          encoding='utf-8'))
+    old_audit = json.load(io.open(os.path.join(DATA, 'j6_axis_audit.json'),
+                                 encoding='utf-8'))
+    old_clean = [v for k, v in old_audit['loco_clean'].items()
+                 if k.endswith('strict/act_prec')][0]
     ceiling = len({tuple(basis['table'][s]) for s in basis['table']})
 
     checks = [
@@ -58,6 +64,20 @@ def main():
         ('symbol audit problems',
          audit['n_problems'],
          r'133 \u7b26\u53f7 %d \u95ee\u9898' % audit['n_problems']),
+        # The three below are the ones two headline comparisons got wrong.
+        # Each was a real number from a real artifact -- but from the UNCLEANED
+        # old basis, which leans on class-constant axes far more heavily. Both
+        # corrections were found by hand, one at a time, after the fact; they
+        # are here so the next one is caught the moment the artifact changes.
+        ('Gate 1, new basis cleaned',
+         g1['hit1_clean']['new/z-euclid'],
+         r'\u6e05\u6d17\u540e\s+0\.\d{4}'),
+        ('Gate 1, old basis cleaned',
+         g1['hit1_clean']['old/z-euclid'],
+         r'\u6e05\u6d17\u540e\s+0\.\d{4}\s+0\.\d{4}'),
+        ('LOCO, old basis cleaned',
+         round(old_clean, 4),
+         r'\u65e7\u57fa\u7ebf %d \u6839 0\.\d{4}' % len(old_audit['kept'])),
     ]
 
     bad = []
