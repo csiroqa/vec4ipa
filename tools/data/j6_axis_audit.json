@@ -26,7 +26,7 @@
    "dead_in": "vowels"
   },
   "tongue_root": {
-   "vowel_sd": 0.20018357048380298,
+   "vowel_sd": 0.200183570483803,
    "consonant_sd": 0.0,
    "dead_in": "consonants"
   },
@@ -46,7 +46,7 @@
    "dead_in": null
   },
   "glottal_aperture": {
-   "vowel_sd": 0.06856793029687734,
+   "vowel_sd": 0.06856793029687736,
    "consonant_sd": 0.42821256403800195,
    "dead_in": null
   },

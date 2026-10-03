@@ -1,0 +1,456 @@
+{
+ "basis": "summary_root.json",
+ "bases": [
+  "k",
+  "t",
+  "l",
+  "i",
+  "s",
+  "m"
+ ],
+ "invisible_tol": 1e-06,
+ "modifiers": [
+  {
+   "modifier": "apical",
+   "min_distance": 0.0,
+   "max_distance": 0.058655008311311325,
+   "invisible_on": [
+    "k",
+    "i",
+    "m"
+   ],
+   "per_base": {
+    "k": {
+     "distance": 0.0,
+     "invisible": true
+    },
+    "t": {
+     "distance": 0.058655008311311325,
+     "invisible": false
+    },
+    "l": {
+     "distance": 0.05865500831131132,
+     "invisible": false
+    },
+    "i": {
+     "distance": 0.0,
+     "invisible": true
+    },
+    "s": {
+     "distance": 0.05865500831131132,
+     "invisible": false
+    },
+    "m": {
+     "distance": 0.0,
+     "invisible": true
+    }
+   }
+  },
+  {
+   "modifier": "centralized",
+   "min_distance": 0.0,
+   "max_distance": 0.08816552614259159,
+   "invisible_on": [
+    "t",
+    "l",
+    "s",
+    "m"
+   ],
+   "per_base": {
+    "k": {
+     "distance": 0.08816552614259159,
+     "invisible": false
+    },
+    "t": {
+     "distance": 0.0,
+     "invisible": true
+    },
+    "l": {
+     "distance": 0.0,
+     "invisible": true
+    },
+    "i": {
+     "distance": 0.08060754636268407,
+     "invisible": false
+    },
+    "s": {
+     "distance": 0.0,
+     "invisible": true
+    },
+    "m": {
+     "distance": 0.0,
+     "invisible": true
+    }
+   }
+  },
+  {
+   "modifier": "dental",
+   "min_distance": 0.0,
+   "max_distance": 0.2435159132377184,
+   "invisible_on": [
+    "k",
+    "i",
+    "m"
+   ],
+   "per_base": {
+    "k": {
+     "distance": 0.0,
+     "invisible": true
+    },
+    "t": {
+     "distance": 0.07999999999999999,
+     "invisible": false
+    },
+    "l": {
+     "distance": 0.2435159132377184,
+     "invisible": false
+    },
+    "i": {
+     "distance": 0.0,
+     "invisible": true
+    },
+    "s": {
+     "distance": 0.161245154965971,
+     "invisible": false
+    },
+    "m": {
+     "distance": 0.0,
+     "invisible": true
+    }
+   }
+  },
+  {
+   "modifier": "laminal",
+   "min_distance": 0.0,
+   "max_distance": 0.029290954235053537,
+   "invisible_on": [
+    "k",
+    "i",
+    "m"
+   ],
+   "per_base": {
+    "k": {
+     "distance": 0.0,
+     "invisible": true
+    },
+    "t": {
+     "distance": 0.029290954235053537,
+     "invisible": false
+    },
+    "l": {
+     "distance": 0.02929095423505352,
+     "invisible": false
+    },
+    "i": {
+     "distance": 0.0,
+     "invisible": true
+    },
+    "s": {
+     "distance": 0.02929095423505352,
+     "invisible": false
+    },
+    "m": {
+     "distance": 0.0,
+     "invisible": true
+    }
+   }
+  },
+  {
+   "modifier": "midcent",
+   "min_distance": 0.0,
+   "max_distance": 0.0,
+   "invisible_on": [
+    "k",
+    "t",
+    "l",
+    "i",
+    "s",
+    "m"
+   ],
+   "per_base": {
+    "k": {
+     "distance": 0.0,
+     "invisible": true
+    },
+    "t": {
+     "distance": 0.0,
+     "invisible": true
+    },
+    "l": {
+     "distance": 0.0,
+     "invisible": true
+    },
+    "i": {
+     "distance": 0.0,
+     "invisible": true
+    },
+    "s": {
+     "distance": 0.0,
+     "invisible": true
+    },
+    "m": {
+     "distance": 0.0,
+     "invisible": true
+    }
+   }
+  },
+  {
+   "modifier": "palatalized",
+   "min_distance": 0.0,
+   "max_distance": 0.2761421554199938,
+   "invisible_on": [
+    "m"
+   ],
+   "per_base": {
+    "k": {
+     "distance": 0.050144192086422124,
+     "invisible": false
+    },
+    "t": {
+     "distance": 0.08000000000000002,
+     "invisible": false
+    },
+    "l": {
+     "distance": 0.2761421554199938,
+     "invisible": false
+    },
+    "i": {
+     "distance": 0.13148496945992558,
+     "invisible": false
+    },
+    "s": {
+     "distance": 0.161245154965971,
+     "invisible": false
+    },
+    "m": {
+     "distance": 0.0,
+     "invisible": true
+    }
+   }
+  },
+  {
+   "modifier": "retracted",
+   "min_distance": 0.05999999999999994,
+   "max_distance": 0.10646356184159915,
+   "invisible_on": [],
+   "per_base": {
+    "k": {
+     "distance": 0.08485281374238575,
+     "invisible": false
+    },
+    "t": {
+     "distance": 0.10646356184159915,
+     "invisible": false
+    },
+    "l": {
+     "distance": 0.10646356184159907,
+     "invisible": false
+    },
+    "i": {
+     "distance": 0.10645493441463628,
+     "invisible": false
+    },
+    "s": {
+     "distance": 0.10646356184159915,
+     "invisible": false
+    },
+    "m": {
+     "distance": 0.05999999999999994,
+     "invisible": false
+    }
+   }
+  },
+  {
+   "modifier": "velarized",
+   "min_distance": 0.08246211251235323,
+   "max_distance": 0.23407115610952364,
+   "invisible_on": [],
+   "per_base": {
+    "k": {
+     "distance": 0.20130812204180934,
+     "invisible": false
+    },
+    "t": {
+     "distance": 0.08246211251235323,
+     "invisible": false
+    },
+    "l": {
+     "distance": 0.08246211251235323,
+     "invisible": false
+    },
+    "i": {
+     "distance": 0.23407115610952364,
+     "invisible": false
+    },
+    "s": {
+     "distance": 0.08246211251235323,
+     "invisible": false
+    },
+    "m": {
+     "distance": 0.08246211251235323,
+     "invisible": false
+    }
+   }
+  },
+  {
+   "modifier": "advanced",
+   "min_distance": 0.08485281374238575,
+   "max_distance": 0.6302380502635491,
+   "invisible_on": [],
+   "per_base": {
+    "k": {
+     "distance": 0.10664501863659646,
+     "invisible": false
+    },
+    "t": {
+     "distance": 0.08485281374238575,
+     "invisible": false
+    },
+    "l": {
+     "distance": 0.6302380502635491,
+     "invisible": false
+    },
+    "i": {
+     "distance": 0.13142129250029835,
+     "invisible": false
+    },
+    "s": {
+     "distance": 0.163707055437449,
+     "invisible": false
+    },
+    "m": {
+     "distance": 0.20880613017821034,
+     "invisible": false
+    }
+   }
+  },
+  {
+   "modifier": "atr",
+   "min_distance": 0.12806248474865697,
+   "max_distance": 0.48290785870598546,
+   "invisible_on": [],
+   "per_base": {
+    "k": {
+     "distance": 0.16401219466856723,
+     "invisible": false
+    },
+    "t": {
+     "distance": 0.14142135623730948,
+     "invisible": false
+    },
+    "l": {
+     "distance": 0.12806248474865697,
+     "invisible": false
+    },
+    "i": {
+     "distance": 0.14142135623730948,
+     "invisible": false
+    },
+    "s": {
+     "distance": 0.48290785870598546,
+     "invisible": false
+    },
+    "m": {
+     "distance": 0.12806248474865697,
+     "invisible": false
+    }
+   }
+  },
+  {
+   "modifier": "rtr",
+   "min_distance": 0.12806248474865697,
+   "max_distance": 0.12806248474865697,
+   "invisible_on": [],
+   "per_base": {
+    "k": {
+     "distance": 0.12806248474865697,
+     "invisible": false
+    },
+    "t": {
+     "distance": 0.12806248474865697,
+     "invisible": false
+    },
+    "l": {
+     "distance": 0.12806248474865697,
+     "invisible": false
+    },
+    "i": {
+     "distance": 0.12806248474865697,
+     "invisible": false
+    },
+    "s": {
+     "distance": 0.12806248474865697,
+     "invisible": false
+    },
+    "m": {
+     "distance": 0.12806248474865697,
+     "invisible": false
+    }
+   }
+  },
+  {
+   "modifier": "labialized",
+   "min_distance": 0.3,
+   "max_distance": 0.4176733417494624,
+   "invisible_on": [],
+   "per_base": {
+    "k": {
+     "distance": 0.3174386397400291,
+     "invisible": false
+    },
+    "t": {
+     "distance": 0.3,
+     "invisible": false
+    },
+    "l": {
+     "distance": 0.3,
+     "invisible": false
+    },
+    "i": {
+     "distance": 0.4176733417494624,
+     "invisible": false
+    },
+    "s": {
+     "distance": 0.3,
+     "invisible": false
+    },
+    "m": {
+     "distance": 0.3,
+     "invisible": false
+    }
+   }
+  },
+  {
+   "modifier": "pharyngeal",
+   "min_distance": 0.3310589071449369,
+   "max_distance": 0.7639790573045834,
+   "invisible_on": [],
+   "per_base": {
+    "k": {
+     "distance": 0.5269762803011157,
+     "invisible": false
+    },
+    "t": {
+     "distance": 0.331058907144937,
+     "invisible": false
+    },
+    "l": {
+     "distance": 0.3310589071449369,
+     "invisible": false
+    },
+    "i": {
+     "distance": 0.34058772731852804,
+     "invisible": false
+    },
+    "s": {
+     "distance": 0.7639790573045834,
+     "invisible": false
+    },
+    "m": {
+     "distance": 0.3310589071449369,
+     "invisible": false
+    }
+   }
+  }
+ ]
+}
