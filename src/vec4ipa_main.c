@@ -153,7 +153,7 @@ static void print_seg_query(int s, const ParseOut *po, const char *const *bases,
         printf(" + [%s]", words);
     printf("  (%s)\n", AIRSTREAM_LABELS[sv->airstream]);
     printf("    vector: (");
-    for (int j = 0; j < NDIM; j++)
+    for (int j = 0; j < g_ndim; j++)
         printf("%s%.4f", j ? ", " : "", sv->v[j]);
     printf(")");
     print_tone(sv);
@@ -301,7 +301,10 @@ static void print_stats(void)
     printf("precomposed chars:           %d\n", NPRECOMP);
     printf("alias modules:               %d (%d symbols)\n", N_ALIAS_MODULES, nmod);
     printf("implicit affricates:         %d\n", NNOLIG);
-    printf("dimensions:                  %d\n", NDIM);
+    /* g_ndim, not NDIM: NDIM is the compiled-in scheme's width, and a
+     * --scheme FILE can replace it. Reporting NDIM here would claim 16
+     * dimensions while the loaded scheme has 18. */
+    printf("dimensions:                  %d\n", g_ndim);
     metric_ensure();
     printf("lambda:                      %.2f\n", g_metric_lambda);
     printf("airstreams:                  %s | %s | %s | %s | %s\n",
@@ -314,8 +317,8 @@ static void print_weights(void)
     metric_ensure();
     printf("# dimension weights (compiled-in defaults from spec_next.scheme)\n");
     printf("# --metric FILE overrides these at runtime\n");
-    for (int i = 0; i < NDIM; i++)
-        printf("%2d  %-22s %8.4f\n", i, DIM_NAMES[i],
+    for (int i = 0; i < g_ndim; i++)
+        printf("%2d  %-22s %8.4f\n", i, g_dimname[i] ? g_dimname[i] : DIM_NAMES[i],
                g_metric_full ? g_metric_M[i][i] : g_metric_w[i]);
     if (g_metric_full)
         printf("# full 16x16 metric matrix in effect (off-diagonal terms active)\n");
