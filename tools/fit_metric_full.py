@@ -17,6 +17,13 @@ defence, and it has to CLOSE the gap, not merely improve. A partial improvement
 still leaves the old basis ahead and is reported as a loss.
 
 Run: python tools/fit_metric_full.py
+
+ONE-OFF EXPERIMENT, not a generator. It answers a single question -- whether
+the new basis loses on place because of the metric FORM or the geometry -- and
+writes `metric_full_gate.json`, which nothing in the build reads. The two live
+metric fitters are `fit_metric.py` (writes `metric.json`, the deployed metric)
+and `fit_metric16.py` (writes `metric16.json`, the 16-dim scheme's); all three
+being called `fit_metric*` is why this note exists.
 """
 
 import io
