@@ -111,6 +111,10 @@ test: all
 	# The README's hand-maintained test list drifted the same round it was
 	# written: three checks never made it in. This keeps the two in agreement.
 	$(PYTHON) tools/check_readme_tests.py
+	# Every repository path the documents tell a reader to open. This round
+	# added a lot of runnable detail, and a path that no longer exists breaks
+	# the reader's first command.
+	$(PYTHON) tools/check_doc_paths.py
 	# The WinUI wrapper hands the managed side one width and the two must agree with
 	# the loaded scheme. vec4ipa_ui.csproj cannot be built here (it needs the
 	# AppxPackage targets), so this compiles Core.cs against the real DLL and

@@ -485,6 +485,7 @@ python3 tools/check_doc_structure.py     # section numbering sequential, no
 python3 tools/check_generated_current.py  # the 11 generated artifacts still
                                          # match their generators
 python3 tools/check_readme_tests.py       # this list agrees with make test
+python3 tools/check_doc_paths.py          # every path the docs name still exists
 python3 tools/verify_commit.py            # `make test` builds the working
                                          # tree; this one builds the commit
 ```
