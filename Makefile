@@ -115,6 +115,12 @@ test: all
 	# added a lot of runnable detail, and a path that no longer exists breaks
 	# the reader's first command.
 	$(PYTHON) tools/check_doc_paths.py
+	# The WinUI project really compiles. It could not be built here until the
+	# SDK was installed, and that gap hid ten references to a deleted constant:
+	# check_mainwindow_syntax.py passes on a file that does not compile,
+	# because the missing member is not a parse-stage error. Needs Visual
+	# Studio's MSBuild -- dotnet build cannot load the PRI tasks.
+	$(PYTHON) tools/build_winui.py --skip-if-unavailable
 	# The WinUI wrapper hands the managed side one width and the two must agree with
 	# the loaded scheme. vec4ipa_ui.csproj cannot be built here (it needs the
 	# AppxPackage targets), so this compiles Core.cs against the real DLL and
