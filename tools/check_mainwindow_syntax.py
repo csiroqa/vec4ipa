@@ -105,8 +105,10 @@ def main():
         return 1
 
     print('\nPASS: only missing-reference diagnostics, and no literal width in '
-          'the XAML. The edits did not break the syntax; whether the WinUI '
-          'project builds still needs a machine with the Windows SDK.')
+          'the XAML.\nThis is the cheap half. tools/build_winui.py compiles the '
+          'project for real,\nand that is what caught ten references to a '
+          'deleted constant which\npassed here for as long as the project '
+          'could not be built at all.')
     return 0
 
 
