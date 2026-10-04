@@ -98,6 +98,10 @@ test: all
 	# moves the numbers under it. This is the check that keeps a conclusion
 	# from outliving its evidence.
 	$(PYTHON) tools/check_doc_numbers.py
+	# Numbering order and dangling cross-references. Invisible to the figure
+	# check: a document can quote correct numbers and still send the reader
+	# to a section that does not exist.
+	$(PYTHON) tools/check_doc_structure.py
 	# A generated artifact that is not committed with its generator leaves the
 	# repo holding two truths, and every number measured from it is one
 	# revision behind the code. That happened to tongue_forward.json once.
