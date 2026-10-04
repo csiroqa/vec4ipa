@@ -130,6 +130,10 @@ test: all
 	# reproducible; adding a row-dependent term to the substitution cost makes
 	# it report 2 axiom violations and exit 1.
 	$(PYTHON) tools/validate_alignment.py
+	# A modifier must move the axis it names, as seen through the built
+	# binary. The unit guards above sit either side of that layer and cannot
+	# see a regression in it.
+	$(PYTHON) tools/test_modifiers_end_to_end.py
 	# The WinUI wrapper hands the managed side one width and the two must agree with
 	# the loaded scheme. vec4ipa_ui.csproj cannot be built here (it needs the
 	# AppxPackage targets), so this compiles Core.cs against the real DLL and

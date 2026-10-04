@@ -487,6 +487,8 @@ python3 tools/check_generated_current.py  # the 11 generated artifacts still
 python3 tools/check_readme_tests.py       # this list agrees with make test
 python3 tools/check_doc_paths.py          # every path the docs name still exists
 python3 tools/audit_modifier_collisions.py   # narrowing the basis must not merge modifiers
+python3 tools/test_modifiers_end_to_end.py  # each modifier moves the axis it
+                                         # names, through the built binary
 python3 tools/validate_alignment.py           # seven axioms over 400 fuzz pairs on
                                          # the curve-distance alignment
 python3 tools/build_winui.py               # compiles the WinUI project with
