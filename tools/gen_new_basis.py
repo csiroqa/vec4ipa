@@ -14,6 +14,15 @@ applied if the data supports it; otherwise both are kept and the basis is 17
 dims wide.
 
 Run: python tools/gen_new_basis.py
+
+SUPERSEDED by tools/gen_merged_basis.py, which is what the runtime and every
+gate read. This writes a 16-dim `new_basis.json`; the deployed basis is
+18-dim `merged_basis.json`, which adds the two derived site axes and settles
+the periodic/voicing split this script left open. Nothing reads
+`new_basis.json` -- the script is kept because it records the step where the
+voicing cells were found to be structurally unanswerable, not because it
+produces anything in use. Running it is harmless: it does not write any
+artifact the build consumes.
 """
 
 import io
