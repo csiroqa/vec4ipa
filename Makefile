@@ -103,6 +103,7 @@ test: all
 	# revision behind the code. That happened to tongue_forward.json once.
 	$(PYTHON) tools/check_generated_current.py
 
+
 	# The WinUI wrapper hands the managed side one width and the two must agree with
 	# the loaded scheme. vec4ipa_ui.csproj cannot be built here (it needs the
 	# AppxPackage targets), so this compiles Core.cs against the real DLL and
