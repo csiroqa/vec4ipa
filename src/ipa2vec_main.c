@@ -1,5 +1,6 @@
 /*
- * ipa2vec — IPA/extIPA string → 16-D articulatory vectors.
+ * ipa2vec — IPA/extIPA string → articulatory vectors (as wide as the loaded
+ * scheme; the compiled default is 16-D).
  *
  * Usage:
  *   ipa2vec [OPTIONS] [STRING]
@@ -22,7 +23,8 @@
 
 static void usage(void)
 {
-    printf("ipa2vec — IPA/extIPA → 16-D articulatory vectors\n\n");
+    printf("ipa2vec — IPA/extIPA → articulatory vectors (as wide as the loaded"
+           " scheme)\n\n");
     printf("usage:\n");
     printf("  ipa2vec [OPTIONS] [STRING]\n");
     printf("\noptions:\n");
@@ -71,8 +73,11 @@ int main(int argc, char **argv)
         if (oc == 1) continue;
         if (oc == -1 || oc == -2) return 1;
         if (opt_match(argv[i], "-v", "--version")) {
-            printf("ipa2vec %s (16-D vectors, %d base segments, lambda=%.2f)\n",
-                   IPA2VEC_VERSION, NSEG, METRIC_LAMBDA);
+            /* g_ndim/g_nseg, not NDIM/NSEG: --scheme replaces the vector
+             * space, and a banner that still says 16-D while the tool works in
+             * 18 is the same stale-literal class as the UI text was. */
+            printf("ipa2vec %s (%d-D vectors, %d base segments, lambda=%.2f)\n",
+                   IPA2VEC_VERSION, g_ndim, g_nseg, METRIC_LAMBDA);
             return 0;
         }
         if (opt_match(argv[i], "-L", "--layers") || opt_match(argv[i], "-e", "--ir")) { ir = 1; if (i + 1 < argc) str = argv[++i]; else { fprintf(stderr, "ipa2vec: -L/--layers needs a string\n"); return 1; } continue; }

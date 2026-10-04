@@ -31,7 +31,8 @@ import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, 'tools', 'data')
-VEC4IPA = os.path.join(ROOT, 'vec4ipa.exe' if os.name == 'nt' else 'vec4ipa')
+EXE = '.exe' if os.name == 'nt' else ''
+VEC4IPA = os.path.join(ROOT, 'vec4ipa' + EXE)
 
 SCHEMES = ['spec_next.scheme', 'tongue.scheme']
 
@@ -170,6 +171,37 @@ def main():
             n = len([x for x in groups[1].split(',') if x.strip()])
             check(n == ndim, '%s: -q vector width' % name,
                   'printed %d, expected %d' % (n, ndim))
+
+        # No user-visible string may claim a literal width. The version banner
+        # used to print NDIM and NSEG, so under an 18-dim scheme ipa2vec -v
+        # announced "16-D vectors" while working in 18 -- the same stale-literal
+        # class already found and fixed in both UIs. Checked here because the
+        # C side is the one that actually runs, and across all three tools:
+        # vec4ipa's banner reports no width at all, which is fine, so the rule
+        # is "any width reported must be right, and no literal may appear".
+        for tool in ('ipa2vec', 'vec2ipa', 'vec4ipa'):
+            exe = os.path.join(ROOT, tool + EXE)
+            r = subprocess.run([exe, '-D', path, '-v'],
+                               capture_output=True, text=True)
+            v = r.stdout + r.stderr
+            mv = re.search(r'\((\d+)-D vectors, (\d+) base segments', v)
+            if mv:
+                check(int(mv.group(1)) == ndim,
+                      '%s %s -v width' % (name, tool),
+                      'says %s, scheme says %d' % (mv.group(1), ndim))
+            # Every width the banner prints must be the loaded one. The
+            # format string legitimately says %d-D, so the output will always
+            # contain a "<n>-D"; what must not appear is a DIFFERENT one.
+            widths = set(re.findall(r'\b(\d+)-D\b', v))
+            check(widths <= {str(ndim)},
+                  '%s %s -v prints only the loaded width' % (name, tool),
+                  'printed %s, scheme says %d' % (sorted(widths), ndim))
+            r = subprocess.run([exe, '-D', path, '-h'],
+                               capture_output=True, text=True)
+            h = r.stdout + r.stderr
+            hl = re.findall(r'\b\d+-D\b', h)
+            check(not hl, '%s %s --help states no width at all'
+                  % (name, tool), 'found %r' % (hl[:3],))
 
         print('%d/%d checks passed' % (checks - len(fails), checks))
     for f in fails:

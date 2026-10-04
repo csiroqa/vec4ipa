@@ -1,8 +1,9 @@
 /*
- * vec2ipa — 16-D articulatory vector → IPA/extIPA.
+ * vec2ipa — articulatory vector → IPA/extIPA (as wide as the loaded scheme;
+ * the compiled default is 16-D).
  *
  * Usage:
- *   vec2ipa [OPTIONS] [V0,...,V15]
+ *   vec2ipa [OPTIONS] [V0,...,V<n-1>]   (n = axes in the loaded scheme)
  *
  *   -r, --reverse <VEC>   nearest segment + modifier fit -> IPA (default)
  *   -n, --nearest <VEC>   nearest base segment only
@@ -22,9 +23,10 @@
 
 static void usage(void)
 {
-    printf("vec2ipa — 16-D articulatory vectors → IPA/extIPA\n\n");
+    printf("vec2ipa — articulatory vectors → IPA/extIPA (as wide as the loaded"
+           " scheme)\n\n");
     printf("usage:\n");
-    printf("  vec2ipa [OPTIONS] [V0,...,V15]\n");
+    printf("  vec2ipa [OPTIONS] [V0,...,V<n-1>]\n");
     printf("\noptions:\n");
     printf("  -r, --reverse <VEC>    nearest segment + modifier fit -> IPA (default)\n");
     printf("  -n, --nearest <VEC>    nearest base segment only\n");
@@ -70,8 +72,11 @@ int main(int argc, char **argv)
         if (oc == 1) continue;
         if (oc == -1 || oc == -2) return 1;
         if (opt_match(argv[i], "-v", "--version")) {
-            printf("vec2ipa %s (16-D vectors, %d base segments, lambda=%.2f)\n",
-                   IPA2VEC_VERSION, NSEG, METRIC_LAMBDA);
+            /* g_ndim/g_nseg, not NDIM/NSEG: --scheme replaces the vector space, and a
+             * banner that still says 16-D while the tool works in 18 is the
+             * same stale-literal class as the UI text was. */
+            printf("vec2ipa %s (%d-D vectors, %d base segments, lambda=%.2f)\n",
+                   IPA2VEC_VERSION, g_ndim, g_nseg, METRIC_LAMBDA);
             return 0;
         }
         if (opt_match(argv[i], "-n", "--nearest")) { nearest_only = 1; if (i + 1 < argc) vecstr = argv[++i]; else { fprintf(stderr, "vec2ipa: -n/--nearest needs a vector\n"); return 1; } continue; }
