@@ -1,6 +1,12 @@
 {
  "rows": [
   {
+   "script": "_common.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
    "script": "audit_anchors.py",
    "kind": "REPORT",
    "in_make_test": false,
@@ -97,7 +103,19 @@
    "can_fail": false
   },
   {
+   "script": "catalogue_audits.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": true
+  },
+  {
    "script": "check_doc_numbers.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "check_doc_paths.py",
    "kind": "GATE",
    "in_make_test": true,
    "can_fail": true
@@ -119,6 +137,198 @@
    "kind": "GATE",
    "in_make_test": true,
    "can_fail": true
+  },
+  {
+   "script": "check_readme_tests.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "diagnose_tense.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "explore_dims.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "explore_ml.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "export_scheme.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "export_tongue_scheme.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "fetch_consonant_data.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": true
+  },
+  {
+   "script": "fit_distribution.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "fit_masked.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "fit_metric.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": true
+  },
+  {
+   "script": "fit_metric16.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "fit_metric_full.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "fit_tongue_forward.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "fuzz_metric_space.py",
+   "kind": "CLAIMED",
+   "in_make_test": false,
+   "can_fail": true
+  },
+  {
+   "script": "gate_retrieval.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "gen_acoustic_anchors.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "gen_anchors.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "gen_bark_anchors.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "gen_groove.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "gen_merged_basis.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "gen_new_basis.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "gen_readme_embed.py",
+   "kind": "REPORT",
+   "in_make_test": true,
+   "can_fail": false
+  },
+  {
+   "script": "gen_tongue_model.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "gen_tongue_modifiers.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "gen_tongue_table.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "gen_tract.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "gen_vec_table.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "gen_vectors_h.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "gen_vowel3d.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "opt_vowels.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "place_anchors.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "plan_anchors.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
   },
   {
    "script": "test_alignment.py",
@@ -169,6 +379,12 @@
    "can_fail": true
   },
   {
+   "script": "validate_alignment.py",
+   "kind": "CLAIMED",
+   "in_make_test": false,
+   "can_fail": true
+  },
+  {
    "script": "verify_commit.py",
    "kind": "GATE",
    "in_make_test": true,
@@ -182,8 +398,8 @@
   }
  ],
  "counts": {
-  "REPORT": 13,
-  "CLAIMED": 2,
-  "GATE": 15
+  "REPORT": 44,
+  "CLAIMED": 4,
+  "GATE": 18
  }
 }

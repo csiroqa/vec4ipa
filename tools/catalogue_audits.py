@@ -49,9 +49,21 @@ def wired(path):
     return ('tools/' + os.path.basename(path)) in mk
 
 
+# Names that suggest the file is asserting something, as opposed to
+# producing data. `fetch_consonant_data.py` exits non-zero when the network
+# is down and `fit_metric.py` when the fit diverges -- neither is claiming to
+# guard anything, and listing them as CLAIMED alongside a real unproven gate
+# would blur exactly the distinction this script exists to draw.
+CHECK_SHAPED = re.compile(r'^(audit|check|test|verify|fuzz|validate)_')
+
+
 def main():
+    # Every .py under tools/, not just the check-shaped names. The first
+    # version filtered on audit_/check_/test_/verify_ and so left explore_*,
+    # opt_*, plan_*, place_*, diagose_* and the generators unclassified --
+    # which is exactly where a reader is least sure what a file is for.
     scripts = sorted(f for f in os.listdir(TOOLS)
-                     if re.match(r'(audit|check|test|verify)_.*\.py$', f))
+                     if f.endswith('.py') and not f.startswith('__'))
     rows = []
     for name in scripts:
         path = os.path.join(TOOLS, name)
@@ -59,7 +71,7 @@ def main():
         in_make = wired(path)
         if in_make and can_fail:
             kind = 'GATE'
-        elif can_fail and not in_make:
+        elif can_fail and not in_make and CHECK_SHAPED.match(name):
             kind = 'CLAIMED'
         else:
             kind = 'REPORT'
@@ -69,11 +81,13 @@ def main():
     counts = {}
     for r in rows:
         counts[r['kind']] = counts.get(r['kind'], 0) + 1
-    print('%-44s %-8s %s' % ('script', 'kind', 'in make test'))
-    for r in rows:
-        print('%-44s %-8s %s' % (r['script'], r['kind'], r['in_make_test']))
-    print('\n%s' % ', '.join('%s %d' % (k, counts[k]) for k in sorted(counts)))
+    for kind in ('GATE', 'CLAIMED', 'REPORT'):
+        sel = [r for r in rows if r['kind'] == kind]
+        print('\n== %s (%d) ==' % (kind, len(sel)))
+        for r in sel:
+            print('  %s' % r['script'])
 
+    print('\n%s' % ', '.join('%s %d' % (k, counts[k]) for k in sorted(counts)))
     io.open(OUT, 'w', encoding='utf-8').write(
         json.dumps({'rows': rows, 'counts': counts}, indent=1))
     print('wrote %s' % OUT)
