@@ -125,6 +125,11 @@ test: all
 	# apart. Its own output shows both ends: the deployed basis at 0 affected,
 	# the discarded 12- and 10-dim variants at 133.
 	$(PYTHON) tools/audit_modifier_collisions.py
+	# Seven axioms over 400 fuzz pairs on the curve-distance alignment
+	# (symmetry, identity, mora count, absorption licensing). Fixed seed, so
+	# reproducible; adding a row-dependent term to the substitution cost makes
+	# it report 2 axiom violations and exit 1.
+	$(PYTHON) tools/validate_alignment.py
 	# The WinUI wrapper hands the managed side one width and the two must agree with
 	# the loaded scheme. vec4ipa_ui.csproj cannot be built here (it needs the
 	# AppxPackage targets), so this compiles Core.cs against the real DLL and
