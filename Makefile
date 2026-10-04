@@ -121,6 +121,10 @@ test: all
 	# because the missing member is not a parse-stage error. Needs Visual
 	# Studio's MSBuild -- dotnet build cannot load the PRI tasks.
 	$(PYTHON) tools/build_winui.py --skip-if-unavailable
+	# Narrowing the basis must not merge two modifiers that the contour keeps
+	# apart. Its own output shows both ends: the deployed basis at 0 affected,
+	# the discarded 12- and 10-dim variants at 133.
+	$(PYTHON) tools/audit_modifier_collisions.py
 	# The WinUI wrapper hands the managed side one width and the two must agree with
 	# the loaded scheme. vec4ipa_ui.csproj cannot be built here (it needs the
 	# AppxPackage targets), so this compiles Core.cs against the real DLL and

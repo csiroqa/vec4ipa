@@ -131,11 +131,29 @@ def main():
                            ensure_ascii=False, indent=1))
     print('wrote %s' % out)
 
-    # The deployed basis must lose nothing. Two modifiers that land on the same
-    # vector for the same base segment are indistinguishable to vec2ipa, and no
-    # metric can separate them afterwards -- the same unfixable class as two
-    # base segments sharing a vector. The other rows in this table are
-    # discarded variants and are reported, not judged.
+    # The deployed basis must lose nothing. It asks whether projecting the
+    # contour onto the basis's axes merges two modifiers that the full contour
+    # keeps apart -- two modifiers that land on the same vector for the same
+    # base segment are indistinguishable to vec2ipa, and no metric separates
+    # them afterwards.
+    #
+    # The threshold is `bases_affected`, not `lost`: `lost` is a difference
+    # (negative means the basis separates MORE pairs than the flat contour
+    # does), so it is not a count of lost distinctions.
+    #
+    # Three earlier attempts to prove this fires all used changes too weak to
+    # trigger it, which is why it was briefly left unwired:
+    #   - making two modifiers identical collapses BOTH the contour and the
+    #     basis, so the difference stays 0. That defect is real but is not this
+    #     one's job; it belongs in review of the rule table.
+    #   - dropping one axis changed nothing, because no modifier pair differs
+    #     only in that axis.
+    #   - passing a different basis name changed nothing at all.
+    # What does trigger it is a basis narrow enough that modifiers differ only
+    # outside the kept axes, and the script's own table already shows both ends
+    # of that: the deployed merged_basis.json reports 0 affected and the
+    # discarded 12-dim summary_root.json and 10-dim summary_basis.json both
+    # report 133.
     deployed = [r for r in rows if r['basis'] == DEPLOYED]
     if not deployed:
         print('\n  %s was not audited -- pass it as an argument' % DEPLOYED)
