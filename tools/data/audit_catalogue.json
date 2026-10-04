@@ -1,0 +1,189 @@
+{
+ "rows": [
+  {
+   "script": "audit_anchors.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "audit_axis_coverage.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "audit_f3_regression.py",
+   "kind": "CLAIMED",
+   "in_make_test": false,
+   "can_fail": true
+  },
+  {
+   "script": "audit_gate1_clean.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "audit_j6_axes.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "audit_j6_new_basis.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "audit_larynx_voicing.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "audit_loco_features.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "audit_modifier_collisions.py",
+   "kind": "CLAIMED",
+   "in_make_test": false,
+   "can_fail": true
+  },
+  {
+   "script": "audit_modifier_visibility.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "audit_reverse_fit.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "audit_reverse_margin.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "audit_round_vowels.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "audit_strident.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "audit_symbol_assignments.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "audit_tongue_axes.py",
+   "kind": "REPORT",
+   "in_make_test": false,
+   "can_fail": false
+  },
+  {
+   "script": "check_doc_numbers.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "check_doc_structure.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "check_generated_current.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "check_mainwindow_syntax.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "test_alignment.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "test_metric_space.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "test_scheme_portability.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "test_spec_next.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "test_standard_chinese.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "test_suite.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "test_tongue_contour.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "test_winui_core.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "verify_commit.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
+   "script": "verify_modifiers.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  }
+ ],
+ "counts": {
+  "REPORT": 13,
+  "CLAIMED": 2,
+  "GATE": 15
+ }
+}

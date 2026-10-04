@@ -18,6 +18,41 @@
 
 ---
 
+## 附：本文引用的产出文件
+
+| 文件 | 内容 | 何时由谁写 |
+|------|------|-----------|
+| `tools/gen_tongue_model.py` → `tongue_model.json` | 13 锚点、10 腭节点、25 元音 | 主干 |
+| `tools/gen_tongue_table.py` → `tongue_table.json` | 133 段轮廓 + 方式档案 | 主干 |
+| `tools/gen_tongue_modifiers.py` → `tongue_modifiers.json` | 13 位移 + 13 标量 | 主干 |
+| `tools/fit_tongue_forward.py` → `tongue_forward.json` | F1/F2/F3 的 R²、RMSE、F3 系数 | 主干 |
+| `tools/audit_tongue_axes.py` → `audit_tongue_axes.json` | 10 坐标等级（旧基同尺打分）、单射性、冗余、`place=0` 过载 | 死轴审计 |
+| `tools/gen_tract.py` → `tract_parts.json` | 颌/唇/喉三坐标、圆唇配对测量、共线性秩 | 颌/喉 |
+| `tools/gen_groove.py` → `tongue_groove.json` | 腭沟实验（否定结论）、Phatak 交叉核对 | 腭沟 |
+| `tools/fetch_consonant_data.py` → `data/consonant/` | 辅音声学数据（7 音位 / 3 语言） | 辅音数据 |
+| `tools/gen_merged_basis.py` → `merged_basis.json`、`summary_basis.json` | 18 维几何层（**距离度量实际跑在这里**）+ 10 维摘要层（已弃用，丢 1277 个修饰符区分对）；另出 `summary_root.json`（补回舌根后零代价，验证过程）、`summary_height.json`、`summary_both_glottal.json`、`summary_vgap.json`、`summary_vheight.json`（均已判负或非最优）、`summary_uheight.json`、`geom_only.json`（16 维，去掉收缩点冗余） | §0 |
+| `tools/audit_j6_axes.py` → `j6_axis_audit.json`、`old_j6_clean.json` | 量旧表 16 轴的类内方差：11 根类内常量，剔除后 LOCO 由 0.6488 掉到 0.5040 | §0.7 |
+| `tools/audit_loco_features.py` → `loco_feature_audit.json` | LOCO act_prec 逐特征维拆解 | §0.7 |
+| `tools/audit_modifier_collisions.py` → `modifier_collisions.json` | 同基音修饰符碰撞对比（轮廓 vs 各基线），几何层零丢失 | §0.1 |
+| `tools/audit_modifier_visibility.py` → `modifier_visibility.json` | 13 条修饰符在各基音上的可见距离 | §0.1 |
+| `tools/audit_symbol_assignments.py` → `symbol_audit.json` | 133 符号六项检查的机械复算，当前 0 问题 | `docs/SYMBOL-AUDIT.md` |
+| `tools/audit_strident.py` → `strident_audit.json` | 逐轴量咝音可分性，并证明它与部位共线、唯一同部位对照 ɧ 与 ʃ 在 16/18 轴上逐位相等 | §0.6 |
+| `tools/gate_retrieval.py` → `retrieval_gate.json` | 闸门 1（Phatak 真人混淆，未拟合）与闸门 3（九语种留一语言） | §0 |
+| `tools/fit_metric_full.py` → `metric_full_gate.json` | 全半正定度量 vs 对角度量，**结论为证伪** | §0.5 |
+| `tools/audit_loco_features.py` → `loco_feature_audit.json` | LOCO act_prec 逐特征维拆解 | §0.7 |
+
+**复现全部结论**（按顺序，每个都覆盖前一个的产出）：
+
+```
+python tools\gen_tongue_model.py
+python tools\gen_tongue_table.py
+python tools\gen_tongue_modifiers.py
+python tools\fit_tongue_forward.py
+python tools\gen_merged_basis.py
+python tools\gate_retrieval.py
+python tools\audit_loco_features.py
+```
+
 ## 0. 现状：距离基已拆成两层（后续实测，优先于 §3）
 
 本文初稿写于「舌面 10 坐标直接当距离基」之时。此后跑通了三道闸门
@@ -1483,45 +1518,6 @@ min 0.0200  max 0.1800  mean 0.0778  ratio 9.00
   送气、紧喉、送气塞音全部坍缩，而这一点**现在**只有靠读代码才能发现，
   没有钉值会告诉你。
 
----
-
-## 附：本文引用的产出文件
-
-| 文件 | 内容 | 何时由谁写 |
-|------|------|-----------|
-| `tools/gen_tongue_model.py` → `tongue_model.json` | 13 锚点、10 腭节点、25 元音 | 主干 |
-| `tools/gen_tongue_table.py` → `tongue_table.json` | 133 段轮廓 + 方式档案 | 主干 |
-| `tools/gen_tongue_modifiers.py` → `tongue_modifiers.json` | 13 位移 + 13 标量 | 主干 |
-| `tools/fit_tongue_forward.py` → `tongue_forward.json` | F1/F2/F3 的 R²、RMSE、F3 系数 | 主干 |
-| `tools/audit_tongue_axes.py` → `audit_tongue_axes.json` | 10 坐标等级（旧基同尺打分）、单射性、冗余、`place=0` 过载 | 死轴审计 |
-| `tools/gen_tract.py` → `tract_parts.json` | 颌/唇/喉三坐标、圆唇配对测量、共线性秩 | 颌/喉 |
-| `tools/gen_groove.py` → `tongue_groove.json` | 腭沟实验（否定结论）、Phatak 交叉核对 | 腭沟 |
-| `tools/fetch_consonant_data.py` → `data/consonant/` | 辅音声学数据（7 音位 / 3 语言） | 辅音数据 |
-| `tools/gen_merged_basis.py` → `merged_basis.json`、`summary_basis.json` | 18 维几何层（**距离度量实际跑在这里**）+ 10 维摘要层（已弃用，丢 1277 个修饰符区分对）；另出 `summary_root.json`（补回舌根后零代价，验证过程）、`summary_height.json`、`summary_both_glottal.json`、`summary_vgap.json`、`summary_vheight.json`（均已判负或非最优）、`summary_uheight.json`、`geom_only.json`（16 维，去掉收缩点冗余） | §0 |
-| `tools/audit_j6_axes.py` → `j6_axis_audit.json`、`old_j6_clean.json` | 量旧表 16 轴的类内方差：11 根类内常量，剔除后 LOCO 由 0.6488 掉到 0.5040 | §0.7 |
-| `tools/audit_loco_features.py` → `loco_feature_audit.json` | LOCO act_prec 逐特征维拆解 | §0.7 |
-| `tools/audit_modifier_collisions.py` → `modifier_collisions.json` | 同基音修饰符碰撞对比（轮廓 vs 各基线），几何层零丢失 | §0.1 |
-| `tools/audit_modifier_visibility.py` → `modifier_visibility.json` | 13 条修饰符在各基音上的可见距离 | §0.1 |
-| `tools/audit_symbol_assignments.py` → `symbol_audit.json` | 133 符号六项检查的机械复算，当前 0 问题 | `docs/SYMBOL-AUDIT.md` |
-| `tools/audit_strident.py` → `strident_audit.json` | 逐轴量咝音可分性，并证明它与部位共线、唯一同部位对照 ɧ 与 ʃ 在 16/18 轴上逐位相等 | §0.6 |
-| `tools/gate_retrieval.py` → `retrieval_gate.json` | 闸门 1（Phatak 真人混淆，未拟合）与闸门 3（九语种留一语言） | §0 |
-| `tools/fit_metric_full.py` → `metric_full_gate.json` | 全半正定度量 vs 对角度量，**结论为证伪** | §0.5 |
-| `tools/audit_loco_features.py` → `loco_feature_audit.json` | LOCO act_prec 逐特征维拆解 | §0.7 |
-
-**复现全部结论**（按顺序，每个都覆盖前一个的产出）：
-
-```
-python tools\gen_tongue_model.py
-python tools\gen_tongue_table.py
-python tools\gen_tongue_modifiers.py
-python tools\fit_tongue_forward.py
-python tools\gen_merged_basis.py
-python tools\gate_retrieval.py
-python tools\audit_loco_features.py
-```
-
-
-
 ### 0.11 两条把 J6 红线走到底的实测
 
 #### 0.11.1 更正：清洗后的旧基线一直是 0.5556，不是 0.5040
@@ -1688,3 +1684,27 @@ d͡ʑ→t͡ɕ   t͡ʃ→d͡ʒ   p→b   kʼ→qʼ
 差距的真实形态是「类内选错」而非「不懂」。但这不改变 §0.10 的结论本身：若把
 精确符号还原当作目标，新基线确实更差，而且 9.8% 全是可以靠更好的方式表达压缩
 的空间——那正是 §0.11.3 判定触及 J6 红线、故未继续的地方。
+
+### 0.12 tools/ 里的脚本分三类，不要都当检查看
+
+`tools/` 下有 30 个 `audit_ / check_ / test_ / verify_` 脚本，其中**只有 15 个
+是闸门**。另外 13 个只是打印数字给人读，2 个自称能失败但**故意未接入**。
+`tools/catalogue_audits.py` 从代码里判别（能否非零退出、是否在 Makefile 里），
+不是按文件名猜的，跑一次即刷新 `tools/data/audit_catalogue.json`。
+
+```
+GATE 15   接在 make test 上，且确实会在坏结果时非零退出
+CLAIMED 2 有非零退出但未接入，因为阈值证明不了会触发
+REPORT 13 总是退零，只输出数字供人阅读
+```
+
+`CLAIMED` 的两个：
+
+- `audit_modifier_collisions.py` —— 三次尝试都证明不了它的阈值会触发（见
+  §0.9.7 末尾），故保留退出码但不挂，读者不应以为它在守什么
+- `audit_f3_regression.py` —— 它的非零退出只用于「生成器没能还原」，它本身是
+  归因实验而不是判据
+
+`REPORT` 里的多数是**一次性的调查记录**（§0.6 的咝音度、§0.11 的 LOCO 清洗），
+它们的结论已经写进正文，脚本留着是为了能重跑，不是为了守。
+---
