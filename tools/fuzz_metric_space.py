@@ -28,7 +28,11 @@ ROOT = Path(__file__).resolve().parents[1]
 EXE = sys.argv[3] if len(sys.argv) > 3 else ROOT / f"ipa2vec{_common.BIN_SUFFIX}"
 VEC2IPA = sys.argv[4] if len(sys.argv) > 4 else ROOT / f"vec2ipa{_common.BIN_SUFFIX}"
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 500
-SEED = int(sys.argv[2]) if len(sys.argv) > 2 else time.time_ns()
+# A fixed default, so a bare run is reproducible and can sit in `make test`.
+# time.time_ns() made every run a different test: a failure could not be
+# replayed, and a green run said nothing about any specific input. The seed is
+# printed on every run so an unlucky draw can be re-entered by hand.
+SEED = int(sys.argv[2]) if len(sys.argv) > 2 else 20260830
 
 BUCKETS = (0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0)
 
