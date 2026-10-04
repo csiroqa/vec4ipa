@@ -18,27 +18,27 @@
   {
    "basis": "merged_basis.json",
    "dims": 18,
-   "contour_pairs": 2412,
-   "basis_pairs": 219,
-   "lost": -2193,
+   "contour_pairs": 2312,
+   "basis_pairs": 33,
+   "lost": -2279,
    "bases_affected": 0,
    "n_bases": 133
   },
   {
    "basis": "summary_root.json",
    "dims": 12,
-   "contour_pairs": 2412,
-   "basis_pairs": 1265,
-   "lost": -1147,
+   "contour_pairs": 2312,
+   "basis_pairs": 923,
+   "lost": -1389,
    "bases_affected": 133,
    "n_bases": 133
   },
   {
    "basis": "summary_basis.json",
    "dims": 10,
-   "contour_pairs": 2412,
-   "basis_pairs": 3689,
-   "lost": 1277,
+   "contour_pairs": 2312,
+   "basis_pairs": 2973,
+   "lost": 661,
    "bases_affected": 133,
    "n_bases": 133
   }

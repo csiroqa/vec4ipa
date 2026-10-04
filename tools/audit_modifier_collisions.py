@@ -27,6 +27,9 @@ import gen_merged_basis as B          # noqa: E402
 import gen_tongue_modifiers as M      # noqa: E402
 
 DATA = B.DATA
+# The basis the runtime actually ships; the summary_* rows are discarded
+# variants, kept in the table for comparison but not held to a threshold.
+DEPLOYED = 'merged_basis.json'
 CONTOUR = os.path.join(DATA, 'tongue_table.json')
 PARTS = B.PARTS
 
@@ -128,6 +131,28 @@ def main():
                            ensure_ascii=False, indent=1))
     print('wrote %s' % out)
 
+    # The deployed basis must lose nothing. Two modifiers that land on the same
+    # vector for the same base segment are indistinguishable to vec2ipa, and no
+    # metric can separate them afterwards -- the same unfixable class as two
+    # base segments sharing a vector. The other rows in this table are
+    # discarded variants and are reported, not judged.
+    deployed = [r for r in rows if r['basis'] == DEPLOYED]
+    if not deployed:
+        print('\n  %s was not audited -- pass it as an argument' % DEPLOYED)
+        return 1
+    r = deployed[0]
+    # `lost` is a difference (negative means the contour separates MORE pairs
+    # than the flat basis does), so the threshold is bases_affected -- how many
+    # base segments actually have a modifier pair that collapses onto one
+    # vector. The deployed basis is 0.
+    if r['bases_affected']:
+        print('\n  FAIL: the deployed basis collapses a modifier pair on %d '
+              'base segments' % r['bases_affected'])
+        return 1
+    print('\n  OK: %s loses 0 distinctions across all %d base segments'
+          % (DEPLOYED, r['n_bases']))
+    return 0
+
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
