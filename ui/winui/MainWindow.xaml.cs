@@ -1499,7 +1499,7 @@ namespace Vec4ipaUI
             {
                 var names = Core.DimNames;
                 sb.AppendLine($"{a} vs {b}:");
-                for (int i = 0; i < Core.NDIM; i++)
+                for (int i = 0; i < Core.NDim; i++)
                     sb.AppendLine($"  {names[i]}\t{va[0][i]:F4}\t{vb[0][i]:F4}\tdiff\t{vb[0][i] - va[0][i]:F4}");
                 sb.AppendLine("  weighted distance: " + Core.Distance(a, b));
             }
@@ -1621,12 +1621,12 @@ namespace Vec4ipaUI
         private async void VectorEditor_Click(object sender, RoutedEventArgs e)
         {
             var names = Core.DimNames;
-            var boxes = new NumberBox[Core.NDIM];
+            var boxes = new NumberBox[Core.NDim];
             var grid = new Grid { ColumnSpacing = 6, RowSpacing = 4 };
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            for (int i = 0; i < Core.NDIM; i++)
+            for (int i = 0; i < Core.NDim; i++)
             {
                 grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 var lbl = new TextBlock { Text = names[i], FontSize = 13,
@@ -1655,13 +1655,13 @@ namespace Vec4ipaUI
             };
             Grid.SetRow(preview, 0);
             Grid.SetColumn(preview, 2);
-            Grid.SetRowSpan(preview, Core.NDIM);
+            Grid.SetRowSpan(preview, Core.NDim);
             grid.Children.Add(preview);
 
             void UpdatePreview()
             {
-                var v = new double[Core.NDIM];
-                for (int i = 0; i < Core.NDIM; i++)
+                var v = new double[Core.NDim];
+                for (int i = 0; i < Core.NDim; i++)
                     v[i] = boxes[i].Value;
                 var vec = string.Join(",", Array.ConvertAll(v,
                     x => x.ToString("F4")));
@@ -1698,8 +1698,8 @@ namespace Vec4ipaUI
             };
             dlg.PrimaryButtonClick += (s, e2) =>
             {
-                var v = new double[Core.NDIM];
-                for (int i = 0; i < Core.NDIM; i++)
+                var v = new double[Core.NDim];
+                for (int i = 0; i < Core.NDim; i++)
                     v[i] = boxes[i].Value;
                 VecInput.Text = string.Join(",", Array.ConvertAll(v,
                     x => x.ToString("F4")));
@@ -2557,10 +2557,10 @@ namespace Vec4ipaUI
                 var names = Core.DimNames;
                 var sb = new System.Text.StringBuilder();
                 sb.Append("(");
-                for (int i = 0; i < Core.NDIM; i++)
+                for (int i = 0; i < Core.NDim; i++)
                     sb.Append(i == 0 ? $"{v[i]:F4}" : $", {v[i]:F4}");
                 sb.AppendLine(")");
-                for (int i = 0; i < Core.NDIM; i++)
+                for (int i = 0; i < Core.NDim; i++)
                     sb.AppendLine($"{names[i]}\t{v[i]:F4}");
                 tableText = sb.ToString();
                 body.Children.Add(new ScrollViewer
