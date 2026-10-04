@@ -480,7 +480,21 @@ python3 tools/test_winui_core.py         # compiles Core.cs against the real
 python3 tools/check_mainwindow_syntax.py # MainWindow.xaml.cs must produce no
                                          # parse-stage errors (the WinUI
                                          # references are absent on purpose)
+python3 tools/check_doc_structure.py     # section numbering sequential, no
+                                         # dangling section cross-references
+python3 tools/check_generated_current.py  # the 11 generated artifacts still
+                                         # match their generators
+python3 tools/check_readme_tests.py       # this list agrees with make test
+python3 tools/verify_commit.py            # `make test` builds the working
+                                         # tree; this one builds the commit
 ```
+
+`make verify-commit` extracts HEAD and builds it there; `make test` builds the
+working tree, so a green run says nothing about whether a commit is sound.
+
+Not part of `make test`, run by hand: `validate_alignment.py` (axiom fuzz),
+`fuzz_metric_space.py` (random-vector fuzz), `catalogue_audits.py` (classifies
+every script here as a gate or a report).
 
 **The clinical/extIPA stress string** — every feature in one input
 (glottal onset, rhotacised vowel, apical, undertie, stress,

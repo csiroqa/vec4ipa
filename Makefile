@@ -108,6 +108,9 @@ test: all
 	$(PYTHON) tools/check_generated_current.py
 
 
+	# The README's hand-maintained test list drifted the same round it was
+	# written: three checks never made it in. This keeps the two in agreement.
+	$(PYTHON) tools/check_readme_tests.py
 	# The WinUI wrapper hands the managed side one width and the two must agree with
 	# the loaded scheme. vec4ipa_ui.csproj cannot be built here (it needs the
 	# AppxPackage targets), so this compiles Core.cs against the real DLL and
