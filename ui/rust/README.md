@@ -101,12 +101,14 @@ The project owner accepted these differences on 2026-11-08:
 
 ## Verification
 
-- `cargo test -- --test-threads=1` covers the engine contract, both schemes,
-  UTF-8 paths, invalid metrics, non-finite vectors, segment limits, and CLI
-  parity.
+- `cargo test` covers the engine contract, both schemes, UTF-8 paths, invalid
+  metrics, non-finite vectors, segment limits, CLI parity, keyboard search
+  terms, group order, favorite persistence, UTF-16 encoding, and the delivery
+  fallback (34 tests).
 - `cargo fmt --check` and `cargo clippy -- -D warnings` pass.
 - The repository `make test` and `make verify-commit` suites pass.
-- `dist\vec4ipa-ui.exe` launches and converts, reverses, loops, queries, and
-  exports tools on this machine.
+- `dist\vec4ipa-ui.exe` launches, converts, reverses, loops, queries, searches
+  and filters the keyboard, restores favorites after a restart, and types IPA
+  into another application through keyboard mode.
 - The clean Windows 10 1809 machine test is waived by the project owner. The
   self-contained folder was launched and exercised locally.

@@ -2064,13 +2064,6 @@ fn search_text(engine: &Engine, symbol: &str) -> String {
     )
 }
 
-#[allow(dead_code)]
-fn _asset_path(path: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../..")
-        .join(path)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
