@@ -31,7 +31,8 @@ The folder is self-contained for x64 Windows 10 1809 or later.
 | Forward conversion | Complete | Vectors, two-layer IR, JSON; matches the CLI. |
 | Reverse conversion | Complete | Batch rows and five narrowness levels. |
 | Loop | Complete | Tone annotations are preserved as `tone=(…)` groups. |
-| Soft keyboard | Complete | Groups, filter, recent, favorites, modifier guard, hover cards. |
+| Soft keyboard | Complete | Groups, search by symbol or name, IPA-chart order, persistent favorites, hover cards. |
+| Keyboard mode | Complete | Topmost non-activating panel; SendInput Unicode with a clipboard fallback. |
 | Symbol tools | Complete | Query, compare, weighted distance, alignment. |
 | Views | Complete | Table, modules, stats, weights, effective weights, axes, docs. |
 | History and examples | Complete | Bounded history; example inputs. |
@@ -65,6 +66,12 @@ open. Density, split, and collapsed section ids persist in
 Scrolling is per unit, not per pane. The IPA box and filter stay fixed while the
 keyboard groups scroll; output, reverse, and view text stay fixed while the tools
 sections scroll on their own.
+
+**Keyboard mode** turns the window into a topmost panel that does not take
+focus. Pick the target application once, then click symbols to type IPA into it;
+SendInput handles the text and the clipboard + Ctrl+V path is the fallback.
+Exit returns to the workbench. Elevated and secure-desktop targets reject the
+input and the status line says so.
 
 **Reset layout** restores Compact, the 0.46 split, and the default collapsed set.
 

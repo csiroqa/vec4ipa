@@ -1,8 +1,12 @@
 mod app;
 mod engine;
+mod favorites;
+mod input;
+mod keyboard;
 mod layout;
 mod settings;
 mod startup;
+mod terms;
 mod win32;
 
 use windows_reactor::*;

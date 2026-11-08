@@ -122,6 +122,7 @@ pub fn default_collapsed_sections() -> Vec<String> {
         "kb_nonpulmonic",
         "kb_vowels",
         "kb_modifiers",
+        "kb_letters",
         "kb_tones",
     ]
     .into_iter()

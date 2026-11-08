@@ -3,7 +3,8 @@ use std::path::{Path, PathBuf};
 use rfd::FileDialog;
 use windows_reactor::*;
 
-use crate::engine::{ConsonantKey, Engine, Segment, ToneGroup, VowelKey, describe_query};
+use crate::engine::{Engine, Segment, ToneGroup, describe_query};
+use crate::keyboard::{self, KeyboardModel};
 use crate::layout::{
     Density, LayoutMetrics, LayoutMode, NarrowPane, is_collapsed, keyboard_columns, layout_mode,
     toggle_section,
@@ -50,15 +51,12 @@ struct HistoryEntry {
     output: String,
 }
 
-struct KeyboardData {
-    consonants: Vec<String>,
-    non_pulmonic: Vec<String>,
-    vowels: Vec<String>,
-    modifiers: Vec<String>,
-    tones: Vec<String>,
-    vowel_positions: Vec<VowelKey>,
-    consonant_positions: Vec<ConsonantKey>,
-    modifier_tiers: Vec<(String, i32)>,
+struct KeyboardGroupSpec<'a> {
+    id: &'static str,
+    title: &'static str,
+    symbols: &'a [String],
+    always: bool,
+    font_size: f64,
 }
 
 #[derive(Clone)]
@@ -91,6 +89,7 @@ pub enum Message {
     SetNarrowPane(NarrowPane),
     OpenKeyboard,
     CloseKeyboard,
+    ToggleKeyboardMode,
     SplitChanged(f64),
     WindowSize(WindowSize),
     LoadScheme,
@@ -116,6 +115,8 @@ pub struct Workbench {
     density: Density,
     narrow_pane: NarrowPane,
     keyboard_open: bool,
+    keyboard_mode: bool,
+    window_handle: isize,
     collapsed_sections: Vec<String>,
     always_on_top: bool,
     split: f64,
@@ -140,7 +141,7 @@ pub struct Workbench {
     align_a: String,
     align_b: String,
     status: String,
-    keyboard: KeyboardData,
+    keyboard: KeyboardModel,
     schools: Vec<String>,
     enabled_schools: Vec<String>,
     font_loaded: bool,
@@ -175,17 +176,7 @@ impl Component for Workbench {
             }
         }
 
-        let mut keyboard = KeyboardData {
-            consonants: engine.keyboard_consonants(),
-            non_pulmonic: engine.keyboard_non_pulmonic(),
-            vowels: engine.keyboard_vowels(),
-            modifiers: engine.keyboard_modifiers(),
-            tones: engine.keyboard_tones(),
-            vowel_positions: engine.vowel_positions(),
-            consonant_positions: engine.consonant_positions(),
-            modifier_tiers: engine.modifier_tiers(),
-        };
-        sort_keyboard(&mut keyboard);
+        let keyboard = build_keyboard(&engine);
         let schools = engine.modules();
         let font_loaded = win32::load_private_font(&win32::bundled_font());
 
@@ -197,6 +188,8 @@ impl Component for Workbench {
             density: settings.density,
             narrow_pane: settings.narrow_pane,
             keyboard_open: false,
+            keyboard_mode: false,
+            window_handle: 0,
             collapsed_sections: settings.collapsed_sections.clone(),
             always_on_top: settings.always_on_top,
             split: settings.split.clamp(0.25, 0.75),
@@ -211,7 +204,8 @@ impl Component for Workbench {
             format: OutputFormat::Vectors,
             filter: String::new(),
             recent: Vec::new(),
-            favorites: Vec::new(),
+            favorites: crate::favorites::path()
+                .map_or_else(Vec::new, |path| crate::favorites::load_from(&path)),
             history: Vec::new(),
             view: ViewKind::None,
             view_text: String::new(),
@@ -282,7 +276,13 @@ impl Component for Workbench {
                     self.convert_reverse();
                 }
             }
-            Message::Symbol(symbol) => self.append_symbol(&symbol),
+            Message::Symbol(symbol) => {
+                if self.keyboard_mode {
+                    self.send_symbol(&symbol);
+                } else {
+                    self.append_symbol(&symbol);
+                }
+            }
             Message::AddFavorite => self.add_favorite(),
             Message::HistorySelect(index) => {
                 if let Some(entry) = self.history.get(index).cloned() {
@@ -343,6 +343,7 @@ impl Component for Workbench {
             }
             Message::OpenKeyboard => self.keyboard_open = true,
             Message::CloseKeyboard => self.keyboard_open = false,
+            Message::ToggleKeyboardMode => self.toggle_keyboard_mode(),
             Message::SplitChanged(value) => {
                 self.split = value.clamp(0.25, 0.75);
                 self.settings.split = self.split;
@@ -430,6 +431,9 @@ impl Component for Workbench {
             Button::new()
                 .on_click(context.message(Message::ResetLayout))
                 .content(self.t("Reset layout", "重置布局")),
+            Button::new()
+                .on_click(context.message(Message::ToggleKeyboardMode))
+                .content(self.t("Keyboard mode", "键盘模式")),
         ];
         if layout_mode(self.window_width) == LayoutMode::Wide {
             toolbar_items.push(
@@ -477,7 +481,9 @@ impl Component for Workbench {
 
         let mut root_children: Vec<View> = vec![title_bar.into()];
         root_children.extend([toolbar, action_bar, content]);
-        if self.keyboard_open {
+        if self.keyboard_mode {
+            root_children.push(self.keyboard_overlay(context));
+        } else if self.keyboard_open {
             root_children.push(self.keyboard_popup(context));
         }
 
@@ -581,14 +587,18 @@ impl Workbench {
     }
 
     fn keyboard_groups(&self, context: &mut ViewContext<Self>, columns: usize) -> Vec<View> {
+        let metrics = self.metrics();
         let mut groups = Vec::new();
         if !self.favorites.is_empty()
             && let Some(group) = self.keyboard_group(
-                "favorites",
-                self.t("Favorites", "收藏"),
-                &self.favorites,
+                KeyboardGroupSpec {
+                    id: "favorites",
+                    title: self.t("Favorites", "收藏"),
+                    symbols: &self.favorites,
+                    always: true,
+                    font_size: metrics.keyboard_font,
+                },
                 context,
-                true,
                 columns,
             )
         {
@@ -596,44 +606,72 @@ impl Workbench {
         }
         if !self.recent.is_empty()
             && let Some(group) = self.keyboard_group(
-                "recent",
-                self.t("Recent", "最近"),
-                &self.recent,
+                KeyboardGroupSpec {
+                    id: "recent",
+                    title: self.t("Recent", "最近"),
+                    symbols: &self.recent,
+                    always: true,
+                    font_size: metrics.keyboard_font,
+                },
                 context,
-                true,
                 columns,
             )
         {
             groups.push(group);
         }
-        for (id, title_en, title_zh, symbols) in [
+        for (id, title_en, title_zh, symbols, font) in [
             (
                 "kb_consonants",
                 "Consonants",
                 "辅音",
                 &self.keyboard.consonants,
+                metrics.keyboard_font,
             ),
             (
                 "kb_nonpulmonic",
                 "Non-pulmonic",
                 "非肺气流",
                 &self.keyboard.non_pulmonic,
+                metrics.keyboard_font,
             ),
-            ("kb_vowels", "Vowels", "元音", &self.keyboard.vowels),
+            (
+                "kb_vowels",
+                "Vowels",
+                "元音",
+                &self.keyboard.vowels,
+                metrics.keyboard_font,
+            ),
             (
                 "kb_modifiers",
                 "Diacritics",
                 "附加符",
-                &self.keyboard.modifiers,
+                &self.keyboard.diacritics,
+                20.0,
             ),
-            ("kb_tones", "Tones", "声调", &self.keyboard.tones),
+            (
+                "kb_letters",
+                "Letters",
+                "字母",
+                &self.keyboard.letters,
+                metrics.keyboard_font,
+            ),
+            (
+                "kb_tones",
+                "Tones",
+                "声调",
+                &self.keyboard.tones,
+                metrics.keyboard_font,
+            ),
         ] {
             if let Some(group) = self.keyboard_group(
-                id,
-                self.t(title_en, title_zh),
-                symbols,
+                KeyboardGroupSpec {
+                    id,
+                    title: self.t(title_en, title_zh),
+                    symbols,
+                    always: false,
+                    font_size: font,
+                },
                 context,
-                false,
                 columns,
             ) {
                 groups.push(group);
@@ -1269,21 +1307,19 @@ impl Workbench {
 
     fn keyboard_group(
         &self,
-        id: &'static str,
-        title: &'static str,
-        symbols: &[String],
+        spec: KeyboardGroupSpec,
         context: &mut ViewContext<Self>,
-        always: bool,
         columns: usize,
     ) -> Option<View> {
         let metrics = self.metrics();
-        let filter = self.filter.trim();
-        let filtered = symbols
+        let filter = self.filter.trim().to_lowercase();
+        let filtered = spec
+            .symbols
             .iter()
-            .filter(|symbol| filter.is_empty() || symbol.contains(filter))
+            .filter(|symbol| filter.is_empty() || self.symbol_matches(symbol, &filter))
             .cloned()
             .collect::<Vec<_>>();
-        if filtered.is_empty() && !always {
+        if filtered.is_empty() && !spec.always {
             return None;
         }
 
@@ -1296,7 +1332,7 @@ impl Workbench {
                 let tooltip = self.symbol_tooltip(&symbol);
                 let label = TextBlock::new()
                     .text(symbol)
-                    .font_size(metrics.keyboard_font)
+                    .font_size(spec.font_size)
                     .text_wrapping(TextWrapping::NoWrap)
                     .horizontal_alignment(HorizontalAlignment::Center)
                     .vertical_alignment(VerticalAlignment::Center);
@@ -1327,12 +1363,136 @@ impl Workbench {
             .keyed_children(keys(rows));
         Some(self.section_with_force(
             context,
-            id,
-            title,
+            spec.id,
+            spec.title,
             Some(filtered.len()),
             !filter.is_empty(),
             body,
         ))
+    }
+
+    fn keyboard_overlay(&self, context: &mut ViewContext<Self>) -> View {
+        Grid::new()
+            .grid_row(1)
+            .grid_row_span(3)
+            .background(ThemeBrush::SolidBackground)
+            .children([self.keyboard_panel(context)])
+    }
+
+    fn keyboard_panel(&self, context: &mut ViewContext<Self>) -> View {
+        let metrics = self.metrics();
+        let columns = keyboard_columns(self.window_width - 48.0, &metrics);
+
+        let title = TextBlock::new()
+            .text(self.t("IPA keyboard", "IPA 软键盘"))
+            .font_size(16.0)
+            .vertical_alignment(VerticalAlignment::Center);
+        let exit = Button::new()
+            .on_click(context.message(Message::ToggleKeyboardMode))
+            .min_height(metrics.control_height)
+            .grid_column(1)
+            .content(self.t("Exit", "退出"));
+        let header = Grid::new()
+            .columns([GridLength::Star(1.0), GridLength::Auto])
+            .column_spacing(metrics.control_gap)
+            .children((title, exit));
+
+        let body = Grid::new()
+            .rows([GridLength::Auto, GridLength::Star(1.0), GridLength::Auto])
+            .row_spacing(metrics.section_gap)
+            .keyed_children(keys(vec![
+                grid_row_cell(0, header),
+                grid_row_cell(
+                    1,
+                    ScrollViewer::new().content(self.stack(self.keyboard_groups(context, columns))),
+                ),
+                grid_row_cell(
+                    2,
+                    TextBlock::new()
+                        .text(self.status.clone())
+                        .font_size(12.0)
+                        .into(),
+                ),
+            ]));
+
+        Border::new()
+            .padding(Thickness::new(
+                metrics.pane_padding,
+                metrics.pane_padding,
+                metrics.pane_padding,
+                metrics.pane_padding,
+            ))
+            .content(body)
+    }
+
+    fn toggle_keyboard_mode(&mut self) {
+        if self.keyboard_mode {
+            self.leave_keyboard_mode();
+        } else {
+            self.enter_keyboard_mode();
+        }
+    }
+
+    fn enter_keyboard_mode(&mut self) {
+        let Some(hwnd) = win32::foreground_window() else {
+            self.status = self
+                .t("No active window handle", "无法获取活动窗口")
+                .to_string();
+            return;
+        };
+        self.window_handle = hwnd;
+        win32::set_no_activate(hwnd, true);
+        win32::set_topmost(hwnd, true);
+        self.keyboard_open = false;
+        self.keyboard_mode = true;
+        self.status = self
+            .t(
+                "Click the target application, then pick symbols",
+                "先点目标程序，再点符号",
+            )
+            .to_string();
+    }
+
+    fn leave_keyboard_mode(&mut self) {
+        if self.window_handle != 0 {
+            win32::set_no_activate(self.window_handle, false);
+            win32::set_topmost(self.window_handle, self.always_on_top);
+            win32::set_foreground(self.window_handle);
+        }
+        self.keyboard_mode = false;
+        self.status = self.t("keyboard mode off", "已退出键盘模式").to_string();
+    }
+
+    fn send_symbol(&mut self, symbol: &str) {
+        let symbol = symbol.replace('\u{25cc}', "");
+        if symbol.is_empty() {
+            return;
+        }
+        let foreground = win32::foreground_window();
+        if foreground.is_none() || foreground == Some(self.window_handle) {
+            self.status = self
+                .t("Click the target application first", "请先点击目标程序")
+                .to_string();
+            return;
+        }
+        match crate::input::inject(&symbol) {
+            crate::input::Delivery::Sent => {
+                self.status = format!("{} {symbol}", self.t("sent", "已发送"));
+            }
+            crate::input::Delivery::Clipboard => {
+                self.status = format!("{} {symbol} (clipboard)", self.t("sent", "已发送"));
+            }
+            crate::input::Delivery::Failed(error) => self.status = error,
+        }
+    }
+
+    fn symbol_matches(&self, symbol: &str, filter: &str) -> bool {
+        let search = self.keyboard.search.get(symbol).map(String::as_str);
+        if search.is_some() {
+            return keyboard::matches(symbol, search, filter);
+        }
+        let computed = search_text(&self.engine, symbol);
+        keyboard::matches(symbol, Some(&computed), filter)
     }
 
     fn append_symbol(&mut self, symbol: &str) {
@@ -1370,6 +1530,12 @@ impl Workbench {
         }
         if !self.favorites.contains(&value) {
             self.favorites.insert(0, value);
+        }
+        self.favorites = crate::favorites::normalize(std::mem::take(&mut self.favorites));
+        if let Some(path) = crate::favorites::path()
+            && let Err(error) = crate::favorites::save_to(&path, &self.favorites)
+        {
+            self.status = error;
         }
     }
 
@@ -1690,17 +1856,7 @@ impl Workbench {
     }
 
     fn reload_keyboard(&mut self) {
-        self.keyboard = KeyboardData {
-            consonants: self.engine.keyboard_consonants(),
-            non_pulmonic: self.engine.keyboard_non_pulmonic(),
-            vowels: self.engine.keyboard_vowels(),
-            modifiers: self.engine.keyboard_modifiers(),
-            tones: self.engine.keyboard_tones(),
-            vowel_positions: self.engine.vowel_positions(),
-            consonant_positions: self.engine.consonant_positions(),
-            modifier_tiers: self.engine.modifier_tiers(),
-        };
-        sort_keyboard(&mut self.keyboard);
+        self.keyboard = build_keyboard(&self.engine);
     }
 
     fn record_history(&mut self) {
@@ -1867,35 +2023,45 @@ fn app_icon_view(size: f64) -> Option<Image> {
         .map(|image| image.width(size).height(size))
 }
 
-fn sort_keyboard(data: &mut KeyboardData) {
-    let consonants = data.consonant_positions.clone();
-    data.consonants.sort_by(|a, b| {
-        let place = |symbol: &str| {
-            consonants
-                .iter()
-                .find(|entry| entry.symbol == symbol)
-                .map_or(1.0, |entry| entry.place)
-        };
-        place(a)
-            .partial_cmp(&place(b))
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
+fn build_keyboard(engine: &Engine) -> KeyboardModel {
+    keyboard::build(
+        keyboard::Inventory {
+            consonants: engine.keyboard_consonants(),
+            non_pulmonic: engine.keyboard_non_pulmonic(),
+            vowels: engine.keyboard_vowels(),
+            modifiers: engine.keyboard_modifiers(),
+            tones: engine.keyboard_tones(),
+            consonant_places: engine
+                .consonant_positions()
+                .into_iter()
+                .map(|key| (key.symbol, key.place))
+                .collect(),
+            vowel_positions: engine
+                .vowel_positions()
+                .into_iter()
+                .map(|key| (key.symbol, (key.row, key.column)))
+                .collect(),
+            modifier_tiers: engine.modifier_tiers(),
+        },
+        |symbol| search_text(engine, symbol),
+        |symbol| keyboard::manner_weight(&engine.query(symbol).unwrap_or_default()),
+    )
+}
 
-    let vowels = data.vowel_positions.clone();
-    data.vowels.sort_by_key(|symbol| {
-        vowels
-            .iter()
-            .find(|entry| &entry.symbol == symbol)
-            .map_or((9, 9), |entry| (entry.row, entry.column))
-    });
-
-    let tiers = data.modifier_tiers.clone();
-    data.modifiers.sort_by_key(|symbol| {
-        tiers
-            .iter()
-            .find(|(entry, _)| entry == symbol)
-            .map_or(9, |(_, tier)| *tier)
-    });
+fn search_text(engine: &Engine, symbol: &str) -> String {
+    let raw = engine.query(symbol).unwrap_or_default();
+    let (name, air) = describe_query(&raw);
+    let first = raw.lines().next().unwrap_or_default();
+    let english = crate::terms::english_terms(first);
+    let chinese = crate::terms::chinese_terms(first);
+    format!(
+        "{} {} {} {} {}",
+        symbol.to_lowercase(),
+        name.to_lowercase(),
+        air.to_lowercase(),
+        english,
+        chinese
+    )
 }
 
 #[allow(dead_code)]
@@ -1903,4 +2069,31 @@ fn _asset_path(path: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
         .join(path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn search_text_includes_symbol_name_and_chinese_term() {
+        let engine = Engine::new();
+        let text = search_text(&engine, "ʃ");
+        assert!(text.contains('ʃ'), "{text}");
+        assert!(text.contains("fricative"), "{text}");
+        assert!(text.contains("擦音"), "{text}");
+    }
+
+    #[test]
+    fn keyboard_model_has_every_section_and_search_entry() {
+        let engine = Engine::new();
+        let model = build_keyboard(&engine);
+        assert!(!model.consonants.is_empty());
+        assert!(!model.non_pulmonic.is_empty());
+        assert!(!model.vowels.is_empty());
+        assert!(!model.diacritics.is_empty());
+        assert!(!model.tones.is_empty());
+        assert!(model.diacritics.iter().any(|symbol| symbol == "◌"));
+        assert!(model.search.contains_key("ʃ"));
+    }
 }

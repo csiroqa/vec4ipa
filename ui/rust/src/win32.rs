@@ -3,7 +3,9 @@ use std::path::{Path, PathBuf};
 use windows_sys::Win32::Foundation::HWND;
 use windows_sys::Win32::Graphics::Gdi::{AddFontResourceExW, FR_PRIVATE};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    GetForegroundWindow, HWND_NOTOPMOST, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE, SetWindowPos,
+    GWL_EXSTYLE, GetForegroundWindow, GetWindowLongPtrW, HWND_NOTOPMOST, HWND_TOPMOST,
+    SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SetForegroundWindow, SetWindowLongPtrW, SetWindowPos,
+    WS_EX_NOACTIVATE,
 };
 
 pub fn set_always_on_top(on: bool) -> bool {
@@ -13,6 +15,38 @@ pub fn set_always_on_top(on: bool) -> bool {
     }
     let insert_after = if on { HWND_TOPMOST } else { HWND_NOTOPMOST };
     unsafe { SetWindowPos(hwnd, insert_after, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE) != 0 }
+}
+
+pub fn foreground_window() -> Option<isize> {
+    let hwnd = unsafe { GetForegroundWindow() };
+    (!hwnd.is_null()).then_some(hwnd as isize)
+}
+
+pub fn set_no_activate(hwnd: isize, on: bool) -> bool {
+    let hwnd = hwnd as HWND;
+    let style = unsafe { GetWindowLongPtrW(hwnd, GWL_EXSTYLE) };
+    let flag = WS_EX_NOACTIVATE as isize;
+    let next = if on { style | flag } else { style & !flag };
+    unsafe { SetWindowLongPtrW(hwnd, GWL_EXSTYLE, next) != 0 }
+}
+
+pub fn set_topmost(hwnd: isize, on: bool) -> bool {
+    let insert_after = if on { HWND_TOPMOST } else { HWND_NOTOPMOST };
+    unsafe {
+        SetWindowPos(
+            hwnd as HWND,
+            insert_after,
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+        ) != 0
+    }
+}
+
+pub fn set_foreground(hwnd: isize) -> bool {
+    unsafe { SetForegroundWindow(hwnd as HWND) != 0 }
 }
 
 pub fn load_private_font(path: &Path) -> bool {

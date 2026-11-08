@@ -370,12 +370,20 @@ impl Engine {
         lines(&self.text_call_no_input(ipa2v_kb_cons, 32 * 1024))
     }
 
-    pub fn keyboard_non_pulmonic(&self) -> Vec<String> {
+    pub fn keyboard_non_pulmonic(&self) -> Vec<(String, i32)> {
         lines(&self.text_call_no_input(ipa2v_kb_cons_np, 16 * 1024))
             .into_iter()
             .filter_map(|line| {
-                let symbol = line.split('\t').next().unwrap_or_default().to_string();
-                (!symbol.is_empty()).then_some(symbol)
+                let mut parts = line.split('\t');
+                let symbol = parts.next().unwrap_or_default().to_string();
+                if symbol.is_empty() {
+                    return None;
+                }
+                let class = parts
+                    .next()
+                    .and_then(|value| value.parse().ok())
+                    .unwrap_or(4);
+                Some((symbol, class))
             })
             .collect()
     }
@@ -578,7 +586,10 @@ mod tests {
     #[test]
     fn engine_contract() {
         let _guard = guard();
-        let engine = Engine::new();
+        let mut engine = Engine::new();
+        engine
+            .set_args(&["-D", &data("spec_next.scheme")])
+            .expect("default scheme");
         assert_eq!(engine.ndim(), 16);
 
         let segments = engine.forward("sa").expect("forward");
@@ -612,10 +623,21 @@ mod tests {
         assert!(!engine.keyboard_vowels().is_empty());
         assert!(!engine.keyboard_modifiers().is_empty());
         assert!(!engine.keyboard_tones().is_empty());
+        assert!(
+            engine
+                .keyboard_non_pulmonic()
+                .iter()
+                .all(|(_, class)| (0..=4).contains(class))
+        );
         for symbol in engine
             .keyboard_consonants()
             .into_iter()
-            .chain(engine.keyboard_non_pulmonic())
+            .chain(
+                engine
+                    .keyboard_non_pulmonic()
+                    .into_iter()
+                    .map(|(symbol, _)| symbol),
+            )
             .chain(engine.keyboard_vowels())
             .chain(engine.keyboard_modifiers())
             .chain(engine.keyboard_tones())
@@ -681,6 +703,9 @@ mod tests {
             .expect("set non-ASCII scheme");
         assert_eq!(engine.ndim(), 18);
         let _ = std::fs::remove_file(target);
+        engine
+            .set_args(&["-D", &data("spec_next.scheme")])
+            .expect("restore default scheme");
     }
 
     #[test]
