@@ -35,15 +35,37 @@ separately on Windows:
 ui/winui/build.bat   # builds ipa2vec_core.dll + publishes dist\vec4ipa_ui.exe
 ```
 
+### Rust workbench
+
+The Rust front-end lives in `ui/rust/` and uses `windows-reactor`. It reuses
+the same C core through a static FFI shim; the CLI tools and data formats do
+not change. Build it on Windows with the Rust MSVC toolchain and Visual Studio
+C++ build tools (MSVC linker and Windows SDK):
+
+```sh
+ui/rust/build.bat build     # or: make rust-ui
+ui/rust/build.bat test      # or: make rust-ui-test
+ui/rust/package.bat         # or: make rust-ui-package
+```
+
+The package command stages the Windows App SDK runtime, fonts, icon, assets,
+and the three CLI tools in `ui/rust/dist/`. That folder is self-contained and
+does not need a separate Windows App SDK installation. See
+`ui/rust/README.md` for the parity matrix and known differences.
+
 The binaries embed the full table; they do not read any file at runtime.
 
 ## GUI workbench (Windows)
 
-The modern front-end is the **WinUI 3 workbench** (`ui/winui/` →
-`vec4ipa_ui.exe`, built by `ui/winui/build.bat`; the output is a
-self-contained `dist\` folder — see [`ui/README.md`](ui/README.md)).
-The UI is Fluent-designed: a **Mica** window backdrop, in-app acrylic
-popovers and pickers, theme-aware surfaces:
+The accepted front-end is the **Rust workbench** (`ui/rust/` →
+`vec4ipa-ui.exe`, built by `ui/rust/build.bat` or `make rust-ui`; see
+[`ui/rust/README.md`](ui/rust/README.md)). It uses `windows-reactor` and the
+same C core as the CLIs. The previous **WinUI 3 workbench** (`ui/winui/`)
+remains in the repository as a reference implementation.
+
+The workbench is Fluent-designed: a **Mica** window backdrop, theme-aware
+surfaces, and the same conversion, reverse-fit, keyboard, history, view,
+export, and localization workflows:
 
 - **IPA → vectors** — type IPA or click the grouped soft keyboard
   (Consonants, Non-pulmonic, Vowels, Diacritics, Letters, Tones,
@@ -58,6 +80,13 @@ popovers and pickers, theme-aware surfaces:
 - Compare symbols, weighted distance, history, examples, open-file
   batch convert, views (table/modules/stats/weights), CSV/IR export,
   bundled CLI tools, English/中文, system/light/dark themes
+
+The workbench lays out responsively: **Compact** density is the default, windows
+at or above 1000 DIP keep two panes with a split slider, and narrower windows
+switch to a single pane chosen by an **Input / Output / Tools** selector.
+Secondary sections collapse from their headers, layout choices persist,
+**Reset layout** restores the defaults, and every keyboard symbol is centered in
+its cell.
 
 A legacy Win32 wrapper (`ui/vec4ipa_ui.c`, built by
 `make ui/vec4ipa_ui.exe`) is kept for reference: it embeds the three

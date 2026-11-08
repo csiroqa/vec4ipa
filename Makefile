@@ -146,6 +146,16 @@ test: all
 	$(PYTHON) tools/check_mainwindow_syntax.py
 
 
+# Rust workbench (Windows only; see ui/rust/build.bat)
+rust-ui:
+	cd ui/rust && cmd //c build.bat build
+
+rust-ui-test:
+	cd ui/rust && cmd //c build.bat test
+
+rust-ui-package:
+	cd ui/rust && cmd //c package.bat
+
 ifeq ($(OS),Windows_NT)
 DEL_CMD = cmd /c del /Q /F
 DEL_TARGETS = $(subst /,\,$(TARGETS))
@@ -164,4 +174,4 @@ clean:
 verify-commit:
 	$(PYTHON) tools/verify_commit.py
 
-.PHONY: all clean gen test verify-commit
+.PHONY: all clean gen test verify-commit rust-ui rust-ui-test rust-ui-package
