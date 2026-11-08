@@ -46,6 +46,7 @@ C++ build tools (MSVC linker and Windows SDK):
 ui/rust/build.bat build     # or: make rust-ui
 ui/rust/build.bat test      # or: make rust-ui-test
 ui/rust/package.bat         # or: make rust-ui-package
+ui/rust/installer.bat       # or: make rust-ui-installer
 ```
 
 The package command stages the Windows App SDK runtime, fonts, icon, assets,

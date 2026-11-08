@@ -156,6 +156,9 @@ rust-ui-test:
 rust-ui-package:
 	cd ui/rust && cmd //c package.bat
 
+rust-ui-installer:
+	cd ui/rust && cmd //c installer.bat
+
 ifeq ($(OS),Windows_NT)
 DEL_CMD = cmd /c del /Q /F
 DEL_TARGETS = $(subst /,\,$(TARGETS))
@@ -174,4 +177,4 @@ clean:
 verify-commit:
 	$(PYTHON) tools/verify_commit.py
 
-.PHONY: all clean gen test verify-commit rust-ui rust-ui-test rust-ui-package
+.PHONY: all clean gen test verify-commit rust-ui rust-ui-test rust-ui-package rust-ui-installer

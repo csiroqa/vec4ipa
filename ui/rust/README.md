@@ -11,6 +11,7 @@ WinUI C# workbench remains in `ui/winui/` as a reference implementation.
 build.bat build     REM debug build
 build.bat test      REM cargo test
 package.bat         REM release build plus self-contained dist\
+installer.bat       REM setup executable from dist\ (needs Inno Setup 6)
 ```
 
 `build.bat` loads `VsDevCmd.bat`, then runs Cargo. The build needs the Rust
@@ -22,7 +23,17 @@ Windows App SDK runtime with `windows-reactor-setup`.
 
 `package.bat` writes `dist\` with the executable, staged Windows App SDK
 runtime, WinUI resource folders, fonts, icon, assets, and the three CLI tools.
-The folder is self-contained for x64 Windows 10 1809 or later.
+The folder is self-contained for x64 Windows 10 1809 or later. The executable
+uses the Windows GUI subsystem, so starting it from Explorer or the installer
+does not open a console window.
+
+`installer.bat` wraps that folder in an Inno Setup installer. It reads
+`IPA2VEC_VERSION` from `src/ipa2vec_core.h`, offers a per-user install (no
+administrator) or an all-users install, creates a Start Menu shortcut and an
+optional desktop shortcut, and writes
+`installer\vec4ipa-setup-<version>.exe`. Uninstalling keeps
+`%APPDATA%\vec4ipa`, so favorites and settings survive. Inno Setup 6.3 or later
+is required.
 
 ## Parity with the WinUI workbench
 

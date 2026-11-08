@@ -21,4 +21,5 @@ windows-sys = { version = "0.61", features = [
 
 [build-dependencies]
 cc = "1"
+embed-resource = "3"
 windows-reactor-setup = "0.100"

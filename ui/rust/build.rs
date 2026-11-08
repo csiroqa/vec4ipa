@@ -5,6 +5,10 @@ use std::process::Command;
 fn main() {
     windows_reactor_setup::as_self_contained();
 
+    embed_resource::compile("app.rc", embed_resource::NONE)
+        .manifest_required()
+        .expect("embed the application icon");
+
     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
     let root = manifest.join("../..");
 
