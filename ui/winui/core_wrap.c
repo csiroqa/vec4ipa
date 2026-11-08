@@ -451,6 +451,75 @@ EXPORT int ipa2v_modules(char *out, size_t outsz)
     return (int)L;
 }
 
+/* every alias module: "name<TAB>school|always<TAB>symbols" per line */
+EXPORT int ipa2v_modules_all(char *out, size_t outsz)
+{
+    size_t L = 0;
+    for (int m = 0; m < N_ALIAS_MODULES; m++) {
+        int n = snprintf(out + L, outsz - L, "%s\t%s\t%d\n",
+                         ALIAS_MODULES[m].name,
+                         ALIAS_MODULES[m].school ? "school" : "always",
+                         ALIAS_MODULES[m].n);
+        if (n < 0 || (size_t)n >= outsz - L) break;
+        L += n;
+    }
+    return (int)L;
+}
+
+/* exact ordered school-module set: reset, then enable the CSV names.
+ * Always-on modules keep their table-order fallback and are never
+ * touched. Returns the number of school modules enabled. */
+EXPORT int ipa2v_set_modules(const char *csv)
+{
+    for (int m = 0; m < N_ALIAS_MODULES; m++)
+        if (ALIAS_MODULES[m].school) g_alias_on[m] = 0;
+    g_alias_pri_max = 0;
+    g_alias_n_warned = 0;
+
+    int enabled = 0;
+    const char *p = csv;
+    while (p && *p) {
+        while (*p == ',' || *p == ' ' || *p == '\t' ||
+               *p == '\n' || *p == '\r')
+            p++;
+        const char *start = p;
+        while (*p && *p != ',' && *p != ' ' && *p != '\t' &&
+               *p != '\n' && *p != '\r')
+            p++;
+        size_t len = (size_t)(p - start);
+        if (len == 0) continue;
+        for (int m = 0; m < N_ALIAS_MODULES; m++) {
+            if (!ALIAS_MODULES[m].school) continue;
+            if (strlen(ALIAS_MODULES[m].name) != len) continue;
+            if (strncmp(ALIAS_MODULES[m].name, start, len) != 0) continue;
+            if (g_alias_on[m] == 0) {
+                g_alias_on[m] = ++g_alias_pri_max;
+                enabled++;
+            }
+            break;
+        }
+    }
+    return enabled;
+}
+
+/* enabled school modules, one per line, in enable (priority) order */
+EXPORT int ipa2v_enabled_modules(char *out, size_t outsz)
+{
+    if (outsz == 0) return 0;
+    out[0] = '\0';
+    size_t L = 0;
+    for (int pri = 1; pri <= g_alias_pri_max; pri++) {
+        for (int m = 0; m < N_ALIAS_MODULES; m++) {
+            if (!ALIAS_MODULES[m].school) continue;
+            if (g_alias_on[m] != pri) continue;
+            int n = snprintf(out + L, outsz - L, "%s\n", ALIAS_MODULES[m].name);
+            if (n < 0 || (size_t)n >= outsz - L) return (int)L;
+            L += n;
+        }
+    }
+    return (int)L;
+}
+
 /* -t equivalent: the full base table */
 EXPORT int ipa2v_table(char *out, size_t outsz)
 {

@@ -6,6 +6,7 @@ mod favorites;
 mod input;
 mod keyboard;
 mod layout;
+mod modules;
 mod settings;
 mod startup;
 mod terms;

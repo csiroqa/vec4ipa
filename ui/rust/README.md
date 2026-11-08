@@ -46,6 +46,7 @@ is required.
 | Keyboard mode | Complete | Topmost non-activating panel; SendInput Unicode with a clipboard fallback. |
 | Symbol tools | Complete | Query, compare, weighted distance, alignment. |
 | Views | Complete | Table, modules, stats, weights, effective weights, axes, docs. |
+| Modules and profiles | Complete | Parser alias modules and keyboard groups, reversible toggles, bulk actions, named profiles, persistence. |
 | History and examples | Complete | Bounded history; example inputs. |
 | Files and exports | Complete | Batch file conversion, save, CSV, IR, tool export, command display. |
 | Window | Complete | Mica, TitleBar, themes, English/Chinese, pin, size/state persistence. |
@@ -68,7 +69,7 @@ keyboard as a modal panel with a fixed filter and scrolling groups; symbols
 insert into the input behind it. The rest of the Input pane is an inline
 **Output** unit with its own scrollbar, so spare height is never blank.
 
-Secondary sections collapse from their header buttons: views, regional modules,
+Secondary sections collapse from their header buttons: views, module manager,
 symbol tools, files and exports, history, examples, and most keyboard groups.
 Each header shows an item count, and recent, favorites, and consonants start
 open. Density, split, and collapsed section ids persist in
@@ -85,6 +86,32 @@ Exit returns to the workbench. Elevated and secure-desktop targets reject the
 input and the status line says so.
 
 **Reset layout** restores Compact, the 0.46 split, and the default collapsed set.
+
+## Modules and profiles
+
+The **Module manager** section groups every optional feature by kind:
+
+- **Parser modules** are the core's alias sets. School modules such as
+  `americanist` and `sinologist` can be toggled and are enabled in the order
+  you turn them on; that order is the alias priority. Always-on modules are
+  listed with their symbol count and have no toggle.
+- **Keyboard groups** are the six soft-keyboard sections. Disable a group to
+  hide it from the keyboard; enable it again to restore its chart position.
+
+Each kind has **All on** and **All off** actions, and the manager filter matches
+module ids, names, and descriptions. The summary shows enabled modules and the
+number of symbols they contribute. Every change applies the exact parser set to
+the engine, so the alias priority never drifts.
+
+**Profiles** store both parser and keyboard selections. **All on** and
+**All off** are built in; enter a name and choose **Save current** to add your
+own. Apply a profile from the profile row, and **Delete active** removes the
+saved profile. Editing any module after applying a profile marks the state as
+**Custom** until you save it again.
+
+Enabled parser ids, keyboard ids, profiles, and the active profile persist in
+`%LOCALAPPDATA%\vec4ipa\rust-ui.json`. Unknown ids are ignored at startup, and
+a settings file without keyboard ids keeps all six groups enabled.
 
 Keyboard symbols are centered in their cells at 16 DIP. Compact cells are 52×44
 DIP and Comfortable cells are 56×48 DIP, so multi-codepoint symbols such as
@@ -114,8 +141,8 @@ The project owner accepted these differences on 2026-11-08:
 
 - `cargo test` covers the engine contract, both schemes, UTF-8 paths, invalid
   metrics, non-finite vectors, segment limits, CLI parity, keyboard search
-  terms, group order, favorite persistence, UTF-16 encoding, and the delivery
-  fallback (34 tests).
+  terms, group order, favorite persistence, module registry and profiles,
+  UTF-16 encoding, and the delivery fallback (47 tests).
 - `cargo fmt --check` and `cargo clippy -- -D warnings` pass.
 - The repository `make test` and `make verify-commit` suites pass.
 - `dist\vec4ipa-ui.exe` launches, converts, reverses, loops, queries, searches

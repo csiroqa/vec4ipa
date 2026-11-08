@@ -29,6 +29,25 @@ pub struct KeyboardModel {
     pub search: HashMap<String, String>,
 }
 
+impl KeyboardModel {
+    /// Returns a symbol group by its module key.
+    pub fn group(&self, key: &str) -> Option<&[String]> {
+        match key {
+            "consonants" => Some(&self.consonants),
+            "nonpulmonic" => Some(&self.non_pulmonic),
+            "vowels" => Some(&self.vowels),
+            "diacritics" => Some(&self.diacritics),
+            "letters" => Some(&self.letters),
+            "tones" => Some(&self.tones),
+            _ => None,
+        }
+    }
+
+    pub fn group_len(&self, key: &str) -> usize {
+        self.group(key).map_or(0, |group| group.len())
+    }
+}
+
 /// IPA-chart manner order, read from the Latin feature identifier in a query.
 pub fn manner_weight(info: &str) -> i32 {
     if info.contains(".pls") {

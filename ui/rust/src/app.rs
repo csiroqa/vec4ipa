@@ -9,7 +9,10 @@ use crate::layout::{
     Density, LayoutMetrics, LayoutMode, NarrowPane, is_collapsed, keyboard_columns, layout_mode,
     toggle_section,
 };
-use crate::settings::{Language, Settings, ThemeChoice};
+use crate::modules::{self, ModuleKind, Registry};
+use crate::settings::{
+    Language, ModuleProfile, PROFILE_ALL_OFF, PROFILE_ALL_ON, PROFILE_CUSTOM, Settings, ThemeChoice,
+};
 use crate::startup::{Startup, is_modifier_symbol};
 use crate::win32;
 
@@ -104,7 +107,13 @@ pub enum Message {
     Query,
     Compare,
     Align,
-    ToggleSchool(String),
+    ModuleFilterChanged(String),
+    ProfileNameChanged(String),
+    ToggleModule(String),
+    SetAllModules(ModuleKind, bool),
+    ApplyProfile(String),
+    SaveProfile,
+    DeleteProfile,
 }
 
 pub struct Workbench {
@@ -142,8 +151,12 @@ pub struct Workbench {
     align_b: String,
     status: String,
     keyboard: KeyboardModel,
-    schools: Vec<String>,
-    enabled_schools: Vec<String>,
+    modules: Registry,
+    enabled_parser: Vec<String>,
+    enabled_keyboard: Vec<String>,
+    module_filter: String,
+    profile_name: String,
+    active_profile: String,
     font_loaded: bool,
 }
 
@@ -177,8 +190,48 @@ impl Component for Workbench {
         }
 
         let keyboard = build_keyboard(&engine);
-        let schools = engine.modules();
+        let modules = match Registry::build(engine.modules_all(), &keyboard) {
+            Ok(registry) => registry,
+            Err(error) => {
+                status = if status.is_empty() {
+                    error
+                } else {
+                    format!("{status}; {error}")
+                };
+                Registry::default()
+            }
+        };
+        let enabled_parser =
+            modules.reconcile(ModuleKind::Parser, &settings.enabled_parser_modules);
+        let enabled_keyboard =
+            modules::initial_keyboard(&modules, settings.keyboard_modules.as_deref());
+        let mut ignored = settings
+            .enabled_parser_modules
+            .iter()
+            .filter(|id| !enabled_parser.contains(id))
+            .count();
+        if let Some(saved) = &settings.keyboard_modules {
+            ignored += saved
+                .iter()
+                .filter(|id| !enabled_keyboard.contains(id))
+                .count();
+        }
+        if ignored > 0 {
+            let note = format!("ignored {ignored} saved module ids");
+            status = if status.is_empty() {
+                note
+            } else {
+                format!("{status}; {note}")
+            };
+        }
+        let parser_names = enabled_parser
+            .iter()
+            .filter_map(|id| modules.find(id))
+            .map(|module| module.key.clone())
+            .collect::<Vec<_>>();
+        let _ = engine.set_modules(&parser_names);
         let font_loaded = win32::load_private_font(&win32::bundled_font());
+        let active_profile = settings.active_profile.clone();
 
         let mut workbench = Self {
             engine,
@@ -216,10 +269,23 @@ impl Component for Workbench {
             align_b: "ta".to_string(),
             status,
             keyboard,
-            schools,
-            enabled_schools: Vec::new(),
+            modules,
+            enabled_parser,
+            enabled_keyboard,
+            module_filter: String::new(),
+            profile_name: String::new(),
+            active_profile,
             font_loaded,
         };
+
+        if workbench.active_profile != PROFILE_CUSTOM
+            && !workbench.profile_matches(&workbench.active_profile.clone())
+        {
+            workbench.active_profile = workbench.detect_profile();
+        }
+        workbench.settings.enabled_parser_modules = workbench.enabled_parser.clone();
+        workbench.settings.keyboard_modules = Some(workbench.enabled_keyboard.clone());
+        workbench.settings.active_profile = workbench.active_profile.clone();
 
         if let Some(reverse) = &startup.reverse {
             workbench.reverse_input = reverse.clone();
@@ -384,7 +450,13 @@ impl Component for Workbench {
             Message::Query => self.run_query(),
             Message::Compare => self.run_compare(),
             Message::Align => self.run_align(),
-            Message::ToggleSchool(name) => self.toggle_school(&name),
+            Message::ModuleFilterChanged(value) => self.module_filter = value,
+            Message::ProfileNameChanged(value) => self.profile_name = value,
+            Message::ToggleModule(id) => self.toggle_module(&id),
+            Message::SetAllModules(kind, on) => self.set_all_modules(kind, on),
+            Message::ApplyProfile(name) => self.apply_profile(&name),
+            Message::SaveProfile => self.save_profile(),
+            Message::DeleteProfile => self.delete_profile(),
         }
     }
 
@@ -619,8 +691,9 @@ impl Workbench {
         {
             groups.push(group);
         }
-        for (id, title_en, title_zh, symbols, font) in [
+        for (key, id, title_en, title_zh, symbols, font) in [
             (
+                "consonants",
                 "kb_consonants",
                 "Consonants",
                 "辅音",
@@ -628,6 +701,7 @@ impl Workbench {
                 metrics.keyboard_font,
             ),
             (
+                "nonpulmonic",
                 "kb_nonpulmonic",
                 "Non-pulmonic",
                 "非肺气流",
@@ -635,6 +709,7 @@ impl Workbench {
                 metrics.keyboard_font,
             ),
             (
+                "vowels",
                 "kb_vowels",
                 "Vowels",
                 "元音",
@@ -642,6 +717,7 @@ impl Workbench {
                 metrics.keyboard_font,
             ),
             (
+                "diacritics",
                 "kb_modifiers",
                 "Diacritics",
                 "附加符",
@@ -649,6 +725,7 @@ impl Workbench {
                 20.0,
             ),
             (
+                "letters",
                 "kb_letters",
                 "Letters",
                 "字母",
@@ -656,6 +733,7 @@ impl Workbench {
                 metrics.keyboard_font,
             ),
             (
+                "tones",
                 "kb_tones",
                 "Tones",
                 "声调",
@@ -663,6 +741,9 @@ impl Workbench {
                 metrics.keyboard_font,
             ),
         ] {
+            if !self.keyboard_module_enabled(key) {
+                continue;
+            }
             if let Some(group) = self.keyboard_group(
                 KeyboardGroupSpec {
                     id,
@@ -1022,28 +1103,7 @@ impl Workbench {
             self.button_rows(view_buttons, per_row),
         ));
 
-        let mut school_buttons = Vec::new();
-        for school in &self.schools {
-            let label = if self.enabled_schools.contains(school) {
-                format!("[{school}]")
-            } else {
-                school.clone()
-            };
-            school_buttons.push(self.button(
-                &label,
-                context.callback({
-                    let school = school.clone();
-                    move |_| Message::ToggleSchool(school.clone())
-                }),
-            ));
-        }
-        children.push(self.section(
-            context,
-            "modules",
-            self.t("Regional modules", "地区模块"),
-            Some(school_buttons.len()),
-            self.button_rows(school_buttons, per_row),
-        ));
+        children.push(self.module_manager(context, per_row));
 
         children.push(
             self.section(
@@ -1178,6 +1238,167 @@ impl Workbench {
         ));
 
         children
+    }
+
+    fn module_manager(&self, context: &mut ViewContext<Self>, per_row: usize) -> View {
+        let metrics = self.metrics();
+        let zh = self.lang.is_zh();
+        let filter = self.module_filter.trim().to_lowercase();
+        let mut blocks: Vec<View> = Vec::new();
+
+        blocks.push(
+            TextBox::new()
+                .text(self.module_filter.clone())
+                .placeholder_text(self.t("Filter modules", "筛选模块"))
+                .on_text_changed(context.callback(Message::ModuleFilterChanged))
+                .into(),
+        );
+
+        let profile_columns = (per_row / 2).max(2);
+        let mut profile_buttons = Vec::new();
+        for name in self.profile_names() {
+            let label = if self.active_profile == name {
+                format!("[{name}]")
+            } else {
+                name.clone()
+            };
+            profile_buttons.push(self.button(
+                &label,
+                context.callback({
+                    let name = name.clone();
+                    move |_| Message::ApplyProfile(name.clone())
+                }),
+            ));
+        }
+        blocks.push(
+            TextBlock::new()
+                .text(format!(
+                    "{}: {}",
+                    self.t("Profile", "配置档案"),
+                    self.active_profile
+                ))
+                .font_size(13.0)
+                .into(),
+        );
+        blocks.push(self.button_rows(profile_buttons, profile_columns));
+        blocks.push(self.horizontal(vec![
+            TextBox::new()
+                .text(self.profile_name.clone())
+                .placeholder_text(self.t("Profile name", "档案名称"))
+                .on_text_changed(context.callback(Message::ProfileNameChanged))
+                .into(),
+            self.button(
+                self.t("Save current", "保存当前"),
+                context.message(Message::SaveProfile),
+            ),
+            self.button(
+                self.t("Delete active", "删除当前"),
+                context.message(Message::DeleteProfile),
+            ),
+        ]));
+
+        for kind in [ModuleKind::Parser, ModuleKind::Keyboard] {
+            let visible = self
+                .modules
+                .of_kind(kind)
+                .filter(|module| module.matches(&filter))
+                .collect::<Vec<_>>();
+            if visible.is_empty() {
+                continue;
+            }
+            let enabled = self.enabled_for(kind);
+            let header = TextBlock::new()
+                .text(format!(
+                    "{} ({}/{})",
+                    kind.label(zh),
+                    enabled.len(),
+                    self.modules.optional_ids(kind).len()
+                ))
+                .font_size(15.0);
+            let bulk = self.button_rows(
+                vec![
+                    self.button(
+                        self.t("All on", "全部启用"),
+                        context.callback(move |_| Message::SetAllModules(kind, true)),
+                    ),
+                    self.button(
+                        self.t("All off", "全部禁用"),
+                        context.callback(move |_| Message::SetAllModules(kind, false)),
+                    ),
+                ],
+                2,
+            );
+            let mut rows = Vec::new();
+            for module in visible {
+                let is_on = enabled.contains(&module.id);
+                let label = if module.always_on {
+                    format!("{} · {}", module.label(zh), self.t("always on", "始终启用"))
+                } else if is_on {
+                    format!("[{}]", module.label(zh))
+                } else {
+                    module.label(zh).to_string()
+                };
+                let control: View = if module.always_on {
+                    Button::new()
+                        .is_enabled(false)
+                        .min_height(metrics.control_height)
+                        .content(label)
+                } else {
+                    self.button(
+                        &label,
+                        context.callback({
+                            let id = module.id.clone();
+                            move |_| Message::ToggleModule(id.clone())
+                        }),
+                    )
+                };
+                let info = TextBlock::new()
+                    .text(format!(
+                        "{} · {} {}",
+                        module.description(zh),
+                        module.count,
+                        self.t("symbols", "个符号")
+                    ))
+                    .font_size(12.0)
+                    .text_wrapping(TextWrapping::Wrap);
+                rows.push(
+                    Grid::new()
+                        .columns([GridLength::Auto, GridLength::Star(1.0)])
+                        .column_spacing(metrics.control_gap)
+                        .keyed_children(keys(vec![control, info.grid_column(1).into()])),
+                );
+            }
+            blocks.push(self.stack(vec![header.into(), bulk, self.stack(rows)]));
+        }
+
+        let parser_total = self.modules.optional_ids(ModuleKind::Parser).len();
+        let keyboard_total = self.modules.optional_ids(ModuleKind::Keyboard).len();
+        let enabled_total = self.enabled_parser.len() + self.enabled_keyboard.len();
+        let symbols = self.enabled_symbols();
+        blocks.push(
+            TextBlock::new()
+                .text(format!(
+                    "{}: {}/{} · {}: {}/{} · {}: {}",
+                    self.t("Parser", "解析"),
+                    self.enabled_parser.len(),
+                    parser_total,
+                    self.t("Keyboard", "键盘"),
+                    self.enabled_keyboard.len(),
+                    keyboard_total,
+                    self.t("Symbols", "符号"),
+                    symbols
+                ))
+                .font_size(12.0)
+                .into(),
+        );
+
+        self.section(
+            context,
+            "modules",
+            self.t("Module manager", "模块管理器"),
+            Some(enabled_total),
+            self.stack(blocks),
+        )
     }
 
     fn metrics(&self) -> LayoutMetrics {
@@ -1846,17 +2067,198 @@ impl Workbench {
         }
     }
 
-    fn toggle_school(&mut self, school: &str) {
-        let option = format!("--{school}");
-        let _ = self.engine.set_args(&[&option]);
-        if !self.enabled_schools.iter().any(|item| item == school) {
-            self.enabled_schools.push(school.to_string());
+    fn enabled_for(&self, kind: ModuleKind) -> &[String] {
+        match kind {
+            ModuleKind::Parser => &self.enabled_parser,
+            ModuleKind::Keyboard => &self.enabled_keyboard,
         }
-        self.status = format!("enabled school: {school}");
+    }
+
+    fn enabled_symbols(&self) -> usize {
+        self.modules.symbols(&self.enabled_parser) + self.modules.symbols(&self.enabled_keyboard)
+    }
+
+    fn keyboard_module_enabled(&self, key: &str) -> bool {
+        modules::keyboard_visible(&self.enabled_keyboard, key)
+    }
+
+    fn profile_names(&self) -> Vec<String> {
+        let mut names = vec![PROFILE_ALL_ON.to_string(), PROFILE_ALL_OFF.to_string()];
+        names.extend(
+            self.settings
+                .module_profiles
+                .iter()
+                .map(|profile| profile.name.clone()),
+        );
+        names
+    }
+
+    fn profile_matches(&self, name: &str) -> bool {
+        if let Some(profile) = self.settings.module_profile(name) {
+            return modules::selection_matches(
+                &self.enabled_parser,
+                &self.enabled_keyboard,
+                profile,
+            );
+        }
+        if name == PROFILE_ALL_ON {
+            self.enabled_parser == self.modules.optional_ids(ModuleKind::Parser)
+                && self.enabled_keyboard == self.modules.optional_ids(ModuleKind::Keyboard)
+        } else if name == PROFILE_ALL_OFF {
+            self.enabled_parser.is_empty() && self.enabled_keyboard.is_empty()
+        } else {
+            false
+        }
+    }
+
+    fn detect_profile(&self) -> String {
+        for profile in &self.settings.module_profiles {
+            if modules::selection_matches(&self.enabled_parser, &self.enabled_keyboard, profile) {
+                return profile.name.clone();
+            }
+        }
+        if self.profile_matches(PROFILE_ALL_ON) {
+            PROFILE_ALL_ON.to_string()
+        } else if self.profile_matches(PROFILE_ALL_OFF) {
+            PROFILE_ALL_OFF.to_string()
+        } else {
+            PROFILE_CUSTOM.to_string()
+        }
+    }
+
+    fn toggle_module(&mut self, id: &str) {
+        let Some(module) = self.modules.find(id) else {
+            self.status = format!("unknown module: {id}");
+            return;
+        };
+        if module.always_on {
+            self.status = format!("module is always on: {id}");
+            return;
+        }
+        let kind = module.kind;
+        let label = module.label(self.lang.is_zh()).to_string();
+        let enabled = match kind {
+            ModuleKind::Parser => &mut self.enabled_parser,
+            ModuleKind::Keyboard => &mut self.enabled_keyboard,
+        };
+        match modules::toggle(&self.modules, enabled, id) {
+            Ok(true) => {
+                self.active_profile = PROFILE_CUSTOM.to_string();
+                self.sync_modules();
+                self.status = format!("enabled module: {label}");
+            }
+            Ok(false) => {
+                self.active_profile = PROFILE_CUSTOM.to_string();
+                self.sync_modules();
+                self.status = format!("disabled module: {label}");
+            }
+            Err(error) => self.status = error,
+        }
+    }
+
+    fn set_all_modules(&mut self, kind: ModuleKind, on: bool) {
+        let enabled = match kind {
+            ModuleKind::Parser => &mut self.enabled_parser,
+            ModuleKind::Keyboard => &mut self.enabled_keyboard,
+        };
+        modules::set_all(&self.modules, enabled, kind, on);
+        self.active_profile = PROFILE_CUSTOM.to_string();
+        self.sync_modules();
+        self.status = format!(
+            "{} {}",
+            if on {
+                self.t("enabled all", "已全部启用")
+            } else {
+                self.t("disabled all", "已全部禁用")
+            },
+            kind.label(self.lang.is_zh())
+        );
+    }
+
+    fn apply_profile(&mut self, name: &str) {
+        if let Some((parser, keyboard)) = modules::builtin_selection(&self.modules, name) {
+            self.enabled_parser = parser;
+            self.enabled_keyboard = keyboard;
+        } else if let Some(profile) = self.settings.module_profile(name).cloned() {
+            self.enabled_parser = self.modules.reconcile(ModuleKind::Parser, &profile.parser);
+            self.enabled_keyboard = self
+                .modules
+                .reconcile(ModuleKind::Keyboard, &profile.keyboard);
+        } else {
+            self.status = format!("unknown profile: {name}");
+            return;
+        }
+        self.active_profile = name.to_string();
+        self.sync_modules();
+        self.status = format!("applied profile: {name}");
+    }
+
+    fn save_profile(&mut self) {
+        let name = self.profile_name.trim().to_string();
+        if name.is_empty() {
+            self.status = self.t("profile name is empty", "档案名称为空").to_string();
+            return;
+        }
+        if [PROFILE_ALL_ON, PROFILE_ALL_OFF, PROFILE_CUSTOM].contains(&name.as_str()) {
+            self.status = format!("profile name is reserved: {name}");
+            return;
+        }
+        let profile = ModuleProfile {
+            name: name.clone(),
+            parser: self.enabled_parser.clone(),
+            keyboard: self.enabled_keyboard.clone(),
+        };
+        self.settings.save_module_profile(profile);
+        self.active_profile = name.clone();
+        self.sync_modules();
+        self.status = format!("saved profile: {name}");
+    }
+
+    fn delete_profile(&mut self) {
+        let name = self.active_profile.clone();
+        if name == PROFILE_CUSTOM || name == PROFILE_ALL_ON || name == PROFILE_ALL_OFF {
+            self.status = self
+                .t("select a saved profile first", "请先应用一个已保存的档案")
+                .to_string();
+            return;
+        }
+        if self.settings.delete_module_profile(&name) {
+            self.active_profile = PROFILE_CUSTOM.to_string();
+            self.sync_modules();
+            self.status = format!("deleted profile: {name}");
+        } else {
+            self.status = format!("profile not found: {name}");
+        }
+    }
+
+    fn sync_modules(&mut self) {
+        let names = self
+            .enabled_parser
+            .iter()
+            .filter_map(|id| self.modules.find(id))
+            .map(|module| module.key.clone())
+            .collect::<Vec<_>>();
+        let _ = self.engine.set_modules(&names);
+        self.settings.enabled_parser_modules = self.enabled_parser.clone();
+        self.settings.keyboard_modules = Some(self.enabled_keyboard.clone());
+        self.settings.active_profile = self.active_profile.clone();
+        self.settings.save();
     }
 
     fn reload_keyboard(&mut self) {
         self.keyboard = build_keyboard(&self.engine);
+        match Registry::build(self.engine.modules_all(), &self.keyboard) {
+            Ok(registry) => {
+                self.modules = registry;
+                self.enabled_parser = self
+                    .modules
+                    .reconcile(ModuleKind::Parser, &self.enabled_parser);
+                self.enabled_keyboard = self
+                    .modules
+                    .reconcile(ModuleKind::Keyboard, &self.enabled_keyboard);
+            }
+            Err(error) => self.status = error,
+        }
     }
 
     fn record_history(&mut self) {

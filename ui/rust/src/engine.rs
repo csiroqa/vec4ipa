@@ -46,8 +46,10 @@ unsafe extern "C" {
     fn ipa2v_set_args(n: c_int, argv: *const *const c_char) -> c_int;
     fn ipa2v_version() -> *const c_char;
     fn ipa2v_docs() -> *const c_char;
-    fn ipa2v_modules(out: *mut c_char, outsz: usize) -> c_int;
     fn ipa2v_modules_full(out: *mut c_char, outsz: usize) -> c_int;
+    fn ipa2v_modules_all(out: *mut c_char, outsz: usize) -> c_int;
+    fn ipa2v_set_modules(csv: *const c_char) -> c_int;
+    fn ipa2v_enabled_modules(out: *mut c_char, outsz: usize) -> c_int;
     fn ipa2v_table(out: *mut c_char, outsz: usize) -> c_int;
     fn ipa2v_stats(out: *mut c_char, outsz: usize) -> c_int;
     fn ipa2v_weights_effective(out: *mut c_char, outsz: usize) -> c_int;
@@ -96,6 +98,14 @@ pub struct VowelKey {
 pub struct ConsonantKey {
     pub symbol: String,
     pub place: f64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ModuleInfo {
+    pub name: String,
+    /// School modules can be toggled; always-on modules cannot.
+    pub school: bool,
+    pub symbols: usize,
 }
 
 /// The C engine keeps process-global scheme, metric, and module state. This
@@ -342,12 +352,49 @@ impl Engine {
             .into_owned()
     }
 
-    pub fn modules(&self) -> Vec<String> {
-        lines(&self.text_call_no_input(ipa2v_modules, 16 * 1024))
-    }
-
     pub fn modules_full(&self) -> String {
         self.text_call_no_input(ipa2v_modules_full, 64 * 1024)
+    }
+
+    /// Every alias module the wrapper exposes, in core table order.
+    pub fn modules_all(&self) -> Vec<ModuleInfo> {
+        lines(&self.text_call_no_input(ipa2v_modules_all, 16 * 1024))
+            .into_iter()
+            .filter_map(|line| {
+                let mut fields = line.split('\t');
+                let name = fields.next()?.to_string();
+                let school = match fields.next()? {
+                    "school" => true,
+                    "always" => false,
+                    _ => return None,
+                };
+                let symbols = fields.next()?.parse().ok()?;
+                Some(ModuleInfo {
+                    name,
+                    school,
+                    symbols,
+                })
+            })
+            .collect()
+    }
+
+    /// Replaces the enabled school modules with `names`, in priority order.
+    /// Always-on modules are unaffected.
+    pub fn set_modules(&self, names: &[String]) -> Result<(), String> {
+        let csv = names.join(",");
+        let csv = CString::new(csv).map_err(|_| "module name contains a NUL".to_string())?;
+        // SAFETY: `csv` is a valid NUL-terminated UTF-8 string; the shim only
+        // reads it and updates its own process-global module flags.
+        unsafe {
+            ipa2v_set_modules(csv.as_ptr());
+        }
+        Ok(())
+    }
+
+    /// Enabled school modules in enable (priority) order.
+    #[allow(dead_code)]
+    pub fn enabled_modules(&self) -> Vec<String> {
+        lines(&self.text_call_no_input(ipa2v_enabled_modules, 16 * 1024))
     }
 
     pub fn table(&self) -> String {
@@ -612,7 +659,6 @@ mod tests {
         assert!(toned[1].tones.iter().any(|group| group.kind != 0));
         assert!(!engine.version().is_empty());
         assert!(engine.docs().contains("vec4ipa"));
-        assert!(!engine.modules().is_empty());
         assert!(engine.modules_full().contains("["));
         assert!(engine.table().contains("pulmonic"));
         assert!(engine.stats().contains("dimensions"));
@@ -660,6 +706,44 @@ mod tests {
         assert!(base.with_extension("layer2").exists());
         let _ = std::fs::remove_file(base.with_extension("layer1"));
         let _ = std::fs::remove_file(base.with_extension("layer2"));
+    }
+
+    #[test]
+    fn module_inventory_and_exact_set_round_trip() {
+        let _guard = guard();
+        let mut engine = Engine::new();
+        engine
+            .set_args(&["-D", &data("spec_next.scheme")])
+            .expect("default scheme");
+
+        let modules = engine.modules_all();
+        assert!(
+            modules
+                .iter()
+                .any(|module| module.name == "generic" && !module.school)
+        );
+        assert!(
+            modules
+                .iter()
+                .any(|module| module.name == "americanist" && module.school && module.symbols > 0)
+        );
+
+        engine.set_modules(&[]).expect("clear modules");
+        assert!(engine.enabled_modules().is_empty());
+
+        engine
+            .set_modules(&["americanist".into(), "sinologist".into()])
+            .expect("set modules");
+        assert_eq!(
+            engine.enabled_modules(),
+            vec!["americanist".to_string(), "sinologist".to_string()]
+        );
+
+        // Always-on modules are not part of the toggleable set.
+        engine.set_modules(&["generic".into()]).expect("set always");
+        assert!(engine.enabled_modules().is_empty());
+
+        engine.set_modules(&[]).expect("reset modules");
     }
 
     #[test]
