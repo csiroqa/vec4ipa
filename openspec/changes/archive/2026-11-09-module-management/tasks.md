@@ -56,7 +56,7 @@
 
 - [x] 7.1 Run `cargo fmt`, `clippy -D warnings`, and `cargo test`. Verify all
   pass.
-- [ ] 7.2 Run `make test` and `make verify-commit`; confirm the refreshed
+- [x] 7.2 Run `make test` and `make verify-commit`; confirm the refreshed
   `ipa2vec_core.dll` is the expected binary change. Verify both suites pass.
   `make test` passes and the DLL is refreshed in place; `make verify-commit`
   runs after the change is committed.

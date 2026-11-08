@@ -11,6 +11,14 @@ fn main() {
 
     let manifest = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
     let root = manifest.join("../..");
+    let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+
+    let version = suite_version(&root);
+    let version_rc = out_dir.join("version.rc");
+    write_version_rc(&version_rc, &version);
+    embed_resource::compile(&version_rc, embed_resource::NONE)
+        .manifest_required()
+        .expect("embed the executable version resource");
 
     let vectors = root.join("src/vectors.h");
     let readme = root.join("src/readme_embed.h");
@@ -51,16 +59,15 @@ fn main() {
         "tools/data/spec_next.scheme",
         "src/names.tsv",
         "README.md",
-        "ui/winui/core_wrap.c",
+        "ui/rust/core_wrap.c",
     ] {
         println!("cargo:rerun-if-changed={}", root.join(path).display());
     }
 
-    let shim = fs::read_to_string(manifest.join("../winui/core_wrap.c"))
-        .expect("read ui/winui/core_wrap.c");
+    let shim = fs::read_to_string(manifest.join("core_wrap.c")).expect("read ui/rust/core_wrap.c");
     let mut shim = shim
         .replace("\r\n", "\n")
-        .replace("#include \"../src/", "#include \"");
+        .replace("#include \"../../src/", "#include \"");
 
     // MSVC has no GCC nested functions. Hoist the one nested helper in
     // ipa2v_kb_cons_pos so the same shim compiles with cl.exe.
@@ -106,6 +113,62 @@ fn main() {
         .flag_if_supported("-Wno-unused-variable")
         .flag_if_supported("-Wno-format-truncation")
         .compile("ipa2vec_core");
+}
+
+fn suite_version(root: &Path) -> String {
+    let header =
+        fs::read_to_string(root.join("src/ipa2vec_core.h")).expect("read src/ipa2vec_core.h");
+    header
+        .lines()
+        .find_map(|line| {
+            line.trim()
+                .strip_prefix("#define IPA2VEC_VERSION")
+                .map(str::trim)
+                .map(|value| value.trim_matches('"').to_string())
+        })
+        .expect("IPA2VEC_VERSION in src/ipa2vec_core.h")
+}
+
+fn write_version_rc(path: &Path, version: &str) {
+    let mut parts = version
+        .split('.')
+        .map(|part| part.parse::<u16>().unwrap_or(0))
+        .collect::<Vec<_>>();
+    parts.resize(4, 0);
+    let numbers = format!("{},{},{},{}", parts[0], parts[1], parts[2], parts[3]);
+    let rc = format!(
+        r#"#include <winver.h>
+
+1 VERSIONINFO
+FILEVERSION {numbers}
+PRODUCTVERSION {numbers}
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x0L
+FILEOS 0x40004L
+FILETYPE 0x1L
+FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "vec4ipa"
+            VALUE "FileDescription", "vec4ipa Workbench"
+            VALUE "FileVersion", "{version}"
+            VALUE "InternalName", "vec4ipa-ui"
+            VALUE "OriginalFilename", "vec4ipa-ui.exe"
+            VALUE "ProductName", "vec4ipa Workbench"
+            VALUE "ProductVersion", "{version}"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+"#
+    );
+    fs::write(path, rc).expect("write version.rc");
 }
 
 fn needs_regen(output: &Path, inputs: &[PathBuf]) -> bool {

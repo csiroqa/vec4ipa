@@ -1,114 +1,53 @@
-# vec4ipa UI (WinUI 3 workbench)
+# vec4ipa user interfaces
 
-A single-file, self-contained Windows GUI for the **vec4ipa** tool
-suite (IPA strings ↔ 16-D articulatory vectors), built with **WinUI 3**
-and .NET 9. The engine is the same header-only core the CLI tools use
-(`../src/ipa2vec_core.h`), compiled once into `ipa2vec_core.dll` and
-called via P/Invoke — numbers are identical to the command line.
+The Rust workbench in `rust/` is the full Windows front-end for the vec4ipa
+suite. It uses `windows-reactor` and compiles the shared C core through
+`rust/core_wrap.c`, so its vectors, reverse fits, and inventory match the CLI
+tools. Version 4.0.0 makes it the only workbench; the WinUI 3 C# reference is
+gone.
+
+The legacy Win32 wrapper (`vec4ipa_ui.c`) is still built by plain `make` on
+Windows as a minimal fallback. The installer does not ship it.
 
 ## Layout
 
 ```
 ui/
-├── vec4ipa_ui.c            legacy Win32 wrapper (superseded, kept for reference)
-├── app.rc / app.res        Win32 resources (legacy)
+├── rust/                   Rust workbench, FFI shim, packaging
+│   ├── src/                window, engine bridge, keyboard, modules, settings
+│   ├── core_wrap.c         C export layer compiled into the executable
+│   ├── app.rc              embedded application icon
+│   ├── package.bat         release build plus self-contained dist/
+│   └── installer.bat       Inno Setup package
+├── vec4ipa_ui.c            legacy Win32 wrapper (not installed)
+├── app.rc / app.res        legacy Win32 resources
 ├── assets/                 application icon sources (SVG/PNG)
-├── fonts/                  Gentium Book Plus + NewComputerModern10 (SIL OFL 1.1)
-└── winui/                  the WinUI 3 front-end
-    ├── vec4ipa_ui.csproj   project (unpackaged, self-contained; MSIX via wap/)
-    ├── wap/                Windows Application Packaging project (MSIX)
-    ├── App.xaml(.cs)       application entry, startup diagnostics
-    ├── Program.cs          explicit entry point (logs Application.Start
-    │                       failures to %TEMP%\vec4ipa\crash.log)
-    ├── MainWindow.xaml(.cs) the whole workbench UI
-    ├── Core.cs             P/Invoke bindings to ipa2vec_core.dll
-    ├── core_wrap.c         C export layer (compiled into the DLL)
-    ├── app.manifest        DPI awareness etc.
-    ├── install_msix.ps1    install the packaged app from wap\AppPackages
-    └── build.bat           build script
+└── fonts/                  Gentium Book Plus + NewComputerModern10 (SIL OFL 1.1)
 ```
-
-## Features
-
-- **Fluent materials**: **Mica** window backdrop (Windows 11) with
-  theme-driven containers, in-app **acrylic** popovers (narrowness
-  picker, format picker, symbol hover card), accent pills and
-  animated motion throughout
-- **IPA → vectors**: type or click symbols on the soft keyboard;
-  output as plain vectors, two-layer IR (with rebuilt IPA) or JSON
-- **Vector → IPA**: 16-D input (multi-line for batch), width 0-4,
-  live **vector editor** with reverse preview
-- **Long-press pickers**: the narrowness control and the output
-  format selector pop up as acrylic overlays — hold the button to
-  open, slide with a magnetic S-curve cursor (the format list
-  animates its accent selection pill between rows)
-- **Loop**: IPA → vectors → reverse fit with the tone annotation
-  (`tone=(…)` groups) round-tripped
-- **IPA soft keyboard**: continuous scroll with grouped sections —
-  Consonants (by place), Non-pulmonic (ejectives/implosives/clicks),
-  Vowels (trapezium order), Diacritics, Letters, Tones, Recent.
-  Hover shows a Fluent symbol card (acrylic, animated), double-click
-  opens details
-- **Symbol compare**, weighted **distance**, **history**, examples,
-  open-file batch convert, convert+reverse **loop**
-- **Views**: base table, module details, statistics, metric weights,
-  effective weights, module enablement, metric.json loading
-- **Export**: bundled CLI tools, command lines, table CSV, IR
-  layer1/layer2 files, output saving
-- **Window**: custom title bar, drag-resizable splitter, theme
-  (system/light/dark), English/中文 UI, window state persistence,
-  CLI-compatible startup arguments, MSIX packaging via the WAP
-  project (`wap/`)
 
 ## Build
 
-Requirements:
+The workbench needs the Rust MSVC toolchain, the Visual Studio C++ build tools,
+the Windows SDK, and the Windows App SDK runtime. Build and package it from
+`rust/`:
 
-- MinGW-w64 `gcc` (builds `ipa2vec_core.dll`)
-- Visual Studio 2022 **Build Tools** with the *MSBuild tools* and
-  *Universal Windows Platform build tools* workloads (WinUI 3 build
-  tasks; plain `dotnet build` is not enough)
-- .NET SDK 9
-
-```
-ui\winui\build.bat            # builds the DLL, then publishes to dist\
-ui\winui\build.bat clean      # remove build output
+```bat
+rust\build.bat build        REM debug build
+rust\build.bat test         REM cargo test
+rust\package.bat            REM release build plus dist\
+rust\installer.bat          REM setup executable from dist\ (Inno Setup 6)
 ```
 
-Output: `ui\winui\dist\` — a self-contained folder with
-`vec4ipa_ui.exe`, runnable without installing anything.
+`dist\` is self-contained: it includes the Windows App SDK runtime, fonts,
+icon, assets, and the three CLI tools. The installer reads the version from
+`IPA2VEC_VERSION` and writes `rust\installer\vec4ipa-setup-<version>.exe`.
 
-> Single-file (`PublishSingleFile`) publishing is **not** supported:
-> WindowsAppSDK self-contained apps fail at startup in that mode
-> (known platform limitation).
+## Retired C# workbench
 
-## Command line
+The WinUI 3/C# workbench and its MSIX project were removed in 4.0.0. The new
+installer replaces an existing vec4ipa install and deletes the old
+`ipa2vec_core.dll` and managed support files. A separately installed MSIX
+package is not removed automatically; uninstall it from **Settings → Apps**.
 
-```
-vec4ipa_ui [OPTIONS] [IPA-STRING]
-  --narrowness LEVEL    reverse-fit narrowness (broadest|broad|medium|narrow|narrowest, or 0-4; alias --width; default narrow)
-  -q, --query SYM      query one symbol on startup
-  -r, --reverse VEC    16-D vector -> IPA on startup
-  --theme system|light|dark
-  --export-tools DIR   write the bundled CLI tools to DIR
-  -h, --help
-  IPA-STRING           forward IPA -> vectors on startup
-```
-
-## Fonts
-
-The GUI uses **Gentium Book Plus** (normative IPA letterforms); the
-application icon renders its arrow with **NewComputerModern10**. Both
-are SIL OFL 1.1 licensed and ship in `ui/fonts/` with the license
-text; the app falls back to system fonts if they are absent.
-
-## Notes
-
-- Startup diagnostics (`startup.log`, `crash.log` — including the
-  explicit `Program.cs` entry point, which catches `Application.Start`
-  failures before the App ctor's handler exists) go to
-  `%TEMP%\vec4ipa\`, never into the app folder.
-- The window uses the Fluent **Mica** backdrop (Windows 11); the XAML
-  containers stay transparent so the material shows through, and the
-  theme (system/light/dark) drives both the material and the theme
-  resources.
+See [`rust/README.md`](rust/README.md) for features, accepted differences, and
+the verification list.

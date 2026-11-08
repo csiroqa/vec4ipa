@@ -2,11 +2,12 @@
 
 `vec4ipa` is a C11 tool suite that converts between IPA/extIPA strings and
 articulatory vectors. Three command-line tools (`ipa2vec`, `vec2ipa`,
-`vec4ipa`) share one header-only core, and a WinUI 3 workbench wraps the same
-core through a small P/Invoke DLL. The Python tree under `tools/` is design,
-generation, fitting, audit and test tooling; **none of it is needed at
-runtime**. The shipped binaries embed their tables and do not read data files
-unless the user explicitly passes `--scheme` or `--metric`.
+`vec4ipa`) share one header-only core, and the Rust workbench wraps the same
+core through a small FFI shim. The legacy Win32 wrapper remains as a minimal
+fallback. The Python tree under `tools/` is design, generation, fitting, audit
+and test tooling; **none of it is needed at runtime**. The shipped binaries
+embed their tables and do not read data files unless the user explicitly passes
+`--scheme` or `--metric`.
 
 ## Build, Test, Lint
 
@@ -40,9 +41,6 @@ python tools/check_doc_numbers.py
 python tools/check_doc_structure.py
 python tools/check_readme_tests.py
 python tools/check_doc_paths.py
-python tools/test_winui_core.py
-python tools/check_mainwindow_syntax.py
-python tools/build_winui.py
 ```
 
 Manual checks (deliberately outside `make test`):
@@ -59,45 +57,46 @@ Requirements:
 - **Python 3**: several suites and research tools need `numpy`; some fitting
   scripts also use `scipy`/`sklearn`. Fitting/audit scripts read large
   corpora under `tools/data/`.
-- **WinUI workbench**: Visual Studio 2022 **Build Tools** with the MSBuild and
-  WinUI/UWP build-tool workloads, .NET SDK 9, and `gcc`. `dotnet build` alone
-  cannot load the AppxPackage PRI tasks; use `ui\winui\build.bat` or
-  `tools/build_winui.py`, which invoke Visual Studio MSBuild.
-- **MSIX**: `ui/winui/wap/vec4ipa_wap.wapproj` and
-  `ui/winui/install_msix.ps1`.
+- **Rust workbench**: Rust MSVC toolchain, Visual Studio 2022 C++ build tools
+  (MSVC linker and Windows SDK), and the Windows App SDK 2.x runtime.
+  `ui\rust\build.bat` loads `VsDevCmd.bat` before Cargo. No .NET, MSBuild XAML,
+  or MSIX workload is required.
+- **Installer**: Inno Setup 6.3 or later. `installer.bat` finds `ISCC.exe`
+  under `%LOCALAPPDATA%\Programs\Inno Setup 6` or the Program Files locations.
 
 Windows shortcuts:
 
 ```bat
-ui\winui\build.bat          REM build the core DLL and publish dist\
-ui\winui\build.bat clean    REM remove bin, obj, dist and the core DLL
+ui\rust\build.bat build     REM debug build
+ui\rust\build.bat test      REM cargo test
+ui\rust\package.bat         REM release build plus self-contained dist\
+ui\rust\installer.bat       REM setup executable for the current version
 ```
 
-`build.bat` publishes a self-contained folder. Single-file publishing is not
+`package.bat` publishes a self-contained folder. Single-file publishing is not
 supported: WindowsAppSDK self-contained apps fail at startup in that mode.
 
 ### Rust workbench (Windows)
 
-The accepted Rust front-end lives in `ui/rust/`. It uses `windows-reactor` and
-links the C core through a static FFI shim. `ui/winui/` remains as the C#
-reference implementation.
+The Rust front-end in `ui/rust/` is the only full workbench. It uses
+`windows-reactor` and links the C core through `ui/rust/core_wrap.c`, compiled
+into the executable by `build.rs`.
 
 ```bat
 ui\rust\build.bat build     REM or: make rust-ui
 ui\rust\build.bat test      REM or: make rust-ui-test
 ui\rust\package.bat         REM or: make rust-ui-package
+ui\rust\installer.bat       REM or: make rust-ui-installer
 ```
 
-Requirements: Rust MSVC toolchain, Visual Studio C++ build tools (MSVC linker
-and Windows SDK), and the Windows App SDK 2.x runtime. `build.bat` loads
-`VsDevCmd.bat` before running Cargo. The Rust UI does not need .NET or MSBuild
-XAML tasks; those remain requirements only for `ui/winui/`.
+The C# WinUI reference and its MSIX project were removed in 4.0.0.
 
 **Lint** is not a separate tool here. The C build uses `-Wall -Wextra
 -std=c11`; treat new warnings as defects. `-Wno-format-truncation` is
 deliberate for bounded trace buffers — do not silence it by shrinking
-buffers. There is no Python or C# formatter configured; match the surrounding
-style, and let the tests be the gate.
+buffers. Run `cargo fmt --check` and `cargo clippy --all-targets -- -D
+warnings` for Rust. There is no Python formatter configured; match the
+surrounding style, and let the tests be the gate.
 
 ## Architecture
 
@@ -192,37 +191,36 @@ Rules:
 - Resolve axes by name with `dim_of_ok(name, fallback)`; the fallback must
   name the same feature, because it only fires when a custom scheme omits the
   axis.
-- Never print or hard-code "16-D" in UI text, help, or XAML; the CLI's
-  `-v` banner already uses `g_ndim`.
-- The WinUI side must query `Core.NDim` **after** `Core.SetArgs`, because that
+- Never print or hard-code "16-D" in UI text or help; the CLI's `-v` banner
+  and the Rust window title already use `g_ndim`.
+- The Rust engine must call `Engine::ndim()` **after** `set_args`, because that
   is where a scheme is loaded.
 
-`MAX_TOKS` is the C core's fixed parse/IR capacity. `Core.cs` allocates its
-own, larger buffers (`MAX_TOKS = 512`) and reads back the segment count; do not
-add a silent truncation on either side.
+`MAX_TOKS` is the C core's fixed parse/IR capacity. `ui/rust/src/engine.rs`
+allocates its own, larger buffers (`MAX_TOKS = 512`) and reads back the segment
+count; do not add a silent truncation on either side.
 
-### WinUI boundary
+### Rust FFI boundary
 
-`ui/winui/core_wrap.c` is a thin export layer over `src/ipa2vec_core.h`;
-`ui/winui/Core.cs` is the matching P/Invoke surface. The DLL is not a second
-implementation:
+`ui/rust/core_wrap.c` is a thin export layer over `src/ipa2vec_core.h`;
+`ui/rust/src/engine.rs` is the matching FFI surface. `build.rs` compiles the
+shim into the executable, so there is no DLL and no P/Invoke layer:
 
 - `ipa2v_ndim()` reports the loaded scheme width.
 - `ipa2v_forward` / `ipa2v_reverse` / `ipa2v_query` / table and stats calls
   forward to the same functions the CLIs use.
 - `ipa2v_set_args` applies CLI-style settings (school modules, `--width`,
-  `-D scheme`), and UTF-8 path marshalling is explicit because Windows argv is
-  not UTF-8.
+  `-D scheme`), and UTF-8 path marshalling is explicit.
 
-`tools/test_winui_core.py` compiles `Core.cs` against the real DLL and compares
-every coordinate against `vec4ipa` for both `spec_next.scheme` and
-`tongue.scheme`. This is the guard against a mis-strided wrapper, which would
-otherwise fill the tail with **another segment's** coordinates and still look
-plausible.
+The Rust tests `engine_contract`,
+`runtime_width_and_sequential_scheme_switch`, and `parity_with_cli` compare
+coordinates against `vec4ipa` for both `spec_next.scheme` and `tongue.scheme`.
+That is the guard against a mis-strided wrapper, which would otherwise fill the
+tail with **another segment's** coordinates and still look plausible.
 
-The workbench (`ui/winui/MainWindow.xaml` + 3,700-line code-behind) is a single
-imperative WinUI 3 window: custom title bar, Mica, acrylic popovers, soft
-keyboard, pointer-magnet pickers, splitter, history, exports. It is UI layer
+The workbench (`ui/rust/src/app.rs` plus the keyboard, modules, layout, and
+settings modules) is a single imperative `windows-reactor` window: title bar,
+Mica, soft keyboard, module manager, splitter, history, exports. It is UI layer
 only; keep the vector semantics in the C core.
 
 ### Python tooling
@@ -256,9 +254,6 @@ before assuming a script is part of the build.
   `tongue.scheme`, and `vec_table_16.json`) are committed generated artifacts.
   Run their generators and commit the result. The other JSON/CSV/RDA files are
   research inputs or measurement outputs; do not regenerate them blindly.
-- `ui/winui/ipa2vec_core.dll` is a tracked test artifact rebuilt in place by
-  `test_winui_core.py`; commit the refreshed binary when the wrapper/core
-  changed, as the history does.
 
 ### Scheme and metric changes
 
@@ -351,7 +346,6 @@ tools/
   verify_*.py          design-model verification
   test_*.py            suites
   check_*.py           repository/doc/generated-artifact gates
-  build_winui.py       real MSBuild build of the WinUI project
   verify_commit.py     build/test git HEAD in a scratch tree
   data/
     spec_next.scheme   runtime authority (16-D, hand-tuned)
@@ -363,13 +357,14 @@ tools/
 
 ui/
   vec4ipa_ui.c         legacy Win32 wrapper (still built on Windows)
-  winui/               WinUI 3 workbench
-    Core.cs            P/Invoke bindings
-    core_wrap.c        thin C export layer
-    MainWindow.xaml    UI markup
-    MainWindow.xaml.cs imperative UI logic
-    build.bat          gcc DLL + MSBuild publish
-    wap/               MSIX packaging project
+  rust/                Rust workbench (the only full front-end)
+    core_wrap.c        thin C export layer compiled into the executable
+    src/               window, engine FFI, keyboard, modules, settings
+    app.rc             embedded application icon
+    build.rs           C headers, shim, and version resource
+    package.bat        self-contained dist/
+    installer.iss      Inno Setup package
+    installer.bat      reads IPA2VEC_VERSION and builds the setup exe
     dist/              publish output (gitignored)
 
 docs/
@@ -394,9 +389,9 @@ README.md              user-facing documentation; embedded into the CLIs
 | `docs/TONGUE-MODEL.md` | `check_doc_numbers.py`, `check_doc_structure.py`, `check_doc_paths.py` |
 | `README.md` test list or Makefile test target | `python tools/check_readme_tests.py` |
 | A documented file path / rename | `python tools/check_doc_paths.py` |
-| `ui/winui/Core.cs` or `core_wrap.c` | `python tools/test_winui_core.py` |
-| `ui/winui/MainWindow.xaml.cs` | `python tools/check_mainwindow_syntax.py`, then `python tools/build_winui.py` |
-| `ui/winui/MainWindow.xaml` | `python tools/check_mainwindow_syntax.py` (also rejects literal vector widths) |
+| `ui/rust/core_wrap.c` or `ui/rust/src/engine.rs` | `cargo test`, then `make test` |
+| Another `ui/rust/src` module | `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test` |
+| `ui/rust/build.rs`, `app.rc`, or `installer.iss` | `ui\rust\package.bat`, then `ui\rust\installer.bat`; inspect the exe and installer icon and version |
 | Anything about to be committed | `make verify-commit` |
 
 `make test` builds and runs the **working tree**. `make verify-commit` extracts
@@ -424,33 +419,30 @@ latter says whether the commit itself is sound.
   arithmetic on the same constants. A difference means one of the two is
   wrong; loosening the comparison would hide which one.
 
-- **`test_winui_core.py` must compare value-for-value against the CLI.** A
-  mis-strided wrapper fills the tail with another segment's coordinates, so
-  "the last axis is non-zero" proves nothing. It also rebuilds the checked-in
-  `ui/winui/ipa2vec_core.dll` in place; after a core/wrapper change, inspect
-  and commit the refreshed binary.
+- **The Rust tests and `make test` are different gates.** `cargo test` covers
+  the FFI contract, scheme swaps, UTF-8 paths, module state, and CLI parity.
+  `make test` covers the C/Python/data gates. Run both before a release.
 
-- **`check_mainwindow_syntax.py` is only the cheap half.** It compiles
-  `MainWindow.xaml.cs` without WinUI references, so a deleted member
-  (`Core.NDIM`, for example) is not a parse error. `build_winui.py` compiles
-  the real project with Visual Studio MSBuild and is what caught ten references
-  to a deleted constant that the syntax check had passed for months.
+- **Cargo needs the MSVC environment.** `ui\rust\build.bat` loads `VsDevCmd.bat`
+  first; a bare `cargo build` without it cannot link the Windows App SDK
+  targets. `package.bat` and `installer.bat` do this for you.
 
-- **`dotnet build` cannot load the AppxPackage PRI tasks.** Use
-  `ui\winui\build.bat` or `tools/build_winui.py`. In `make test`,
-  `build_winui.py --skip-if-unavailable` intentionally skips when no Visual
-  Studio MSBuild is installed; a skipped WinUI build is not a verified WinUI
-  build. `build_winui.py` also assumes the core DLL already exists, so on a
-  clean tree run `ui\winui\build.bat` or `test_winui_core.py` first.
+- **`IPA2VEC_VERSION` drives the executable and installer metadata.**
+  `build.rs` generates `VERSIONINFO` from `src/ipa2vec_core.h`, and
+  `installer.bat` passes the same string to Inno Setup. Change the header once;
+  do not hard-code a version in `app.rc` or `installer.iss`.
+
+- **The C# workbench is gone on purpose.** `ui/winui/` and its tracked
+  `ipa2vec_core.dll` were removed in 4.0.0. Do not reintroduce a DLL or a
+  P/Invoke path; `build.rs` compiles `ui/rust/core_wrap.c` into the executable.
 
 - **`make verify-commit` runs plain `make` in the scratch tree.** On Windows
   that includes the legacy Win32 wrapper, so `windres` must be on PATH even
   when the change only touches the CLIs.
 
-- **Never put a literal vector width in `MainWindow.xaml`.** `16-D vector`
-  text is overwritten at startup from `Core.NDim`, so the stale literal
-  survives review and is wrong for every scheme but the compiled one.
-  `check_mainwindow_syntax.py` rejects it.
+- **Never put a literal vector width in the workbench.** The window title and
+  module summary read `engine.ndim()` at startup; a hard-coded `16-D` is wrong
+  for every scheme but the compiled default and survives review.
 
 - **`check_generated_current.py` regenerates in place.** It backs up the
   committed files for comparison, then runs the generators in `tools/data`.
@@ -492,11 +484,11 @@ latter says whether the commit itself is sound.
   inputs, and are excluded from `make test` for that reason. Run them only
   when the task is the measurement itself.
 
-- **MSIX / self-contained packaging has hard constraints.** The publish output
-  is a folder (`dist/`), not a single file; `PublishSingleFile` fails at
-  startup for WindowsAppSDK self-contained apps. `build.bat` must copy
-  `resources.pri` next to the exe, and the WAP project overrides
-  `WindowsAppSDKSelfContained` to `false` for the packaged build.
+- **Self-contained packaging has hard constraints.** The publish output is a
+  folder (`dist/`), not a single file; `PublishSingleFile` fails at startup for
+  WindowsAppSDK self-contained apps. `package.bat` stages the runtime next to
+  the exe, and `installer.iss` copies that folder tree into the install
+  directory.
 
 - **Documentation moves with the code.** Renaming a file or adding a gate
   breaks `check_doc_paths.py` / `check_readme_tests.py`; update `README.md`

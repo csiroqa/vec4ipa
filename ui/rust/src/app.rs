@@ -1492,7 +1492,7 @@ impl Workbench {
     }
 
     /// Hover card for a keyboard key: the glyph, its feature name, and the
-    /// airstream or tier line, matching the WinUI reference workbench.
+    /// airstream or tier line, matching the two content rows of the hover card.
     fn symbol_tooltip(&self, symbol: &str) -> Tooltip {
         let raw = self.engine.query(symbol).unwrap_or_default();
         let (name, air) = describe_query(&raw);

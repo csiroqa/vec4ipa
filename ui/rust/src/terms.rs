@@ -1,4 +1,4 @@
-//! Chinese feature terms, ported from the C# reference workbench.
+//! Chinese feature terms for keyboard search.
 
 const TERMS: &[(&str, &str)] = &[
     ("vl", "清"),

@@ -1,11 +1,11 @@
 /*
- * ipa2vec_core.dll — C export layer over src/ipa2vec_core.h for the
- * WinUI 3 front-end (ui/winui/). Compiled with MinGW (build.bat):
+ * core_wrap.c — C export layer over src/ipa2vec_core.h for the Rust
+ * workbench (ui/rust/). `build.rs` compiles this file into the executable
+ * with ../../src on the include path:
  *
- *   gcc -O2 -std=c11 -Wno-unused-function -Wno-unused-variable ^
- *       -I..\..\src -shared -o ..\ipa2vec_core.dll core_wrap.c
+ *   cc -O2 -std=c11 -I../../src -c core_wrap.c
  *
- * The DLL is a thin adapter: all tables and algorithms live in the
+ * The shim is a thin adapter: all tables and algorithms live in the
  * header (ipa2vec_core.h), identical to the CLI tools.
  */
 
@@ -14,8 +14,8 @@
 #include <stdio.h>
 #include <io.h>
 
-#include "../src/ipa2vec_core.h"
-#include "../src/readme_embed.h"
+#include "../../src/ipa2vec_core.h"
+#include "../../src/readme_embed.h"
 
 #define EXPORT __declspec(dllexport)
 
@@ -27,15 +27,15 @@ static void set_width_global(int level)
 
 /* forward: IPA string -> N segments. Returns segment count or -1 on
  * parse error (err filled). Buffer sizes are fixed (MAX_TOKS etc.). */
-/* The stride IS the loaded scheme's width, and the managed side reads it back
- * through ipa2v_ndim() and sizes its arrays with it (Core.cs, NDim). Both
- * halves therefore take their width from one place and nothing is truncated.
+/* The stride IS the loaded scheme's width, and the Rust engine reads it back
+ * through ipa2v_ndim() and sizes its arrays with it. Both halves therefore
+ * take their width from one place and nothing is truncated.
  *
  * There is deliberately no check here that the caller's buffer is wide enough:
  * the wrapper cannot see it, and a check against the compiled NDIM would fire
  * on every correct load -- a warning that always goes off is a warning people
- * learn to ignore. If Core.cs ever stops using ipa2v_ndim(), that is what
- * tools/test_winui_core.py is for. */
+ * learn to ignore. If the Rust engine ever stops using ipa2v_ndim(), the
+ * scheme-portability tests in engine.rs are the guard. */
 EXPORT int ipa2v_ndim(void)
 {
     return g_ndim;
@@ -99,7 +99,7 @@ EXPORT int ipa2v_reverse(const double *v, int width,
 {
     double vv[MAXDIM];
     /* width is the loaded scheme's, and it is already validated by the
-     * caller side (Core.cs passes ipa2v_ndim()). The clamp keeps a stale
+     * caller side (the Rust engine passes ipa2v_ndim()). The clamp keeps a stale
      * width from walking past the array if the scheme changed underneath. */
     memset(vv, 0, sizeof(vv));
     int w = (width > 0 && width <= g_ndim) ? width : g_ndim;
@@ -797,8 +797,8 @@ EXPORT int ipa2v_ir_export(const char *str, const char *base,
 EXPORT int ipa2v_dim_names(char *out, size_t outsz)
 {
     /* The LOADED scheme's names, not the compiled array. Under an 18-dim
-     * scheme DIM_NAMES has 16 entries and stopped two short, so the managed
-     * side labelled the two derived axes with the wrong names -- or, since
+     * scheme DIM_NAMES has 16 entries and stopped two short, so the front-end
+     * labelled the two derived axes with the wrong names -- or, since
      * they were not written at all, printed nothing for them. */
     metric_ensure();
     size_t L = 0;

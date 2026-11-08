@@ -1,9 +1,9 @@
 # Rust workbench
 
-The Rust workbench is the accepted front-end for the vec4ipa migration. It
-uses `windows-reactor` and shares the parser, metric, reverse fit, and
-inventory behavior with the CLI tools through the `core_wrap.c` C ABI. The
-WinUI C# workbench remains in `ui/winui/` as a reference implementation.
+The Rust workbench is the only full desktop front-end since 4.0.0. It uses
+`windows-reactor` and shares the parser, metric, reverse fit, and inventory
+behavior with the CLI tools through the `core_wrap.c` C ABI. The former WinUI
+C# workbench was removed in this release.
 
 ## Build
 
@@ -16,26 +16,30 @@ installer.bat       REM setup executable from dist\ (needs Inno Setup 6)
 
 `build.bat` loads `VsDevCmd.bat`, then runs Cargo. The build needs the Rust
 MSVC toolchain, the Visual Studio C++ build tools, and the Windows SDK.
-`build.rs` generates the C headers, compiles the C shim, and stages the
-Windows App SDK runtime with `windows-reactor-setup`.
+`build.rs` generates the C headers, compiles the C shim, writes the executable
+version resource from `IPA2VEC_VERSION`, and stages the Windows App SDK runtime
+with `windows-reactor-setup`.
 
 ## Packaging
 
 `package.bat` writes `dist\` with the executable, staged Windows App SDK
-runtime, WinUI resource folders, fonts, icon, assets, and the three CLI tools.
-The folder is self-contained for x64 Windows 10 1809 or later. The executable
-uses the Windows GUI subsystem, so starting it from Explorer or the installer
-does not open a console window.
+runtime, framework resource folders, fonts, icon, assets, and the three CLI
+tools. The folder is self-contained for x64 Windows 10 1809 or later. The
+executable uses the Windows GUI subsystem, so starting it from Explorer or the
+installer does not open a console window.
 
 `installer.bat` wraps that folder in an Inno Setup installer. It reads
 `IPA2VEC_VERSION` from `src/ipa2vec_core.h`, offers a per-user install (no
 administrator) or an all-users install, creates a Start Menu shortcut and an
 optional desktop shortcut, and writes
-`installer\vec4ipa-setup-<version>.exe`. Uninstalling keeps
-`%APPDATA%\vec4ipa`, so favorites and settings survive. Inno Setup 6.3 or later
-is required.
+`installer\vec4ipa-setup-<version>.exe`. The installer keeps the existing AppId
+so 4.0.0 upgrades in place, removes the old C# support files, and leaves
+`%APPDATA%\vec4ipa` intact on uninstall, so favorites and settings survive.
+Inno Setup 6.3 or later is required. A separately installed MSIX package from
+the retired C# build is not removed automatically; uninstall it from
+**Settings → Apps**.
 
-## Parity with the WinUI workbench
+## Feature coverage
 
 | Area | Status | Notes |
 |---|---|---|

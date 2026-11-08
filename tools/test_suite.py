@@ -26,6 +26,11 @@ VEC2IPA = sys.argv[2] if len(sys.argv) > 2 else ROOT / ("vec2ipa" + _common.BIN_
 VEC4IPA = sys.argv[3] if len(sys.argv) > 3 else ROOT / ("vec4ipa" + _common.BIN_SUFFIX)
 _common.EXE = EXE
 
+VERSION = re.search(
+    r'#define\s+IPA2VEC_VERSION\s+"([^"]+)"',
+    (ROOT / "src" / "ipa2vec_core.h").read_text(encoding="utf-8"),
+).group(1)
+
 # ------------------------------------------------------------------
 # 1. The big clinical/extIPA stress string (from the spec discussion)
 # ------------------------------------------------------------------
@@ -495,7 +500,7 @@ check_cond("-R readme has heading", "# vec4ipa" in run(EXE, ["-R"]).stdout
            or "IPA/extIPA" in run(EXE, ["-R"]).stdout)
 check_cond("--readme alias", run(EXE, ["--readme"]).stdout
            == run(EXE, ["-R"]).stdout)
-check_cond("-v version format", "3.1.0" in run(EXE, ["-v"]).stdout,
+check_cond("-v version format", VERSION in run(EXE, ["-v"]).stdout,
            run(EXE, ["-v"]).stdout.strip())
 check_cond("--version alias", run(EXE, ["--version"]).stdout
            == run(EXE, ["-v"]).stdout)

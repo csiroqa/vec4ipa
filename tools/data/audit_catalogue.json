@@ -56,8 +56,8 @@
   },
   {
    "script": "audit_modifier_collisions.py",
-   "kind": "CLAIMED",
-   "in_make_test": false,
+   "kind": "GATE",
+   "in_make_test": true,
    "can_fail": true
   },
   {
@@ -128,12 +128,6 @@
   },
   {
    "script": "check_generated_current.py",
-   "kind": "GATE",
-   "in_make_test": true,
-   "can_fail": true
-  },
-  {
-   "script": "check_mainwindow_syntax.py",
    "kind": "GATE",
    "in_make_test": true,
    "can_fail": true
@@ -343,6 +337,12 @@
    "can_fail": true
   },
   {
+   "script": "test_modifiers_end_to_end.py",
+   "kind": "GATE",
+   "in_make_test": true,
+   "can_fail": true
+  },
+  {
    "script": "test_scheme_portability.py",
    "kind": "GATE",
    "in_make_test": true,
@@ -373,15 +373,9 @@
    "can_fail": true
   },
   {
-   "script": "test_winui_core.py",
+   "script": "validate_alignment.py",
    "kind": "GATE",
    "in_make_test": true,
-   "can_fail": true
-  },
-  {
-   "script": "validate_alignment.py",
-   "kind": "CLAIMED",
-   "in_make_test": false,
    "can_fail": true
   },
   {
@@ -399,7 +393,7 @@
  ],
  "counts": {
   "REPORT": 44,
-  "CLAIMED": 4,
-  "GATE": 18
+  "CLAIMED": 2,
+  "GATE": 19
  }
 }

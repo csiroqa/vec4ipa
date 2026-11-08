@@ -1276,7 +1276,7 @@ dependencies = [
 
 [[package]]
 name = "vec4ipa-ui"
-version = "1.0.0"
+version = "4.0.0"
 dependencies = [
  "cc",
  "embed-resource",

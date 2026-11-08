@@ -317,7 +317,7 @@ larynx_height, duration, jet_focus, effective_oral_area, airflow_direction)`，
 | `tools/data/spec_next.scheme` | 权威 133 行表：place/body/lips_closed/…/airflow_direction + 运行时权重 |
 | `tools/fit_metric16.py` | 16 维 Shepard-softmax 拟合器（v8 的 `fit_metric.py` 为 16 维前身，保留参考） |
 | `tools/_common.py`、`test_suite.py`、`test_metric_space.py` | 维度数与断言更新 |
-| `ui/` | Win32 与 WinUI 向量编辑/显示 16 列 |
+| `ui/` | Win32 旧界面与 Rust 工作台的向量编辑/显示 16 列 |
 | `METRIC.md`、`README.md`、`src/readme_embed.h` | 文档同步 |
 
 ## 9. 风险与取舍

@@ -1,11 +1,10 @@
 """Modifiers must move the vector the built binary emits, not just the C port.
 
-Two unit-level guards already cover this and neither is the same thing:
+One unit-level guard covers part of this:
 
   test_tongue_contour.py  the C contour code equals the Python model
-  test_winui_core.py      Core.cs and the wrapper agree with the CLI
 
-Both sit above or below the layer that actually matters for a user: nothing
+It sits above or below the layer that actually matters for a user: nothing
 checked that `ipa2vec tʲ` differs from `ipa2vec t`, or that the axis which
 moves is the one the modifier names. Wiring the contour path in ipa2vec_core.h
 is a separate edit from the C code being correct, and a regression there would

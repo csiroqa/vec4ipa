@@ -14,7 +14,7 @@
 #define IPA2VEC_CORE_H
 
 /* tool-suite version (single source of truth) */
-#define IPA2VEC_VERSION "3.1.0"
+#define IPA2VEC_VERSION "4.0.0"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -5068,7 +5068,7 @@ static IPA2VEC_MAYBE_UNUSED void print_info(const char *tool)
 
 /* transcription narrowness levels: max modifiers per segment and the
  * minimum relative distance gain a modifier must achieve to be kept.
- * Shared by opt_width (CLI), the Win32 GUI and the WinUI wrapper. */
+ * Shared by opt_width (CLI), the Win32 GUI and the Rust workbench. */
 static IPA2VEC_MAYBE_UNUSED void width_apply(int level)
 {
     static const int maxmods[5] = { 2, 3, 4, 6, 10 };

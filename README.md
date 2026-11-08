@@ -28,12 +28,9 @@ make            # builds ./ipa2vec ./vec2ipa ./vec4ipa
 make gen        # regenerate src/vectors.h and src/readme_embed.h
 ```
 
-The WinUI 3 front-end (`ui/winui/`, the modern workbench) is built
-separately on Windows:
-
-```sh
-ui/winui/build.bat   # builds ipa2vec_core.dll + publishes dist\vec4ipa_ui.exe
-```
+The full Windows workbench lives in `ui/rust/`. It is built separately from
+the CLI tools and does not require .NET or MSBuild. The legacy Win32 wrapper
+in `ui/` is still built by `make` on Windows.
 
 ### Rust workbench
 
@@ -58,11 +55,12 @@ The binaries embed the full table; they do not read any file at runtime.
 
 ## GUI workbench (Windows)
 
-The accepted front-end is the **Rust workbench** (`ui/rust/` →
-`vec4ipa-ui.exe`, built by `ui/rust/build.bat` or `make rust-ui`; see
-[`ui/rust/README.md`](ui/rust/README.md)). It uses `windows-reactor` and the
-same C core as the CLIs. The previous **WinUI 3 workbench** (`ui/winui/`)
-remains in the repository as a reference implementation.
+The **Rust workbench** (`ui/rust/` → `vec4ipa-ui.exe`, built by
+`ui/rust/build.bat` or `make rust-ui`; see
+[`ui/rust/README.md`](ui/rust/README.md)) is the only full desktop front-end
+since **4.0.0**. It uses `windows-reactor` and the same C core as the CLIs. The
+former WinUI 3/C# workbench and its MSIX project were removed; a separately
+installed MSIX package must be uninstalled from **Settings → Apps**.
 
 The workbench is Fluent-designed: a **Mica** window backdrop, theme-aware
 surfaces, and the same conversion, reverse-fit, keyboard, history, view,
@@ -71,16 +69,29 @@ export, and localization workflows:
 - **IPA → vectors** — type IPA or click the grouped soft keyboard
   (Consonants, Non-pulmonic, Vowels, Diacritics, Letters, Tones,
   Recent) with a live filter; output as vectors, two-layer IR or JSON
-- **Vector → IPA** — 16-D input (multi-line batch) with a long-press
-  **narrowness** picker (levels 0–4 by name, magnetic cursor) and
-  reverse fit
+- **Vector → IPA** — runtime-width input (multi-line batch) with a
+  **narrowness** control (levels 0–4) and reverse fit
 - **Loop** — IPA → vectors → reverse fit with the tone annotation
   round-tripped (`tone=(…)` groups survive the round-trip)
-- **Format picker** — long-press the vectors/query/layers/JSON button
-  for an animated slide-to-select list
+- **Format buttons** — switch between vectors, IR, and JSON directly
+- **Module manager** — toggle parser modules and keyboard groups, apply
+  All on / All off, and save named profiles; choices persist across restarts
 - Compare symbols, weighted distance, history, examples, open-file
   batch convert, views (table/modules/stats/weights), CSV/IR export,
   bundled CLI tools, English/中文, system/light/dark themes
+
+The workbench lays out responsively: **Compact** density is the default, windows
+at or above 1000 DIP keep two panes with a split slider, and narrower windows
+switch to a single pane chosen by an **Input / Output / Tools** selector.
+Secondary sections collapse from their headers, layout choices persist,
+**Reset layout** restores the defaults, and every keyboard symbol is centered in
+its cell.
+
+The installer is `ui/rust/installer/vec4ipa-setup-4.0.0.exe`. It offers a
+per-user install by default (or all users), creates Start Menu and optional
+desktop shortcuts with the IPA icon, and keeps `%APPDATA%\vec4ipa` on uninstall.
+The executable carries the same icon and a Windows version resource generated
+from `IPA2VEC_VERSION`.
 
 The workbench lays out responsively: **Compact** density is the default, windows
 at or above 1000 DIP keep two panes with a split slider, and narrower windows
@@ -505,11 +516,6 @@ python3 tools/audit_symbol_assignments.py # 133 symbols x 7 checks; forbids two
                                          # base segments sharing a vector
 python3 tools/check_doc_numbers.py       # docs/TONGUE-MODEL.md figures against
                                          # the artifacts they cite
-python3 tools/test_winui_core.py         # compiles Core.cs against the real
-                                         # DLL and diffs it against the CLI
-python3 tools/check_mainwindow_syntax.py # MainWindow.xaml.cs must produce no
-                                         # parse-stage errors (the WinUI
-                                         # references are absent on purpose)
 python3 tools/check_doc_structure.py     # section numbering sequential, no
                                          # dangling section cross-references
 python3 tools/check_generated_current.py  # the 11 generated artifacts still
@@ -521,8 +527,6 @@ python3 tools/test_modifiers_end_to_end.py  # each modifier moves the axis it
                                          # names, through the built binary
 python3 tools/validate_alignment.py           # seven axioms over 400 fuzz pairs on
                                          # the curve-distance alignment
-python3 tools/build_winui.py               # compiles the WinUI project with
-                                         # Visual Studio MSBuild
 python3 tools/verify_commit.py            # `make test` builds the working
                                          # tree; this one builds the commit
 ```

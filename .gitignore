@@ -15,21 +15,3 @@ __pycache__/
 
 # UI build artifacts
 ui/app.res
-
-# WinUI 3 build output
-ui/winui/bin/
-ui/winui/obj/
-ui/ipa2vec_core.dll
-ui/winui/vec4ipa_ui.sln
-
-ui/winui/dist/
-ui/winui/.vs/
-ui/winui/*.user
-ui/winui/singlefile-dist/
-ui/winui/*.zip
-
-
-ui/winui/wap/bin/
-ui/winui/wap/obj/
-
-ui/winui/AppPackages/

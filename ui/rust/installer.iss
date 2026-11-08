@@ -13,6 +13,9 @@ AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
 AppPublisher={#AppPublisher}
 AppPublisherURL=https://github.com/csiroqa/vec4ipa
+AppSupportURL=https://github.com/csiroqa/vec4ipa/issues
+AppUpdatesURL=https://github.com/csiroqa/vec4ipa/releases
+AppComments=IPA/extIPA to articulatory vector workbench
 DefaultDirName={autopf}\vec4ipa
 DefaultGroupName=vec4ipa
 DisableProgramGroupPage=yes
@@ -43,6 +46,14 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 
 [Files]
 Source: "dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+[InstallDelete]
+; Remove the retired C# workbench support files from an older install.
+Type: files; Name: "{app}\ipa2vec_core.dll"
+Type: files; Name: "{app}\vec4ipa_ui.dll"
+Type: files; Name: "{app}\vec4ipa_ui.deps.json"
+Type: files; Name: "{app}\vec4ipa_ui.runtimeconfig.json"
+Type: files; Name: "{app}\vec4ipa_ui.pdb"
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"

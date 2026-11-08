@@ -115,12 +115,6 @@ test: all
 	# added a lot of runnable detail, and a path that no longer exists breaks
 	# the reader's first command.
 	$(PYTHON) tools/check_doc_paths.py
-	# The WinUI project really compiles. It could not be built here until the
-	# SDK was installed, and that gap hid ten references to a deleted constant:
-	# check_mainwindow_syntax.py passes on a file that does not compile,
-	# because the missing member is not a parse-stage error. Needs Visual
-	# Studio's MSBuild -- dotnet build cannot load the PRI tasks.
-	$(PYTHON) tools/build_winui.py --skip-if-unavailable
 	# Narrowing the basis must not merge two modifiers that the contour keeps
 	# apart. Its own output shows both ends: the deployed basis at 0 affected,
 	# the discarded 12- and 10-dim variants at 133.
@@ -134,16 +128,6 @@ test: all
 	# binary. The unit guards above sit either side of that layer and cannot
 	# see a regression in it.
 	$(PYTHON) tools/test_modifiers_end_to_end.py
-	# The WinUI wrapper hands the managed side one width and the two must agree with
-	# the loaded scheme. vec4ipa_ui.csproj cannot be built here (it needs the
-	# AppxPackage targets), so this compiles Core.cs against the real DLL and
-	# diffs it against the CLI -- value for value, because a mis-strided wrapper
-	# fills the tail with ANOTHER segment's coordinates.
-	$(PYTHON) tools/test_winui_core.py
-	# MainWindow.xaml.cs cannot be compiled here (WinUI references), so this
-	# compiles it and requires that every diagnostic be a missing type -- a
-	# parse error means an edit broke the file.
-	$(PYTHON) tools/check_mainwindow_syntax.py
 
 
 # Rust workbench (Windows only; see ui/rust/build.bat)

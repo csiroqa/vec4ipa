@@ -1,4 +1,4 @@
-//! Keyboard favorites persisted beside the C# workbench data.
+//! Keyboard favorites persisted in the shared vec4ipa data folder.
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};

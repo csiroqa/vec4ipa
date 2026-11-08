@@ -538,7 +538,7 @@ fn lines(text: &str) -> Vec<String> {
 }
 
 /// Splits a `query` result into the feature name and the airstream or tier
-/// line, matching the two content rows of the WinUI hover card.
+/// line, matching the two content rows of the hover card.
 pub fn describe_query(raw: &str) -> (String, String) {
     let line = raw.lines().next().unwrap_or_default().trim();
 
