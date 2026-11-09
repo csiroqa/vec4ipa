@@ -105,11 +105,11 @@ Interface text stays plain: short action labels, one fact per line, a single
 `Vector → IPA`). Built-in profile names follow the interface language while the
 saved ids stay stable.
 
-The installer is `ui/rust/installer/vec4ipa-setup-4.0.0.exe`. It offers a
-per-user install by default (or all users), creates Start Menu and optional
-desktop shortcuts with the IPA icon, and keeps `%APPDATA%\vec4ipa` on uninstall.
-The executable carries the same icon and a Windows version resource generated
-from `IPA2VEC_VERSION`.
+The installer is published as `vec4ipa-setup-4.0.0.exe` in the GitHub release.
+It offers a per-user install by default (or all users), creates Start Menu and
+optional desktop shortcuts with the IPA icon, and keeps `%APPDATA%\vec4ipa` on
+uninstall. The executable carries the same icon and a Windows version resource
+generated from `IPA2VEC_VERSION`.
 
 The workbench lays out responsively: **Compact** density is the default, windows
 at or above 1000 DIP keep two panes with a split slider, and narrower windows
