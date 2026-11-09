@@ -61,6 +61,37 @@ def run(script):
         raise SystemExit('%s failed:\n%s' % (script, r.stderr[-800:]))
 
 
+def scheme_matches(generated, committed):
+    """Compare a scheme file, allowing small platform-dependent weights.
+
+    The tongue weights are produced by scipy's optimizer and therefore vary in
+    the last digits across BLAS and scipy builds. Geometry and metadata must
+    still match exactly; only the weight line gets a tolerance.
+    """
+    with io.open(generated, encoding='utf-8') as f:
+        generated_lines = f.read().splitlines()
+    with io.open(committed, encoding='utf-8') as f:
+        committed_lines = f.read().splitlines()
+    if len(generated_lines) != len(committed_lines):
+        return False, None
+
+    max_diff = 0.0
+    for generated_line, committed_line in zip(generated_lines, committed_lines):
+        if generated_line.startswith('weight ') or committed_line.startswith('weight '):
+            a = generated_line.split()
+            b = committed_line.split()
+            if len(a) != len(b) or a[0] != b[0]:
+                return False, None
+            try:
+                diffs = [abs(float(x) - float(y)) for x, y in zip(a[1:], b[1:])]
+            except ValueError:
+                return False, None
+            max_diff = max(max_diff, max(diffs, default=0.0))
+        elif generated_line != committed_line:
+            return False, None
+    return max_diff <= 1e-3, max_diff
+
+
 def main():
     stale = []
     # Back up only what this chain writes. tools/data also holds directories
@@ -83,6 +114,13 @@ def main():
                     stale.append('%s: committed file is missing' % name)
                 elif not os.path.exists(b):
                     stale.append('%s: generator did not write it' % name)
+                elif name == 'tongue.scheme':
+                    matches, weight_diff = scheme_matches(a, b)
+                    if not matches:
+                        detail = ('max weight difference %.6g' % weight_diff
+                                  if weight_diff is not None else
+                                  'content differs outside the weight line')
+                        stale.append('%s (%s)' % (name, detail))
                 elif not filecmp.cmp(a, b, shallow=False):
                     stale.append(name)
 
