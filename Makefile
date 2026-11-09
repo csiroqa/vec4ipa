@@ -20,6 +20,9 @@ VECTORS_H := $(SRC)/vectors.h
 
 ifneq ($(OS),Windows_NT)
 CFLAGS += -D_POSIX_C_SOURCE=200809L
+LDLIBS := -lm
+else
+LDLIBS :=
 endif
 
 # Windows: gcc emits <name>.exe, so the targets must carry the .exe
@@ -46,13 +49,13 @@ CORE := $(SRC)/ipa2vec_core.h
 SCHEME ?= tools/data/spec_next.scheme   # default build = SPEC-NEXT 16-D scheme
 
 ipa2vec$(EXE_SUFFIX): $(SRC)/ipa2vec_main.c $(SRC)/readme_embed.h $(VECTORS_H) $(CORE)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SRC)/ipa2vec_main.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SRC)/ipa2vec_main.c $(LDLIBS)
 
 vec2ipa$(EXE_SUFFIX): $(SRC)/vec2ipa_main.c $(SRC)/readme_embed.h $(VECTORS_H) $(CORE)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SRC)/vec2ipa_main.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SRC)/vec2ipa_main.c $(LDLIBS)
 
 vec4ipa$(EXE_SUFFIX): $(SRC)/vec4ipa_main.c $(SRC)/readme_embed.h $(VECTORS_H) $(CORE)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SRC)/vec4ipa_main.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(SRC)/vec4ipa_main.c $(LDLIBS)
 
 # Win32 GUI wrapper (Windows only) — lives in ui/
 ui/vec4ipa_ui$(EXE_SUFFIX): ui/vec4ipa_ui.c ui/app.res $(SRC)/ipa2vec_core.h $(SRC)/readme_embed.h

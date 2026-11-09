@@ -5801,7 +5801,7 @@ static IPA2VEC_MAYBE_UNUSED int redirect_output(const char *file, const char *to
 #ifdef _WIN32
     if (_dup2(_fileno(f), _fileno(stdout)) != 0)
 #else
-    if (dup2(fileno(f), fileno(stdout)) != 0)
+    if (dup2(fileno(f), fileno(stdout)) < 0)
 #endif
     {
         fprintf(stderr, "%s: cannot redirect to %s\n", toolname, file);
