@@ -18,6 +18,10 @@ LDFLAGS :=
 SRC     := src
 VECTORS_H := $(SRC)/vectors.h
 
+ifneq ($(OS),Windows_NT)
+CFLAGS += -D_POSIX_C_SOURCE=200809L
+endif
+
 # Windows: gcc emits <name>.exe, so the targets must carry the .exe
 # suffix or make re-links them on every run.
 ifeq ($(OS),Windows_NT)

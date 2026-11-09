@@ -366,6 +366,12 @@ and artifacts that belong to the change go in the same commit.
   `argv_utf8_from_wide`. File paths go through `path_fopen` (UTF-8 → UTF-16 →
   `_wfopen`) so non-ASCII paths work on Chinese Windows.
 - Use `_common.BIN_SUFFIX` in Python scripts; Windows binaries carry `.exe`.
+- POSIX builds define `_POSIX_C_SOURCE=200809L` before the standard headers so
+  `strdup` and `fileno` stay declared under `-std=c11`. The Makefile adds it on
+  non-Windows builds, and `ipa2vec_core.h` guards it for direct compilation.
+- Windows CI redirects Python output with `PYTHONIOENCODING=utf-8` and
+  `PYTHONUTF8=1`; without them, MSYS2 invokes Python with a cp1252 console and
+  IPA test output fails on the first non-ASCII character.
 - All source and data files are UTF-8. `gen_readme_embed.py` and
   `export_scheme.py` write LF/UTF-8 deliberately for byte-identical
   regeneration across platforms.

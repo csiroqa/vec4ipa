@@ -125,6 +125,8 @@ jobs:
         shell: msys2 {0}
         run: |
           PYTHON_BIN="$(cygpath -u "$pythonLocation/python.exe")"
+          export PYTHONIOENCODING=utf-8
+          export PYTHONUTF8=1
           make PYTHON="$PYTHON_BIN" test
       - name: Package CLI
         shell: pwsh

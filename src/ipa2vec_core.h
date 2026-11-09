@@ -13,6 +13,13 @@
 #ifndef IPA2VEC_CORE_H
 #define IPA2VEC_CORE_H
 
+/* POSIX declarations (fileno, strdup) under -std=c11 on glibc. */
+#ifndef _WIN32
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+#endif
+
 /* tool-suite version (single source of truth) */
 #define IPA2VEC_VERSION "4.0.0"
 
