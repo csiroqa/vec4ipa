@@ -27,7 +27,7 @@
 - [x] 3.2 Parse both workflow files with PyYAML, run `actionlint` if available,
   and confirm the workflow permissions and pinned revisions. Verify no
   `pull_request_target` or plaintext secret is present.
-- [ ] 3.3 Run `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`,
+- [x] 3.3 Run `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`,
   `cargo test`, `make test`, and `make verify-commit`. Verify all pass.
 
 ## Workflow follow-up
