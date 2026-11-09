@@ -53,7 +53,7 @@
 
 ## 5. Integration
 
-- [ ] 5.1 Run `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`,
+- [x] 5.1 Run `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`,
   `cargo test`, `make test`, and `make verify-commit`. Verify all pass and no
   data-output or persisted-value change appears in the diff.
 
