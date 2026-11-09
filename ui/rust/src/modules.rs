@@ -132,6 +132,18 @@ pub struct Registry {
     modules: Vec<Module>,
 }
 
+/// Display label for a parser module id. Persisted ids stay lower-case.
+fn display_name(name: &str) -> String {
+    if name == "oed" {
+        return "OED".to_string();
+    }
+    let mut chars = name.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+        None => String::new(),
+    }
+}
+
 impl Registry {
     /// Builds the registry from the wrapper inventory and the keyboard model.
     pub fn build(parser: Vec<ModuleInfo>, keyboard: &KeyboardModel) -> Result<Self, String> {
@@ -140,17 +152,17 @@ impl Registry {
             modules.push(Module {
                 id: format!("{}:{}", ModuleKind::Parser.id_prefix(), info.name),
                 key: info.name.clone(),
-                label_en: info.name.clone(),
-                label_zh: info.name.clone(),
+                label_en: display_name(&info.name),
+                label_zh: display_name(&info.name),
                 description_en: if info.school {
                     "School-specific alias symbols.".to_string()
                 } else {
-                    "Always-on alias symbols.".to_string()
+                    "Core alias symbols.".to_string()
                 },
                 description_zh: if info.school {
                     "学校转写惯例的别名符号。".to_string()
                 } else {
-                    "始终启用的别名符号。".to_string()
+                    "核心别名符号。".to_string()
                 },
                 kind: ModuleKind::Parser,
                 count: info.symbols,
@@ -360,6 +372,12 @@ mod tests {
         let americanist = registry.find("parser:americanist").expect("americanist");
         assert!(!americanist.always_on);
         assert_eq!(americanist.count, 4);
+        assert_eq!(americanist.label(false), "Americanist");
+        assert_eq!(americanist.label(true), "Americanist");
+
+        assert_eq!(display_name("oed"), "OED");
+        assert_eq!(display_name("teuthonista"), "Teuthonista");
+        assert_eq!(display_name(""), "");
 
         let consonants = registry.find("keyboard:consonants").expect("consonants");
         assert_eq!(consonants.kind, ModuleKind::Keyboard);

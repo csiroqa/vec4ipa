@@ -91,25 +91,38 @@ input and the status line says so.
 
 **Reset layout** restores Compact, the 0.46 split, and the default collapsed set.
 
+## Interface copy
+
+The workbench uses one plain copy style. Action labels stay short, derived
+lines show one fact per sentence or line, and `·`, `—`, `|`, and slash-joined
+counts do not appear in interface text. A single trailing `✓` marks the active
+format, narrowness, pane, profile, or module. A single `→` may show direction,
+as in `IPA → vectors` and `Vector → IPA`; data output such as vector rows,
+paths, commands, and alignment results keeps its own format.
+
+Status messages are short sentences. Built-in profile names follow the
+interface language (`全部启用`, `全部禁用`, `自定义`), while the saved ids stay
+`All on`, `All off`, and `Custom`.
+
 ## Modules and profiles
 
 The **Module manager** section groups every optional feature by kind:
 
 - **Parser modules** are the core's alias sets. School modules such as
-  `americanist` and `sinologist` can be toggled and are enabled in the order
+  `Americanist` and `Sinologist` can be toggled and are enabled in the order
   you turn them on; that order is the alias priority. Always-on modules are
   listed with their symbol count and have no toggle.
 - **Keyboard groups** are the six soft-keyboard sections. Disable a group to
   hide it from the keyboard; enable it again to restore its chart position.
 
-Each kind has **All on** and **All off** actions, and the manager filter matches
-module ids, names, and descriptions. The summary shows enabled modules and the
-number of symbols they contribute. Every change applies the exact parser set to
-the engine, so the alias priority never drifts.
+Each kind has **Enable all** and **Disable all** actions, and the manager filter
+matches module ids, names, and descriptions. The summary shows enabled modules
+and the number of symbols they contribute. Every change applies the exact parser
+set to the engine, so the alias priority never drifts.
 
 **Profiles** store both parser and keyboard selections. **All on** and
-**All off** are built in; enter a name and choose **Save current** to add your
-own. Apply a profile from the profile row, and **Delete active** removes the
+**All off** are built in; enter a name and choose **Save profile** to add your
+own. Apply a profile from the profile row, and **Delete profile** removes the
 saved profile. Editing any module after applying a profile marks the state as
 **Custom** until you save it again.
 
@@ -146,7 +159,7 @@ The project owner accepted these differences on 2026-11-08:
 - `cargo test` covers the engine contract, both schemes, UTF-8 paths, invalid
   metrics, non-finite vectors, segment limits, CLI parity, keyboard search
   terms, group order, favorite persistence, module registry and profiles,
-  UTF-16 encoding, and the delivery fallback (47 tests).
+  copy formatting, UTF-16 encoding, and the delivery fallback (57 tests).
 - `cargo fmt --check` and `cargo clippy -- -D warnings` pass.
 - The repository `make test` and `make verify-commit` suites pass.
 - `dist\vec4ipa-ui.exe` launches, converts, reverses, loops, queries, searches

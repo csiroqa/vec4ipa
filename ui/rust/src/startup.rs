@@ -90,12 +90,12 @@ impl Startup {
     }
 
     pub fn help_text() -> &'static str {
-        "vec4ipa_ui [OPTIONS] [IPA-STRING]\n\
+        "vec4ipa-ui [OPTIONS] [IPA-STRING]\n\
          \n\
-         --narrowness LEVEL  reverse fit width: broadest|broad|medium|narrow|narrowest (0-4)\n\
-         --theme NAME        system|light|dark\n\
+         --narrowness LEVEL  reverse fit width: broadest, broad, medium, narrow, or narrowest (0-4)\n\
+         --theme NAME        system, light, or dark\n\
          -q, --query SYM     query one symbol on startup\n\
-         -r, --reverse VEC   16-D vector -> IPA on startup\n\
+         -r, --reverse VEC   vector to IPA on startup\n\
          -D, --scheme FILE   load a custom dimension scheme\n\
          -M, --metric FILE   load metric weights and lambda\n\
          --export-tools DIR  write the bundled CLI tools to DIR\n\
@@ -122,4 +122,19 @@ pub fn is_modifier_symbol(symbol: &str) -> bool {
         return false;
     };
     is_combining_mark(first) || chars.next().is_some_and(is_combining_mark)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn help_names_the_real_binary_and_avoids_old_shorthand() {
+        let help = Startup::help_text();
+        assert!(help.starts_with("vec4ipa-ui "), "{help}");
+        assert!(!help.contains("16-D"), "{help}");
+        assert!(!help.contains('|'), "{help}");
+        assert!(!help.contains("->"), "{help}");
+        assert!(help.contains("vector to IPA"), "{help}");
+    }
 }

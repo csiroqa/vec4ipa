@@ -223,6 +223,26 @@ settings modules) is a single imperative `windows-reactor` window: title bar,
 Mica, soft keyboard, module manager, splitter, history, exports. It is UI layer
 only; keep the vector semantics in the C core.
 
+### Interface copy
+
+- Composed lines, statuses, and built-in profile labels live in
+  `ui/rust/src/copy.rs`; keep new helpers there when a line is built from
+  several facts or must be tested without a window.
+- Interface labels stay short and plain. Use one fact per line or sentence.
+  Do not join counts with `·`, `—`, `|`, or slash fractions; vector rows,
+  paths, commands, and alignment output are data and are exempt.
+- Use one trailing `✓` for the active format, narrowness, pane, profile, or
+  module. A single `→` is allowed for direction (`IPA → vectors`,
+  `Vector → IPA`); do not chain aids into status lines.
+- `All on`, `All off`, and `Custom` are persisted profile ids, not display
+  text. Use `copy::profile_label` for every label and status; user names pass
+  through unchanged.
+- Status messages are sentence-cased and end with a period or `。`. Keep a
+  path or engine detail after one colon. Do not show internal ids such as
+  `parser:americanist` in user-facing copy.
+- `cargo test copy::` and `startup::tests` guard the separator, marker,
+  localization, and help-text rules.
+
 ### Python tooling
 
 All scripts live in one flat `tools/` directory on purpose. Running

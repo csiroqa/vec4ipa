@@ -36,7 +36,7 @@ fn deliver(
     if clipboard(text) && paste() {
         return Delivery::Clipboard;
     }
-    Delivery::Failed(format!("input rejected ({sent}/{expected} events)"))
+    Delivery::Failed("Input was rejected.".to_string())
 }
 
 pub fn utf16_units(text: &str) -> Vec<u16> {

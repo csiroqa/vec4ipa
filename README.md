@@ -87,6 +87,11 @@ Secondary sections collapse from their headers, layout choices persist,
 **Reset layout** restores the defaults, and every keyboard symbol is centered in
 its cell.
 
+Interface text stays plain: short action labels, one fact per line, a single
+`✓` for the active choice, and `→` only for direction (`IPA → vectors`,
+`Vector → IPA`). Built-in profile names follow the interface language while the
+saved ids stay stable.
+
 The installer is `ui/rust/installer/vec4ipa-setup-4.0.0.exe`. It offers a
 per-user install by default (or all users), creates Start Menu and optional
 desktop shortcuts with the IPA icon, and keeps `%APPDATA%\vec4ipa` on uninstall.

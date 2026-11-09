@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use rfd::FileDialog;
 use windows_reactor::*;
 
+use crate::copy;
 use crate::engine::{Engine, Segment, ToneGroup, describe_query};
 use crate::keyboard::{self, KeyboardModel};
 use crate::layout::{
@@ -166,6 +167,7 @@ impl Component for Workbench {
 
     fn create(startup: &Startup, _context: &ComponentContext<Self>) -> Self {
         let settings = crate::settings::load();
+        let zh = settings.language.is_zh();
         let theme = startup.theme.unwrap_or(settings.theme);
         let mut engine = Engine::new();
         let mut status = String::new();
@@ -174,7 +176,7 @@ impl Component for Workbench {
             if Path::new(&scheme).exists() {
                 let _ = engine.set_args(&["-D", &scheme]);
             } else {
-                status = format!("scheme not found: {scheme}");
+                status = copy::missing_file("Scheme", "方案", &scheme, zh);
             }
         }
         let narrowness = startup.narrowness;
@@ -182,10 +184,14 @@ impl Component for Workbench {
         if let Some(metric) = startup.metric.clone().or_else(|| settings.metric.clone()) {
             if Path::new(&metric).exists() {
                 if let Err(error) = engine.load_metric(&metric) {
-                    status = format!("metric: {error}");
+                    status = if zh {
+                        format!("度量错误：{error}")
+                    } else {
+                        format!("Metric error: {error}")
+                    };
                 }
             } else {
-                status = format!("metric not found: {metric}");
+                status = copy::missing_file("Metric", "度量", &metric, zh);
             }
         }
 
@@ -193,10 +199,15 @@ impl Component for Workbench {
         let modules = match Registry::build(engine.modules_all(), &keyboard) {
             Ok(registry) => registry,
             Err(error) => {
-                status = if status.is_empty() {
-                    error
+                let note = if zh {
+                    format!("模块注册表错误：{error}")
                 } else {
-                    format!("{status}; {error}")
+                    format!("Module registry error: {error}")
+                };
+                status = if status.is_empty() {
+                    note
+                } else {
+                    format!("{status} {note}")
                 };
                 Registry::default()
             }
@@ -217,11 +228,11 @@ impl Component for Workbench {
                 .count();
         }
         if ignored > 0 {
-            let note = format!("ignored {ignored} saved module ids");
+            let note = copy::ignored_modules(ignored, zh);
             status = if status.is_empty() {
                 note
             } else {
-                format!("{status}; {note}")
+                format!("{status} {note}")
             };
         }
         let parser_names = enabled_parser
@@ -299,12 +310,17 @@ impl Component for Workbench {
 
         if let Some(destination) = &startup.export_tools {
             match win32::copy_tools(Path::new(destination)) {
-                Ok(count) => workbench.status = format!("exported {count} tools"),
+                Ok(count) => workbench.status = copy::tools_exported(count, workbench.lang.is_zh()),
                 Err(error) => workbench.status = error,
             }
         }
         if !workbench.font_loaded {
-            workbench.status = format!("{} (font fallback)", workbench.status);
+            let note = workbench.t("Font fallback in use.", "正在使用后备字体。");
+            workbench.status = if workbench.status.is_empty() {
+                note.to_string()
+            } else {
+                format!("{} {note}", workbench.status)
+            };
         }
         workbench
     }
@@ -324,7 +340,7 @@ impl Component for Workbench {
             Message::Clear => {
                 self.input.clear();
                 self.output.clear();
-                self.status = self.t("cleared", "已清空").to_string();
+                self.status = self.t("Cleared.", "已清空。").to_string();
             }
             Message::Reverse => self.convert_reverse(),
             Message::SetFormat(format) => {
@@ -377,7 +393,7 @@ impl Component for Workbench {
                 self.always_on_top = !self.always_on_top;
                 if !win32::set_always_on_top(self.always_on_top) {
                     self.status = self
-                        .t("could not change topmost", "无法切换置顶")
+                        .t("Could not change topmost.", "无法切换置顶。")
                         .to_string();
                 }
                 self.settings.always_on_top = self.always_on_top;
@@ -395,7 +411,7 @@ impl Component for Workbench {
                 self.narrow_pane = self.settings.narrow_pane;
                 self.collapsed_sections = self.settings.collapsed_sections.clone();
                 self.settings.save();
-                self.status = self.t("layout reset", "布局已重置").to_string();
+                self.status = self.t("Layout reset.", "布局已重置。").to_string();
             }
             Message::ToggleSection(id) => {
                 toggle_section(&mut self.collapsed_sections, &id);
@@ -461,7 +477,7 @@ impl Component for Workbench {
     }
 
     fn view(&self, _input: &Startup, context: &mut ViewContext<Self>) -> View {
-        context.window_title(format!("vec4ipa Workbench — {} D", self.engine.ndim()));
+        context.window_title(copy::APP_NAME.to_string());
         let mut visuals = WindowVisuals::new()
             .theme(self.theme.window_theme())
             .backdrop(WindowBackdrop::Mica)
@@ -474,12 +490,11 @@ impl Component for Workbench {
 
         let metrics = self.metrics();
         let title_bar = TitleBar::new()
-            .title("vec4ipa Workbench")
-            .subtitle(format!(
-                "{} · {} D · {}",
-                self.status,
+            .title(copy::APP_NAME)
+            .subtitle(copy::subtitle(
+                &self.engine.version(),
                 self.engine.ndim(),
-                self.engine.version()
+                self.lang.is_zh(),
             ))
             .grid_row(0);
 
@@ -577,11 +592,12 @@ impl Workbench {
 
     fn left_pane(&self, context: &mut ViewContext<Self>) -> View {
         let metrics = self.metrics();
+        let input_title = copy::direction(self.t("IPA", "IPA"), self.t("vectors", "向量"));
         let input = self.fixed_section(
-            self.t("IPA input", "IPA 输入"),
+            &input_title,
             TextBox::new()
                 .text(self.input.clone())
-                .placeholder_text(self.t("Type IPA or click the keyboard", "输入 IPA 或点击软键盘"))
+                .placeholder_text(self.t("Type IPA or use the keyboard", "输入 IPA 或使用软键盘"))
                 .accepts_return(true)
                 .text_wrapping(TextWrapping::Wrap)
                 .height(metrics.input_height)
@@ -590,11 +606,16 @@ impl Workbench {
         let narrow = layout_mode(self.window_width) == LayoutMode::Narrow;
         let body = if narrow {
             Grid::new()
-                .rows([GridLength::Auto, GridLength::Star(1.0)])
+                .rows([GridLength::Auto, GridLength::Star(1.0), GridLength::Auto])
                 .row_spacing(metrics.section_gap)
                 .keyed_children(keys(vec![
                     grid_row_cell(0, input),
                     grid_row_cell(1, self.inline_output_unit()),
+                    TextBlock::new()
+                        .text(self.status.clone())
+                        .font_size(12.0)
+                        .grid_row(2)
+                        .into(),
                 ]))
         } else {
             Grid::new()
@@ -611,11 +632,11 @@ impl Workbench {
                                 .keyed_children(keys(vec![
                                     TextBox::new()
                                         .text(self.filter.clone())
-                                        .placeholder_text(self.t("Filter symbols", "筛选符号"))
+                                        .placeholder_text(self.t("Filter", "筛选"))
                                         .on_text_changed(context.callback(Message::FilterChanged))
                                         .into(),
                                     self.horizontal(vec![self.button(
-                                        self.t("Favorite filter", "收藏筛选"),
+                                        self.t("Save filter", "收藏筛选"),
                                         context.message(Message::AddFavorite),
                                     )]),
                                 ])),
@@ -804,14 +825,14 @@ impl Workbench {
             .children((
                 TextBox::new()
                     .text(self.filter.clone())
-                    .placeholder_text(self.t("Filter symbols", "筛选符号"))
+                    .placeholder_text(self.t("Filter", "筛选"))
                     .on_text_changed(context.callback(Message::FilterChanged))
                     .grid_column(0),
                 Button::new()
                     .on_click(context.message(Message::AddFavorite))
                     .min_height(metrics.control_height)
                     .grid_column(1)
-                    .content(self.t("Favorite filter", "收藏筛选")),
+                    .content(self.t("Save filter", "收藏筛选")),
             ));
 
         let body = Grid::new()
@@ -854,19 +875,11 @@ impl Workbench {
         ];
         let mut modes = Vec::new();
         for format in [OutputFormat::Vectors, OutputFormat::Ir, OutputFormat::Json] {
-            let label = if self.format == format {
-                format!("[{}]", format.label())
-            } else {
-                format.label().to_string()
-            };
+            let label = copy::selected(format.label(), self.format == format);
             modes.push(self.button(&label, context.message(Message::SetFormat(format))));
         }
         for level in 0..=4u8 {
-            let label = if self.narrowness == level {
-                format!("[{level}]")
-            } else {
-                level.to_string()
-            };
+            let label = copy::selected(&level.to_string(), self.narrowness == level);
             modes.push(self.button(&label, context.message(Message::SetNarrowness(level))));
         }
         match layout_mode(self.window_width) {
@@ -914,11 +927,7 @@ impl Workbench {
     fn narrow_selector(&self, context: &mut ViewContext<Self>) -> View {
         let mut items = Vec::new();
         for pane in [NarrowPane::Input, NarrowPane::Output, NarrowPane::Tools] {
-            let label = if self.narrow_pane == pane {
-                format!("[{}]", pane.label(self.lang.is_zh()))
-            } else {
-                pane.label(self.lang.is_zh()).to_string()
-            };
+            let label = copy::selected(pane.label(self.lang.is_zh()), self.narrow_pane == pane);
             items.push(self.button(&label, context.message(Message::SetNarrowPane(pane))));
         }
         self.horizontal(items)
@@ -1040,8 +1049,8 @@ impl Workbench {
                 TextBox::new()
                     .text(self.reverse_input.clone())
                     .placeholder_text(self.t(
-                        "One vector row per line (comma or space separated)",
-                        "每行一个向量（逗号或空格分隔）",
+                        "One vector per line. Separate values with commas or spaces.",
+                        "每行一个向量。用逗号或空格分隔数值。",
                     ))
                     .accepts_return(true)
                     .text_wrapping(TextWrapping::Wrap)
@@ -1067,15 +1076,15 @@ impl Workbench {
 
         let view_buttons = vec![
             self.button(
-                self.t("Table", "总表"),
+                self.t("Base table", "总表"),
                 context.message(Message::ShowView(ViewKind::Table)),
             ),
             self.button(
-                self.t("Modules", "模块"),
+                self.t("Module table", "模块表"),
                 context.message(Message::ShowView(ViewKind::Modules)),
             ),
             self.button(
-                self.t("Stats", "统计"),
+                self.t("Statistics", "统计"),
                 context.message(Message::ShowView(ViewKind::Stats)),
             ),
             self.button(
@@ -1083,15 +1092,15 @@ impl Workbench {
                 context.message(Message::ShowView(ViewKind::Weights)),
             ),
             self.button(
-                self.t("Effective", "生效权重"),
+                self.t("Effective weights", "生效权重"),
                 context.message(Message::ShowView(ViewKind::Effective)),
             ),
             self.button(
-                self.t("Axes", "维度"),
+                self.t("Dimensions", "维度"),
                 context.message(Message::ShowView(ViewKind::Dimensions)),
             ),
             self.button(
-                self.t("Docs", "文档"),
+                self.t("Documentation", "文档"),
                 context.message(Message::ShowView(ViewKind::Docs)),
             ),
         ];
@@ -1117,7 +1126,7 @@ impl Workbench {
                         self.horizontal(vec![
                             TextBox::new()
                                 .text(self.query.clone())
-                                .placeholder_text(self.t("Query symbol", "查询符号"))
+                                .placeholder_text(self.t("Query", "查询"))
                                 .on_text_changed(context.callback(Message::QueryChanged))
                                 .into(),
                             self.button(self.t("Query", "查询"), context.message(Message::Query)),
@@ -1249,7 +1258,7 @@ impl Workbench {
         blocks.push(
             TextBox::new()
                 .text(self.module_filter.clone())
-                .placeholder_text(self.t("Filter modules", "筛选模块"))
+                .placeholder_text(self.t("Filter", "筛选"))
                 .on_text_changed(context.callback(Message::ModuleFilterChanged))
                 .into(),
         );
@@ -1257,11 +1266,8 @@ impl Workbench {
         let profile_columns = (per_row / 2).max(2);
         let mut profile_buttons = Vec::new();
         for name in self.profile_names() {
-            let label = if self.active_profile == name {
-                format!("[{name}]")
-            } else {
-                name.clone()
-            };
+            let label =
+                copy::selected(&copy::profile_label(&name, zh), self.active_profile == name);
             profile_buttons.push(self.button(
                 &label,
                 context.callback({
@@ -1275,7 +1281,7 @@ impl Workbench {
                 .text(format!(
                     "{}: {}",
                     self.t("Profile", "配置档案"),
-                    self.active_profile
+                    copy::profile_label(&self.active_profile, zh)
                 ))
                 .font_size(13.0)
                 .into(),
@@ -1288,11 +1294,11 @@ impl Workbench {
                 .on_text_changed(context.callback(Message::ProfileNameChanged))
                 .into(),
             self.button(
-                self.t("Save current", "保存当前"),
+                self.t("Save profile", "保存档案"),
                 context.message(Message::SaveProfile),
             ),
             self.button(
-                self.t("Delete active", "删除当前"),
+                self.t("Delete profile", "删除档案"),
                 context.message(Message::DeleteProfile),
             ),
         ]));
@@ -1307,22 +1313,15 @@ impl Workbench {
                 continue;
             }
             let enabled = self.enabled_for(kind);
-            let header = TextBlock::new()
-                .text(format!(
-                    "{} ({}/{})",
-                    kind.label(zh),
-                    enabled.len(),
-                    self.modules.optional_ids(kind).len()
-                ))
-                .font_size(15.0);
+            let header = TextBlock::new().text(kind.label(zh)).font_size(15.0);
             let bulk = self.button_rows(
                 vec![
                     self.button(
-                        self.t("All on", "全部启用"),
+                        self.t("Enable all", "全部启用"),
                         context.callback(move |_| Message::SetAllModules(kind, true)),
                     ),
                     self.button(
-                        self.t("All off", "全部禁用"),
+                        self.t("Disable all", "全部禁用"),
                         context.callback(move |_| Message::SetAllModules(kind, false)),
                     ),
                 ],
@@ -1332,11 +1331,9 @@ impl Workbench {
             for module in visible {
                 let is_on = enabled.contains(&module.id);
                 let label = if module.always_on {
-                    format!("{} · {}", module.label(zh), self.t("always on", "始终启用"))
-                } else if is_on {
-                    format!("[{}]", module.label(zh))
-                } else {
                     module.label(zh).to_string()
+                } else {
+                    copy::selected(module.label(zh), is_on)
                 };
                 let control: View = if module.always_on {
                     Button::new()
@@ -1353,11 +1350,11 @@ impl Workbench {
                     )
                 };
                 let info = TextBlock::new()
-                    .text(format!(
-                        "{} · {} {}",
+                    .text(copy::module_meta(
                         module.description(zh),
                         module.count,
-                        self.t("symbols", "个符号")
+                        module.always_on,
+                        zh,
                     ))
                     .font_size(12.0)
                     .text_wrapping(TextWrapping::Wrap);
@@ -1374,22 +1371,21 @@ impl Workbench {
         let parser_total = self.modules.optional_ids(ModuleKind::Parser).len();
         let keyboard_total = self.modules.optional_ids(ModuleKind::Keyboard).len();
         let enabled_total = self.enabled_parser.len() + self.enabled_keyboard.len();
-        let symbols = self.enabled_symbols();
+        let summary = copy::module_summary(
+            self.enabled_parser.len(),
+            parser_total,
+            self.enabled_keyboard.len(),
+            keyboard_total,
+            self.enabled_symbols(),
+            zh,
+        );
         blocks.push(
-            TextBlock::new()
-                .text(format!(
-                    "{}: {}/{} · {}: {}/{} · {}: {}",
-                    self.t("Parser", "解析"),
-                    self.enabled_parser.len(),
-                    parser_total,
-                    self.t("Keyboard", "键盘"),
-                    self.enabled_keyboard.len(),
-                    keyboard_total,
-                    self.t("Symbols", "符号"),
-                    symbols
-                ))
-                .font_size(12.0)
-                .into(),
+            self.stack(
+                summary
+                    .into_iter()
+                    .map(|line| TextBlock::new().text(line).font_size(12.0).into())
+                    .collect(),
+            ),
         );
 
         self.section(
@@ -1405,7 +1401,7 @@ impl Workbench {
         LayoutMetrics::for_density(self.density)
     }
 
-    fn fixed_section(&self, title: &'static str, content: impl Into<View>) -> View {
+    fn fixed_section(&self, title: &str, content: impl Into<View>) -> View {
         StackPanel::new()
             .spacing(self.metrics().section_gap)
             .children((TextBlock::new().text(title).font_size(15.0), content.into()))
@@ -1657,7 +1653,7 @@ impl Workbench {
     fn enter_keyboard_mode(&mut self) {
         let Some(hwnd) = win32::foreground_window() else {
             self.status = self
-                .t("No active window handle", "无法获取活动窗口")
+                .t("No active window found.", "找不到活动窗口。")
                 .to_string();
             return;
         };
@@ -1668,8 +1664,8 @@ impl Workbench {
         self.keyboard_mode = true;
         self.status = self
             .t(
-                "Click the target application, then pick symbols",
-                "先点目标程序，再点符号",
+                "Click the target application, then pick symbols.",
+                "先点击目标程序，再点符号。",
             )
             .to_string();
     }
@@ -1681,7 +1677,7 @@ impl Workbench {
             win32::set_foreground(self.window_handle);
         }
         self.keyboard_mode = false;
-        self.status = self.t("keyboard mode off", "已退出键盘模式").to_string();
+        self.status = self.t("Keyboard mode off.", "已退出键盘模式。").to_string();
     }
 
     fn send_symbol(&mut self, symbol: &str) {
@@ -1692,16 +1688,16 @@ impl Workbench {
         let foreground = win32::foreground_window();
         if foreground.is_none() || foreground == Some(self.window_handle) {
             self.status = self
-                .t("Click the target application first", "请先点击目标程序")
+                .t("Click the target application first.", "请先点击目标程序。")
                 .to_string();
             return;
         }
         match crate::input::inject(&symbol) {
             crate::input::Delivery::Sent => {
-                self.status = format!("{} {symbol}", self.t("sent", "已发送"));
+                self.status = copy::sent(&symbol, false, self.lang.is_zh());
             }
             crate::input::Delivery::Clipboard => {
-                self.status = format!("{} {symbol} (clipboard)", self.t("sent", "已发送"));
+                self.status = copy::sent(&symbol, true, self.lang.is_zh());
             }
             crate::input::Delivery::Failed(error) => self.status = error,
         }
@@ -1724,8 +1720,8 @@ impl Workbench {
         if is_modifier_symbol(&symbol) && self.input.trim().is_empty() {
             self.status = self
                 .t(
-                    "Pick a base segment before a combining mark",
-                    "请先选择基段再输入附加符",
+                    "Pick a base segment before a combining mark.",
+                    "请先选择基段，再输入附加符。",
                 )
                 .to_string();
             return;
@@ -1745,7 +1741,7 @@ impl Workbench {
         };
         if value.is_empty() {
             self.status = self
-                .t("Nothing to favorite", "没有可收藏的符号")
+                .t("Nothing to favorite.", "没有可收藏的符号。")
                 .to_string();
             return;
         }
@@ -1763,7 +1759,7 @@ impl Workbench {
     fn convert_forward(&mut self) {
         if self.input.trim().is_empty() {
             self.status = self
-                .t("Type or click an IPA symbol", "请输入或点击 IPA 符号")
+                .t("Type or click an IPA symbol.", "请输入或点击 IPA 符号。")
                 .to_string();
             return;
         }
@@ -1801,7 +1797,7 @@ impl Workbench {
 
     fn convert_reverse(&mut self) {
         if self.reverse_input.trim().is_empty() {
-            self.status = self.t("Enter a vector row", "请输入向量").to_string();
+            self.status = self.t("Enter a vector row.", "请输入向量。").to_string();
             return;
         }
         let width = self.engine.ndim();
@@ -1829,7 +1825,7 @@ impl Workbench {
 
     fn run_loop(&mut self) {
         if self.input.trim().is_empty() {
-            self.status = self.t("Nothing to loop", "没有可回环的输入").to_string();
+            self.status = self.t("Nothing to loop.", "没有可回环的输入。").to_string();
             return;
         }
         match self.engine.forward_with_tone(&self.input) {
@@ -1872,7 +1868,7 @@ impl Workbench {
         match self.engine.query(&self.query) {
             Ok(text) => {
                 self.output = text;
-                self.status = self.t("query done", "查询完成").to_string();
+                self.status = self.t("Query complete.", "查询完成。").to_string();
             }
             Err(error) => self.status = error,
         }
@@ -1933,7 +1929,7 @@ impl Workbench {
         }
         self.output = command;
         self.status = self
-            .t("command line for the current input", "当前输入的命令行")
+            .t("Command line for the current input.", "当前输入的命令行。")
             .to_string();
     }
 
@@ -1952,7 +1948,7 @@ impl Workbench {
         self.settings.scheme = Some(path);
         self.settings.save();
         self.reload_keyboard();
-        self.status = format!("loaded scheme: {} D", self.engine.ndim());
+        self.status = copy::scheme_loaded(self.engine.ndim(), self.lang.is_zh());
     }
 
     fn load_metric(&mut self) {
@@ -1967,7 +1963,7 @@ impl Workbench {
             Ok(()) => {
                 self.settings.metric = Some(path);
                 self.settings.save();
-                self.status = self.t("metric loaded", "度量已加载").to_string();
+                self.status = self.t("Metric loaded.", "度量已加载。").to_string();
             }
             Err(error) => self.status = error,
         }
@@ -1981,7 +1977,11 @@ impl Workbench {
             return;
         };
         let Ok(text) = std::fs::read_to_string(&path) else {
-            self.status = format!("could not read {}", path.display());
+            self.status = if self.lang.is_zh() {
+                format!("无法读取 {}。", path.display())
+            } else {
+                format!("Could not read {}.", path.display())
+            };
             return;
         };
         let mut output = Vec::new();
@@ -2004,7 +2004,11 @@ impl Workbench {
             }
         }
         self.output = output.join("\n");
-        self.status = format!("converted {}", path.display());
+        self.status = if self.lang.is_zh() {
+            format!("已转换 {}。", path.display())
+        } else {
+            format!("Converted {}.", path.display())
+        };
     }
 
     fn save_output(&mut self) {
@@ -2015,7 +2019,13 @@ impl Workbench {
             return;
         };
         match std::fs::write(&path, &self.output) {
-            Ok(()) => self.status = format!("saved {}", path.display()),
+            Ok(()) => {
+                self.status = if self.lang.is_zh() {
+                    format!("已保存 {}。", path.display())
+                } else {
+                    format!("Saved {}.", path.display())
+                }
+            }
             Err(error) => self.status = error.to_string(),
         }
     }
@@ -2041,7 +2051,13 @@ impl Workbench {
             csv.push('\n');
         }
         match std::fs::write(&path, csv) {
-            Ok(()) => self.status = format!("saved {}", path.display()),
+            Ok(()) => {
+                self.status = if self.lang.is_zh() {
+                    format!("已保存 {}。", path.display())
+                } else {
+                    format!("Saved {}.", path.display())
+                }
+            }
             Err(error) => self.status = error.to_string(),
         }
     }
@@ -2052,7 +2068,13 @@ impl Workbench {
         };
         let base = path.with_extension("").to_string_lossy().to_string();
         match self.engine.ir_export(&self.input, &base) {
-            Ok(()) => self.status = format!("exported {base}.layer1/.layer2"),
+            Ok(()) => {
+                self.status = if self.lang.is_zh() {
+                    format!("已导出 IR 文件到 {base}。")
+                } else {
+                    format!("Exported IR files to {base}.")
+                }
+            }
             Err(error) => self.status = error,
         }
     }
@@ -2062,7 +2084,7 @@ impl Workbench {
             return;
         };
         match win32::copy_tools(&directory) {
-            Ok(count) => self.status = format!("exported {count} tools"),
+            Ok(count) => self.status = copy::tools_exported(count, self.lang.is_zh()),
             Err(error) => self.status = error,
         }
     }
@@ -2128,11 +2150,15 @@ impl Workbench {
 
     fn toggle_module(&mut self, id: &str) {
         let Some(module) = self.modules.find(id) else {
-            self.status = format!("unknown module: {id}");
+            self.status = self
+                .t("That module is not available.", "该模块不可用。")
+                .to_string();
             return;
         };
         if module.always_on {
-            self.status = format!("module is always on: {id}");
+            self.status = self
+                .t("This module is always on.", "该模块始终启用。")
+                .to_string();
             return;
         }
         let kind = module.kind;
@@ -2145,12 +2171,12 @@ impl Workbench {
             Ok(true) => {
                 self.active_profile = PROFILE_CUSTOM.to_string();
                 self.sync_modules();
-                self.status = format!("enabled module: {label}");
+                self.status = copy::enabled_module(&label, self.lang.is_zh());
             }
             Ok(false) => {
                 self.active_profile = PROFILE_CUSTOM.to_string();
                 self.sync_modules();
-                self.status = format!("disabled module: {label}");
+                self.status = copy::disabled_module(&label, self.lang.is_zh());
             }
             Err(error) => self.status = error,
         }
@@ -2164,15 +2190,11 @@ impl Workbench {
         modules::set_all(&self.modules, enabled, kind, on);
         self.active_profile = PROFILE_CUSTOM.to_string();
         self.sync_modules();
-        self.status = format!(
-            "{} {}",
-            if on {
-                self.t("enabled all", "已全部启用")
-            } else {
-                self.t("disabled all", "已全部禁用")
-            },
-            kind.label(self.lang.is_zh())
-        );
+        let (kind_en, kind_zh) = match kind {
+            ModuleKind::Parser => ("parser", "解析模块"),
+            ModuleKind::Keyboard => ("keyboard", "键盘组"),
+        };
+        self.status = copy::all_modules(kind_en, kind_zh, on, self.lang.is_zh());
     }
 
     fn apply_profile(&mut self, name: &str) {
@@ -2185,22 +2207,23 @@ impl Workbench {
                 .modules
                 .reconcile(ModuleKind::Keyboard, &profile.keyboard);
         } else {
-            self.status = format!("unknown profile: {name}");
+            self.status = self.t("Profile not found.", "找不到该档案。").to_string();
             return;
         }
         self.active_profile = name.to_string();
         self.sync_modules();
-        self.status = format!("applied profile: {name}");
+        let label = copy::profile_label(name, self.lang.is_zh());
+        self.status = copy::applied_profile(&label, self.lang.is_zh());
     }
 
     fn save_profile(&mut self) {
         let name = self.profile_name.trim().to_string();
         if name.is_empty() {
-            self.status = self.t("profile name is empty", "档案名称为空").to_string();
+            self.status = copy::profile_name_empty(self.lang.is_zh());
             return;
         }
         if [PROFILE_ALL_ON, PROFILE_ALL_OFF, PROFILE_CUSTOM].contains(&name.as_str()) {
-            self.status = format!("profile name is reserved: {name}");
+            self.status = copy::profile_name_reserved(self.lang.is_zh());
             return;
         }
         let profile = ModuleProfile {
@@ -2211,23 +2234,29 @@ impl Workbench {
         self.settings.save_module_profile(profile);
         self.active_profile = name.clone();
         self.sync_modules();
-        self.status = format!("saved profile: {name}");
+        let label = copy::profile_label(&name, self.lang.is_zh());
+        self.status = copy::saved_profile(&label, self.lang.is_zh());
     }
 
     fn delete_profile(&mut self) {
         let name = self.active_profile.clone();
         if name == PROFILE_CUSTOM || name == PROFILE_ALL_ON || name == PROFILE_ALL_OFF {
             self.status = self
-                .t("select a saved profile first", "请先应用一个已保存的档案")
+                .t(
+                    "Select a saved profile first.",
+                    "请先应用一个已保存的档案。",
+                )
                 .to_string();
             return;
         }
         if self.settings.delete_module_profile(&name) {
             self.active_profile = PROFILE_CUSTOM.to_string();
             self.sync_modules();
-            self.status = format!("deleted profile: {name}");
+            let label = copy::profile_label(&name, self.lang.is_zh());
+            self.status = copy::deleted_profile(&label, self.lang.is_zh());
         } else {
-            self.status = format!("profile not found: {name}");
+            let label = copy::profile_label(&name, self.lang.is_zh());
+            self.status = copy::profile_not_found(&label, self.lang.is_zh());
         }
     }
 

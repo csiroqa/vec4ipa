@@ -1,6 +1,7 @@
 #![windows_subsystem = "windows"]
 
 mod app;
+mod copy;
 mod engine;
 mod favorites;
 mod input;
@@ -45,7 +46,7 @@ fn main() {
     }
     if startup.version {
         let engine = engine::Engine::new();
-        println!("vec4ipa_ui {} ({} D)", engine.version(), engine.ndim());
+        println!("{}", copy::version_line(&engine.version(), engine.ndim()));
         return;
     }
 
