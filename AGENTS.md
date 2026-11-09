@@ -91,6 +91,33 @@ ui\rust\installer.bat       REM or: make rust-ui-installer
 
 The C# WinUI reference and its MSIX project were removed in 4.0.0.
 
+### CI and release workflows
+
+`.github/workflows/ci.yml` runs on pushes to `master` and pull requests:
+
+- CLI: Ubuntu, `macos-15-intel` (x64), `macos-15` (arm64), and Windows
+  MSYS2; each job runs `make test`.
+- Workbench: `windows-latest`, with `cargo fmt --check`, clippy, and
+  `cargo test` through `ui\rust\build.bat`.
+
+`.github/workflows/release.yml` runs on `v*` tags, checks the tag against
+`IPA2VEC_VERSION`, builds the CLI archives, the portable Windows workbench,
+and the installer when Inno Setup is available. Only this workflow has
+`contents: write`.
+
+Keep these rules when editing a workflow:
+
+- Pin actions to full commit SHAs; do not use floating tags.
+- Keep top-level permissions `contents: read`; grant write only to the publish
+  job.
+- Use `persist-credentials: false` on checkout.
+- Do not add `pull_request_target` or expose secrets to pull requests.
+- `macos-13` is retired; use `macos-15-intel` for x64 and `macos-15` for arm64.
+- The Windows C build uses MSYS2; pass the Windows Python path through
+  `cygpath` as `PYTHON`.
+- The Inno install is best-effort; a failed install must leave the portable ZIP
+  in the release rather than fail the whole workflow.
+
 **Lint** is not a separate tool here. The C build uses `-Wall -Wextra
 -std=c11`; treat new warnings as defects. `-Wno-format-truncation` is
 deliberate for bounded trace buffers — do not silence it by shrinking

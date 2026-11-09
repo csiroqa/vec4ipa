@@ -39,6 +39,15 @@ Inno Setup 6.3 or later is required. A separately installed MSIX package from
 the retired C# build is not removed automatically; uninstall it from
 **Settings → Apps**.
 
+## CI and release
+
+GitHub Actions runs the CLI suite on Ubuntu, macOS x64/arm64, and Windows, and
+runs this workbench's formatting, clippy, and unit tests on Windows. The tag
+release workflow checks the tag against `IPA2VEC_VERSION`, builds the CLI
+archives, the portable Windows ZIP, and the installer when Inno Setup is
+available. The installer remains the recommended Windows download; the
+portable ZIP is the fallback.
+
 ## Feature coverage
 
 | Area | Status | Notes |

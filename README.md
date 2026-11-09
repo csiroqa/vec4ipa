@@ -51,6 +51,18 @@ and the three CLI tools in `ui/rust/dist/`. That folder is self-contained and
 does not need a separate Windows App SDK installation. See
 `ui/rust/README.md` for the parity matrix and known differences.
 
+### CI and releases
+
+GitHub Actions runs the CLI suite on Ubuntu, macOS x64/arm64, and Windows
+(MSYS2), plus the Rust workbench checks on Windows. The workflows pin action
+revisions and use read-only permissions outside the tag release job.
+
+Pushing a `v*` tag checks the tag against `IPA2VEC_VERSION`, builds CLI
+archives for Linux, macOS, and Windows, packages the portable Windows
+workbench, and publishes the assets with the repository token. The Inno Setup
+installer is included when the runner can install Inno Setup; otherwise the
+portable ZIP is still published.
+
 The binaries embed the full table; they do not read any file at runtime.
 
 ## GUI workbench (Windows)
