@@ -54,8 +54,9 @@ does not need a separate Windows App SDK installation. See
 ### CI and releases
 
 GitHub Actions runs the CLI suite on Ubuntu, macOS x64/arm64, and Windows
-(MSYS2), plus the Rust workbench checks on Windows. The workflows pin action
-revisions and use read-only permissions outside the tag release job.
+(MSYS2), plus the Rust workbench checks on Windows. Python dependencies are
+pinned in `tools/requirements-ci.txt`; the workflows pin action revisions and
+use read-only permissions outside the tag release job.
 
 Pushing a `v*` tag checks the tag against `IPA2VEC_VERSION`, builds CLI
 archives for Linux, macOS, and Windows, packages the portable Windows

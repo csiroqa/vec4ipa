@@ -1,0 +1,7 @@
+# Pinned Python dependencies for CI and release builds.
+#
+# The tongue-scheme exporter fits weights with scipy; different optimizer
+# versions can land in a different local minimum and change tongue.scheme.
+# Keep these versions aligned with the committed artifact and prefer wheels.
+numpy==2.3.3
+scipy==1.16.3

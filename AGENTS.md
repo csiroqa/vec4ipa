@@ -115,6 +115,9 @@ Keep these rules when editing a workflow:
 - `macos-13` is retired; use `macos-15-intel` for x64 and `macos-15` for arm64.
 - The Windows C build uses MSYS2; pass the Windows Python path through
   `cygpath` as `PYTHON`.
+- CI installs Python packages from `tools/requirements-ci.txt` with
+  `--only-binary=:all:`. Keep numpy/scipy pinned: the tongue weights are
+  fitted, and a different optimizer version can change `tongue.scheme`.
 - The Inno install is best-effort; a failed install must leave the portable ZIP
   in the release rather than fail the whole workflow.
 
