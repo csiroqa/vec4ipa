@@ -505,9 +505,10 @@ latter says whether the commit itself is sound.
   If an artifact is stale, the check fails **and** the working tree already
   contains the regenerated output; inspect it, run the chain deliberately, and
   commit the result. `tongue.scheme` compares its weight line numerically with
-  a 1e-3 tolerance because scipy/BLAS builds differ in the last digits; every
-  other line and artifact is byte-exact. It excludes `fit_tongue_forward` and
-  the retrieval gates because those read `.rda` corpora and take minutes.
+  an 8e-2 tolerance because scipy/BLAS builds land in slightly different local
+  minima (observed spread about 0.056); every other line and artifact is
+  byte-exact. It excludes `fit_tongue_forward` and the retrieval gates because
+  those read `.rda` corpora and take minutes.
 
 - **`make gen` is not the whole regeneration story.** It only writes
   `src/vectors.h` and `src/readme_embed.h`. The tongue chain is separate:
